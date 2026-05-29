@@ -1,7 +1,14 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "types": ["vite/client", "node", "chrome"],
+    "types": [
+      "vite/client",
+      "node",
+      "chrome",
+      "vitest/globals",
+      "@testing-library/jest-dom",
+      "vitest-environment-web-ext/types"
+    ],
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": false,
     "skipLibCheck": true,
@@ -25,6 +32,7 @@
   },
   "include": [
     "src",
+    "test",
     "utils",
     "vite.config.base.ts",
     "vite.config.chrome.ts",

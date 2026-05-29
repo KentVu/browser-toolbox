@@ -3,10 +3,6 @@
   "name": "My web browsing Aide",
   "description": "Sync scroll by distance rather than percentage.",
   "version": "1.0",
-  "background": {
-    "service_worker": "js/background/background.js",
-    "type": "module"
-  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -51,7 +47,6 @@
       }
     }
   },
-  "devtools_page": "src/pages/devtools/index.html",
   "web_accessible_resources": [
     {
       "resources": [
