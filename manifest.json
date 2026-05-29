@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "My web browsing Aide",
+  "description": "Sync scroll by distance rather than percentage.",
+  "version": "1.0",
+  "background": {
+    "service_worker": "js/background/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon-16.png",
+      "32": "icon-32.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon-16.png",
+    "32": "images/icon-32.png",
+    "48": "images/icon-48.png",
+    "128": "icon-128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "clipboardRead"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*",
+        "<all_urls>"
+      ],
+      "js": [
+        "src/pages/content/index.tsx"
+      ],
+      "css": [
+        "contentStyle.css"
+      ]
+    }
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+O",
+        "mac": "Command+B"
+      }
+    }
+  },
+  "devtools_page": "src/pages/devtools/index.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "contentStyle.css",
+        "icon-128.png",
+        "icon-32.png"
+      ],
+      "matches": []
+    }
+  ]
+}
