@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface Tab {
-    id: string | number;
-    title: string;
-}
+import { Tab } from '@src/lib/Tab';
 
 interface TabListProps {
     tabList: Tab[];
@@ -22,4 +18,4 @@ function TabList({ tabList }: TabListProps) {
     );
 };
 
-export { TabList, TabListProps, Tab };
+export { TabList, TabListProps };

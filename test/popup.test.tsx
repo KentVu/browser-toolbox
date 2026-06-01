@@ -13,7 +13,7 @@ afterEach(() => {
 describe('Popup', () => {
     describe('Initial page', () => {
         it('has title', async () => {
-            render(<Popup />);
+            render(<Popup tabList={[]}/>);
             const titleElement = screen.getByText(/Welcome/i);
             expect(titleElement).toBeInTheDocument();
         })

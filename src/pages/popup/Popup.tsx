@@ -1,6 +1,7 @@
 import React from 'react';
 import logo from '@assets/img/logo.svg';
-import { Tab, TabList } from './TabList';
+import { TabList } from './TabList';
+import { Tab } from '../../lib/Tab';
 
 interface PopupProps {
   tabList: Tab[];
