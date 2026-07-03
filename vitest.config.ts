@@ -11,6 +11,6 @@ export default defineConfig({
         path: './dist_chrome',
       },
     },
-    setupFiles: ['./vitest.setup.ts'],
-  }
+    setupFiles: ['./mock-extension-apis.ts'],
+  },
 })

@@ -51,7 +51,6 @@
     "vite": "^6.3.5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.1.7",
-    "vitest-chrome": "^0.1.0",
     "vitest-environment-web-ext": "^0.0.3"
   }
 }

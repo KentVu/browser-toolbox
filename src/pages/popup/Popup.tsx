@@ -9,12 +9,11 @@ interface PopupProps {
 
 export default function Popup({ tabList = [] }: PopupProps) {
   return (
-    <div className="absolute top-0 left-0 right-0 bottom-0 text-center h-full p-3 bg-gray-800">
-      <header className="flex flex-col items-center justify-center text-white">
-        <p>Welcome</p>
-        <TabList tabList={tabList} />
-        <p>Popup styled with TailwindCSS!</p>
-      </header>
+    <div className="w-[280px] min-h-[240px] p-2.5 bg-[#111113] text-white font-sans text-[13px] leading-tight">
+      <div className="mb-2 px-1 text-center">
+        <p className="text-sm font-medium tracking-wide text-gray-200">Welcome</p>
+      </div>
+      <TabList tabList={tabList} />
     </div>
   );
 }
