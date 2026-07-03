@@ -10,6 +10,7 @@ export default defineConfig({
       'web-ext': {
         path: './dist_chrome',
       },
-    }
+    },
+    setupFiles: ['./vitest.setup.ts'],
   }
 })

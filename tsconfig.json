@@ -27,7 +27,8 @@
       "@src/*": ["src/*"],
       "@assets/*": ["src/assets/*"],
       "@locales/*": ["src/locales/*"],
-      "@pages/*": ["src/pages/*"]
+      "@pages/*": ["src/pages/*"],
+      "@lib/*": ["src/lib/*"]
     }
   },
   "include": [
