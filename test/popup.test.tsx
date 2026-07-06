@@ -31,7 +31,6 @@ describe('Popup', () => {
                 expect(screen.getByText(new RegExp(tab.title, 'i'))).toBeInTheDocument();
             });
         })
-        it('should display tabs in recently activated order')
         it('should highlight the selected tab when I press its ID',)
     })
 })

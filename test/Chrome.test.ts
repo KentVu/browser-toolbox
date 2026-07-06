@@ -2,7 +2,7 @@ import Chrome from '@src/lib/Chrome';
 import { describe, it, expect, test, afterEach } from 'vitest'
 
 describe('Chrome API wrapper', () => {
-    describe('tabs.get()', () => {
+    describe('tabs', () => {
         afterEach(() => {
             chrome.tabs._tabs = [];
         });
@@ -14,15 +14,18 @@ describe('Chrome API wrapper', () => {
             expect(tabs[0].url).toBe('https://www.example.com');
         });
 
-        // TODO use onActivated!!
-        it('should display tabs in recently activated order', async () => {
+        // TODO use lastAccessed from chrome.tabs.query
+        it('should display tabs in recently activated order for Chrome.tabs.getByLastAccessed()', async () => {
             const tab1 = await chrome.tabs.create({ url: 'https://www.example.com' });
             const tab2 = await chrome.tabs.create({ url: 'https://www.example.org' });
-            await chrome.tabs.activate(tab1.id);
-            const tabs = await Chrome.tabs.get();
+            let tabs = await Chrome.tabs.getByLastAccessed();
             expect(tabs).toHaveLength(2);
-            expect(tabs[0].url).toBe('https://www.example.com');
-            expect(tabs[1].url).toBe('https://www.example.org');
+            expect(tabs[0].url).toBe(tab2.url);
+            expect(tabs[1].url).toBe(tab1.url);
+            await Chrome.tabs.activate(tab1.id as number);
+            tabs = await Chrome.tabs.getByLastAccessed();
+            expect(tabs[0].url).toBe(tab1.url);
+            expect(tabs[1].url).toBe(tab2.url);
         });
     });
 });

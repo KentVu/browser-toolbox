@@ -6,15 +6,17 @@ interface TabListProps {
 }
 
 function TabList({ tabList }: TabListProps) {
+    const shortcutKeys = 'asdfghjklqwertyuiopzxcvbnm';
     return (
         <div className="w-full mt-2">
             <h2 className="text-[11px] font-semibold text-gray-400 tracking-wider mb-1 px-1">TAB LIST</h2>
-            <ul className="divide-y divide-gray-700 bg-gray-800/80 rounded-md border border-gray-700 text-left max-h-[120px] overflow-auto shadow-inner">
-                {tabList.map((tab: Tab) => {
+            <ul className="divide-y divide-gray-700 bg-gray-800/80 rounded-md border border-gray-700 text-left max-h-[360px] overflow-auto shadow-inner">
+                {tabList.map((tab: Tab, index: number) => {
                     let hostname = '';
                     if (tab.url) {
                         try { hostname = new URL(tab.url).hostname; } catch {}
                     }
+                    const shortcut = shortcutKeys[index] || String((index % 26) + 1);
                     return (
                         <li
                             key={tab.id}
@@ -22,8 +24,13 @@ function TabList({ tabList }: TabListProps) {
                         >
                             <div className="w-3.5 h-3.5 rounded-sm bg-gradient-to-br from-gray-500 to-gray-600 flex-shrink-0 ring-1 ring-gray-600/50" />
                             <div className="min-w-0 flex-1">
-                                <div className="text-xs text-gray-100 truncate group-hover:text-blue-300 transition-colors">
-                                    {tab.title || 'Untitled'}
+                                <div className="flex items-baseline gap-1.5">
+                                    <div className="text-xs text-gray-100 truncate flex-1 group-hover:text-blue-300 transition-colors">
+                                        {tab.title || 'Untitled'}
+                                    </div>
+                                    <span className="text-[9px] font-mono text-gray-500/70 tracking-tight shrink-0">
+                                        {shortcut}
+                                    </span>
                                 </div>
                                 {hostname && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
@@ -38,6 +45,7 @@ function TabList({ tabList }: TabListProps) {
             {tabList.length === 0 && (
                 <div className="text-[10px] text-gray-500 px-1 py-1">No open tabs</div>
             )}
+            <div className="text-[10px] text-gray-500 px-1 py-1">Select a tab</div>
         </div>
     );
 };
