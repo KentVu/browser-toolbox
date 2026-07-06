@@ -10,3 +10,8 @@ body {
 
   position: relative;
 }
+
+.selected {
+  background-color: rgb(37 99 235 / 0.5);
+}
+
