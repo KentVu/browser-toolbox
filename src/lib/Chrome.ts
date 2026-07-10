@@ -1,26 +1,42 @@
 import { Tab } from '@src/lib/Tab';
 
-const Chrome = {
-    tabs: {
-        get: async (): Promise<Tab[]> => {
-            const chromeTabs = await chrome.tabs.query({});
-            return chromeTabs
-                .map((t): Tab => ({
-                    id: t.id!,
-                    title: t.title || '',
-                    url: t.url,
-                    lastAccessed: t.lastAccessed,
-                }))
-        },
-        getByLastAccessed: async (): Promise<Tab[]> => {
-            const chromeTabs = await Chrome.tabs.get();
-            return chromeTabs
-                .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-        },
-        activate: async (tabId: number): Promise<void> => {
-            await chrome.tabs.update(tabId, { active: true });
-        },
+export interface ChromeTabApi {
+    get(): Promise<Tab[]>;
+    getByLastAccessed(): Promise<Tab[]>;
+    activate(tabId: number): Promise<void>;
+}
+
+export interface ChromeApi {
+    tabs: ChromeTabApi;
+}
+
+class DefaultTabs implements ChromeTabApi {
+    async get(): Promise<Tab[]> {
+        const chromeTabs = await chrome.tabs.query({});
+        return chromeTabs 
+            .map((t): Tab => ({
+                id: t.id!,
+                title: t.title || '',
+                url: t.url,
+                lastAccessed: t.lastAccessed,
+            }))
+    }
+    async getByLastAccessed(): Promise<Tab[]> {
+        // Reference defaultTabs directly to avoid 'this' context issues during object literal initialization
+        const chromeTabs = await this.get();
+        return chromeTabs
+            .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+    }
+    async activate(tabId: number): Promise<void> {
+        await chrome.tabs.update(tabId, { active: true });
     }
 };
 
-export default Chrome;
+class DefaultChrome implements ChromeApi {
+    tabs: ChromeTabApi;
+
+    constructor() {
+        this.tabs = new DefaultTabs();
+    }
+}
+export default new DefaultChrome();
