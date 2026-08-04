@@ -71,7 +71,7 @@ function TabList({ tabList, keyMap }: TabListProps) {
             )}
             <div className="text-[10px] text-gray-500 px-1 py-1">{
                 selectedIndex === null ?
-                    "Select a tab" :
+                    "Press a key to select a tab" :
                     <>
                         <div>Select next action:</div>
                         <ul className="list-disc list-inside text-[9px] text-gray-500">
