@@ -1,4 +1,5 @@
 import { Tab } from '@src/lib/Tab';
+import { sortByLastAccessed } from '@src/lib/Util';
 
 export interface ChromeTabApi {
     get(): Promise<Tab[]>;
@@ -24,8 +25,7 @@ class DefaultTabs implements ChromeTabApi {
     async getByLastAccessed(): Promise<Tab[]> {
         // Reference defaultTabs directly to avoid 'this' context issues during object literal initialization
         const chromeTabs = await this.get();
-        return chromeTabs
-            .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+        return sortByLastAccessed(chromeTabs);
     }
     async activate(tabId: number): Promise<void> {
         await chrome.tabs.update(tabId, { active: true });
@@ -39,4 +39,4 @@ class DefaultChrome implements ChromeApi {
         this.tabs = new DefaultTabs();
     }
 }
-export default new DefaultChrome();
+export const Chrome = new DefaultChrome();

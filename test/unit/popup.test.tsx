@@ -1,29 +1,42 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import type { Tab } from '@src/lib/Tab';
-import { shortcutKeys } from '@src/lib/constants';
 import { PopupShadow } from '@src/pages/popup/PopupShadow';
-import { PopupShadowMock } from './PopupShadowMock';
+import { MockChrome } from './MockChrome';
 
 describe('Popup', () => {
-  it('lists all tabs in all windows', async () => {
-    const tabList: Tab[] = [
-      { id: 1, windowId: 1, title: 'Docs', url: 'https://docs.example.com/page' },
-      //{ id: 2, windowId: 1, title: 'Mail', url: 'https://mail.example.com/inbox' },
-      { id: 3, windowId: 2, title: 'game', url: 'https://game.example.com/inbox' },
-      //{ id: 4, windowId: 2, title: 'music', url: 'https://music.example.com' },
-    ];
-    const popupShadow: PopupShadow = new PopupShadowMock(tabList);
+  describe('Tablist', () => {
+    it('lists all tabs in all windows', async () => {
+      const tabList: Tab[] = [
+        { id: 1, title: 'Docs', url: 'https://docs.example.com/page' },
+        { id: 3, title: 'game', url: 'https://game.example.com/inbox' },
+      ];
+      const popupShadow = new PopupShadow(new MockChrome(tabList));
 
-    const keyMap: Map<number, string> = popupShadow.tabKeyMap(tabList.map(tab => tab.id));
+      const keyMap: Map<number, string> = popupShadow.tabKeyMap(tabList.map(tab => tab.id));
 
-    render(<Popup shadow={popupShadow} />);
+      render(<Popup shadow={popupShadow} />);
 
-    //expect(screen.getByText('Mail')).toBeTruthy();
-    await expectTabItem('Docs', 'docs.example.com', keyMap.get(1)!);
-    //expect(screen.getByText('mail.example.com')).toBeTruthy();
-    await expectTabItem('game', 'game.example.com', keyMap.get(3)!);
+      await expectTabItem('Docs', 'docs.example.com', keyMap.get(1)!);
+      await expectTabItem('game', 'game.example.com', keyMap.get(3)!);
+    });
+
+    it('selects the correct tab when a key is pressed', async () => {
+      const tabList: Tab[] = [
+        { id: 1, title: 'Docs', url: 'https://docs.example.com/page' },
+        { id: 3, title: 'game', url: 'https://game.example.com/inbox' },
+      ];
+      const popupShadow = new PopupShadow(new MockChrome(tabList));
+      const keyMap: Map<number, string> = popupShadow.tabKeyMap(tabList.map(tab => tab.id));
+
+      render(<Popup shadow={popupShadow} />);
+      // Simulate pressing the key for the second tab
+      const secondTabKey = keyMap.get(tabList[1].id)!;
+      fireEvent.keyDown(document, { key: secondTabKey });
+      const item = (await screen.findByText('game')).closest('li')!;
+      expect(item.classList.contains('selected')).toBe(true);
+    });
   });
 });
 

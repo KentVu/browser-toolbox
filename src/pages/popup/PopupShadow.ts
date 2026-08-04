@@ -1,8 +1,15 @@
+import { ChromeApi } from '@src/lib/Chrome';
 import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 
-export abstract class PopupShadow {
-  abstract tabList(): Promise<Tab[]>;
+export class PopupShadow {
+  constructor(private readonly chrome: ChromeApi) {
+  }
+
+  async tabList(): Promise<Tab[]> {
+    const tabList: Tab[] = await this.chrome.tabs.get();
+    return tabList;
+  }
 
   /**
    * Generates a map of tab IDs to their corresponding keyboard shortcuts.
