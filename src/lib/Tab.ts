@@ -1,5 +1,5 @@
 export interface Tab {
-    id: string | number;
+    id: number;
     title: string;
     url?: string;
     lastAccessed?: number;

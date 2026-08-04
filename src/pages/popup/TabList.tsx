@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
-import { shortcutKeys } from '@src/lib/constants';
 
 interface TabListProps {
     tabList: Tab[];
+    keyMap: Map<number, string>;
 }
 
-function TabList({ tabList }: TabListProps) {
+function TabList({ tabList, keyMap }: TabListProps) {
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const listRef = useRef<HTMLUListElement>(null);
 
@@ -16,14 +16,15 @@ function TabList({ tabList }: TabListProps) {
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
-            const idx = shortcutKeys.indexOf(e.key.toLowerCase());
-            if (idx !== -1 && idx < tabList.length) {
+            const pressed = e.key.toLowerCase();
+            const idx = tabList.findIndex(tab => keyMap.get(tab.id)?.toLowerCase() === pressed);
+            if (idx !== -1) {
                 setSelectedIndex(idx);
             }
         }
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [tabList.length]);
+    }, [tabList, keyMap]);
 
     return (
         <div className="w-full mt-2">
@@ -38,7 +39,7 @@ function TabList({ tabList }: TabListProps) {
                     if (tab.url) {
                         try { hostname = new URL(tab.url).hostname; } catch {}
                     }
-                    const shortcut = shortcutKeys[index] || String((index % 26) + 1);
+                    const shortcut = keyMap.get(tab.id) || String((index % 26) + 1);
                     const isSelected = index === selectedIndex;
                     return (
                         <li

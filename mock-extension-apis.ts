@@ -1,3 +1,4 @@
+// Example of declaring a global variable in vitest.
 (global as any).chrome = {
   tabs: {
     _tabs: [] as any[],
