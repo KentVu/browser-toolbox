@@ -4,10 +4,11 @@ import { Tab } from '@src/lib/Tab';
 interface TabListProps {
     tabList: Tab[];
     keyMap: Map<number, string>;
+    selectedIndex: number | null;
+    setSelectedIndex: (index: number | null) => void;
 }
 
-function TabList({ tabList, keyMap }: TabListProps) {
-    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+function TabList({ tabList, keyMap, selectedIndex, setSelectedIndex }: TabListProps) {
     const listRef = useRef<HTMLUListElement>(null);
 
     useEffect(() => {

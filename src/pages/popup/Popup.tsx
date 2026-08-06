@@ -16,7 +16,7 @@ export default function Popup({ shadow }: PopupProps) {
     let cancelled = false;
 
     async function loadTabs() {
-      const tabs = await shadow.tabList();
+      const tabs = await shadow.tabListByMostRecent();
       if (cancelled) return;
       setTabList(tabs);
       setKeyMap(shadow.tabKeyMap(tabs.map(tab => tab.id)));
@@ -33,7 +33,7 @@ export default function Popup({ shadow }: PopupProps) {
       <div className="mb-2 px-1 text-center">
         <p className="text-sm font-medium tracking-wide text-gray-200">Welcome</p>
       </div>
-      <TabList tabList={tabList} keyMap={keyMap} />
+      <TabList tabList={tabList} keyMap={keyMap} selectedIndex={null} setSelectedIndex={() => {}} />
     </div>
   );
 }
