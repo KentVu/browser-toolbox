@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
+import { PopupShadow } from './PopupShadow';
 
 interface TabListProps {
-    tabList: Tab[];
-    keyMap: Map<number, string>;
-    selectedIndex: number | null;
-    setSelectedIndex: (index: number | null) => void;
+    shadow: PopupShadow;
 }
 
-function TabList({ tabList, keyMap, selectedIndex, setSelectedIndex }: TabListProps) {
+function TabList({ shadow }: TabListProps) {
+    const [tabList] = shadow.useTabListByMostRecent();
     const listRef = useRef<HTMLUListElement>(null);
 
     useEffect(() => {
@@ -18,14 +17,14 @@ function TabList({ tabList, keyMap, selectedIndex, setSelectedIndex }: TabListPr
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
-            const idx = tabList.findIndex(tab => keyMap.get(tab.id)?.toLowerCase() === pressed);
-            if (idx !== -1) {
-                setSelectedIndex(idx);
+            const idx = shadow.tabIdForKey(pressed);
+            if (idx !== undefined) {
+                //setSelectedIndex(idx);
             }
         }
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [tabList, keyMap]);
+    }, [tabList]);
 
     return (
         <div className="w-full mt-2">
