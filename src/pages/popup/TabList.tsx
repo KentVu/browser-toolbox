@@ -8,6 +8,7 @@ interface TabListProps {
 
 function TabList({ shadow }: TabListProps) {
     const [tabList] = shadow.useTabListByMostRecent();
+    const selectedTabId = shadow.useSelectedTabId();
     const listRef = useRef<HTMLUListElement>(null);
 
     useEffect(() => {
@@ -32,7 +33,7 @@ function TabList({ shadow }: TabListProps) {
             <ul
                 ref={listRef}
                 tabIndex={-1}
-                className="divide-y divide-gray-700 bg-gray-800/80 rounded-md border border-gray-700 text-left max-h-[360px] overflow-auto shadow-inner focus:outline-none"
+                className="divide-y divide-gray-700 bg-gray-80/80 rounded-md border border-gray-700 text-left max-h-[360px] overflow-auto shadow-inner focus:outline-none"
             >
                 {tabList.map((tab: Tab, index: number) => {
                     let hostname = '';
@@ -40,7 +41,7 @@ function TabList({ shadow }: TabListProps) {
                         try { hostname = new URL(tab.url).hostname; } catch {}
                     }
                     const shortcut = keyMap.get(tab.id) || String((index % 26) + 1);
-                    const isSelected = index === selectedIndex;
+                    const isSelected = tab.id === selectedTabId;
                     return (
                         <li
                             key={tab.id}
