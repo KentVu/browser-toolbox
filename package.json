@@ -21,6 +21,7 @@
     "happy-dom": "^20.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "simpler-state": "^1.2.2",
     "webextension-polyfill": "^0.12.0",
     "zustand": "^5.0.14"
   },

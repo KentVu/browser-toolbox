@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
-import { PopupShadow } from './PopupShadow';
+import { genTabKeyMap, PopupShadow } from './PopupShadow';
 
 interface TabListProps {
     shadow: PopupShadow;
 }
 
 function TabList({ shadow }: TabListProps) {
-    const [tabList] = shadow.useTabListByMostRecent();
-    const selectedTabId = shadow.useSelectedTabId();
+    const tabList = shadow.tabList.use();
+    const selectedTabId = shadow.selectedTabId.use();
+    // TODO move to PopupShadow
+    const keyMap = shadow.tabList.use((tabs) => genTabKeyMap(tabs.map(tab => tab.id)));
     const listRef = useRef<HTMLUListElement>(null);
 
     useEffect(() => {
@@ -18,12 +20,10 @@ function TabList({ shadow }: TabListProps) {
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
-            const idx = shadow.tabIdForKey(pressed);
-            if (idx !== undefined) {
-                //setSelectedIndex(idx);
-            }
+            shadow.onKeyPress(pressed);
         }
         document.addEventListener('keydown', handleKeyDown);
+        shadow.fetchTabList();
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [tabList]);
 
@@ -71,7 +71,7 @@ function TabList({ shadow }: TabListProps) {
                 <div className="text-[10px] text-gray-500 px-1 py-1">No open tabs</div>
             )}
             <div className="text-[10px] text-gray-500 px-1 py-1">{
-                selectedIndex === null ?
+                selectedTabId === null ?
                     "Press a key to select a tab" :
                     <>
                         <div>Select next action:</div>

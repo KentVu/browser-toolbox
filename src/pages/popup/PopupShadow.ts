@@ -3,6 +3,7 @@ import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { useState } from 'react';
 import { create, type ExtractState } from 'zustand';
+import { entity } from 'simpler-state'
 
 export class PopupState {
   tabList: Tab[] = [];
@@ -10,24 +11,14 @@ export class PopupState {
   selectedTabId: number | undefined;
 }
 
-export type PopupStoreState = ExtractState<PopupShadow['store']>;
-
 export class PopupShadow {
   private _tabKeyMap = new Map<number, string>();
   private _selectedTabId: number | undefined;
+  tabList = entity<Tab[]>([]);
+  selectedTabId = entity<number | null>(null);
 
   constructor(private readonly chrome: ChromeApi) {
   }
-
-  store = create((set) => ({
-    tabList: [] as Tab[],
-    setTabList: (tabList: Tab[]) => {
-      const tabKeyMap = genTabKeyMap(tabList.map(tab => tab.id));
-      set({ tabList, tabKeyMap });
-    },
-    tabKeyMap: new Map<number, string>(),
-    selectedTabId: undefined as (number | undefined),
-  }));
 
   async tabListByMostRecent(): Promise<Tab[]> {
     const tabList: Tab[] = await this.chrome.tabs.getByLastAccessed();
@@ -35,20 +26,9 @@ export class PopupShadow {
     return tabList;
   }
 
-  useSelectedTabId(): number | undefined {
-    return this.store((state) => state.selectedTabId);
-  }
-
-  useTabListByMostRecent(): Tab[] {
-    this.store((state: PopupStoreState) => state.setTabList); // Subscribe to tabList changes
-    const fetchTabList = async () => {
-      const tabs = await this.chrome.tabs.getByLastAccessed();
-      this._tabKeyMap = genTabKeyMap(tabList.map(tab => tab.id));
-      this.store.setTabList(tabs);
-    };
-    this.store((state: PopupStoreState) => state.tabList); // Subscribe to tabList changes
-    fetchTabList();
-    return [tabList];
+  async fetchTabList() {
+      const _tabs = await this.chrome.tabs.getByLastAccessed();
+      this.tabList.set(_tabs);
   }
 
   keyForTab(tabId: number): string {
@@ -70,7 +50,7 @@ export class PopupShadow {
     if (tabId === undefined) {
       return;
     }
-    this._selectedTabId = tabId;
+    this.selectedTabId.set(tabId);
   }
 
   tabIdForKey(key: string): number | undefined {
@@ -88,7 +68,7 @@ export class PopupShadow {
  * Generates a map of tab IDs to their corresponding keyboard shortcuts.
  * @param tabList 
  */
-function genTabKeyMap(tabList: number[], keys = shortcutKeys): Map<number, string> {
+export function genTabKeyMap(tabList: number[], keys = shortcutKeys): Map<number, string> {
   // Assign each tab with a unique key that's as close to the homerow as possible.
   const keyMap = new Map<number, string>();
   let keyIndex = 0;
