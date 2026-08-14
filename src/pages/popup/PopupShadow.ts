@@ -3,6 +3,7 @@ import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { useState } from 'react';
 import { create, type ExtractState } from 'zustand';
+import { combine } from 'zustand/middleware';
 import { entity } from 'simpler-state'
 
 export class PopupState {
@@ -85,35 +86,40 @@ export function genTabKeyMap(tabList: number[], keys = shortcutKeys): Map<number
 
 export function usePopupStore(chrome: ChromeApi) {
   const popupShadow = new PopupShadow(chrome);
-  return create((set) => ({
-    tabList: [] as Tab[],
-    tabKeyMap: new Map<number, string>(),
-    fetchTabList: async () => {
-      const tabList: Tab[] = await chrome.tabs.getByLastAccessed();
-      const tabKeyMap = genTabKeyMap(tabList.map(tab => tab.id));
-      set({ tabList, tabKeyMap });
-    },
-    selectedTabId: undefined as number | undefined,
-    selectTab: (tabId: number | undefined) => {
-      set({ selectedTabId: tabId });
-    },
-    onKeyPress: (key: string) => {
-      set((state: PopupState) => {
-        if (key === ']' && state.selectedTabId !== undefined) {
-          void chrome.tabs.moveTab('toTheRight', state.selectedTabId);
-          return {};
-        }
-        if (key === '[' && state.selectedTabId !== undefined) {
-          void chrome.tabs.moveTab('toTheLeft', state.selectedTabId);
-          return;
-        }
+  const store = create(
+    combine({
+      tabList: [] as Tab[],
+      tabKeyMap: new Map<number, string>(),
+      selectedTabId: undefined as number | undefined,
+    }, (set) => ({
+      fetchTabList: async () => {
+        const tabList: Tab[] = await chrome.tabs.getByLastAccessed();
+        const tabKeyMap = genTabKeyMap(tabList.map(tab => tab.id));
+        set({ tabList, tabKeyMap });
+      },
+      selectTab: (tabId: number | undefined) => {
+        set({ selectedTabId: tabId });
+      },
+      onKeyPress: (key: string) => {
+        set((state) => {
+          const tabKeyMap = genTabKeyMap(state.tabList.map(tab => tab.id));
+          if (key === ']' && state.selectedTabId !== undefined) {
+            void chrome.tabs.moveTab('toTheRight', state.selectedTabId);
+            return {};
+          }
+          if (key === '[' && state.selectedTabId !== undefined) {
+            void chrome.tabs.moveTab('toTheLeft', state.selectedTabId);
+            return {};
+          }
 
-        const tabId = [...state.tabKeyMap.values()].find((k) => k === key);
-        if (tabId === undefined) {
-          return;
-        }
-        return { selectedTabId: tabId };
-      });
-    },
-  }));
+          const tabId = [...tabKeyMap.entries()].find(([, mappedKey]) => mappedKey === key)?.[0];
+          return { selectedTabId: tabId };
+        });
+      },
+    })
+  ));
+  //store(s => s.fetchTabList)();
+  return store;
 }
+
+export type PopupStoreState = ExtractState<ReturnType<typeof usePopupStore>>;

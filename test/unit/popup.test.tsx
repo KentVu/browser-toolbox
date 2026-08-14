@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import type { Tab } from '@src/lib/Tab';
-import { PopupShadow } from '@src/pages/popup/PopupShadow';
-import { MockChrome } from './MockChrome';
+import { PopupShadow, usePopupStore } from '@src/pages/popup/PopupShadow';
+import { createMockChromeApi, MockChrome } from './MockChrome';
 import { fail } from 'assert/strict';
 
 afterEach(() => {
@@ -12,46 +12,39 @@ afterEach(() => {
 
 describe('Popup', () => {
   describe('Tablist', () => {
+    const tabList: Tab[] = [
+      { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000 },
+      { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000 },
+    ];
     it('lists all tabs in all windows', async () => {
-      const tabList: Tab[] = [
-        { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000 },
-        { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000 },
-      ];
-      const popupShadow = new PopupShadow(new MockChrome(tabList));
+      const store = usePopupStore(new MockChrome(tabList));
 
-      await renderAndWait(<Popup shadow={popupShadow} />);
+      await renderAndWait(<Popup store={store} />);
 
       // Most recent tab (higher lastAccessed) should be listed first
       const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
-      await expectTabItem(items[0], 'game', 'game.example.com', popupShadow.keyForTab(tabList[1].id));
-      await expectTabItem(items[1], 'Docs', 'docs.example.com', popupShadow.keyForTab(tabList[0].id));
+      await expectTabItem(items[0], 'game', 'game.example.com', store.getState().tabKeyMap.get(tabList[1].id)!);
+      await expectTabItem(items[1], 'Docs', 'docs.example.com', store.getState().tabKeyMap.get(tabList[0].id)!);
     });
 
     it('selects the correct tab when a key is pressed', async () => {
-      const tabList: Tab[] = [
-        { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000 },
-        { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000 },
-      ];
-      const popupShadow = new PopupShadow(new MockChrome(tabList));
+      const store = usePopupStore(new MockChrome(tabList));
 
-      await renderAndWait(<Popup shadow={popupShadow} />);
-      const secondTabKey = popupShadow.keyForTab(tabList[1].id);
+      await renderAndWait(<Popup store={store} />);
+      const secondTabKey = store.getState().tabKeyMap.get(tabList[1].id);
       fireEvent.keyDown(document, { key: secondTabKey });
       const item = (await screen.findByText(tabList[1].title)).closest('li')!;
       expect(item.classList.contains('selected')).toBe(true);
     });
 
     it('Show correct guidance according to current state', async () => {
-      const tabList: Tab[] = [
-        { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000 },
-        { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000 },
-      ];
-      const popupShadow = new PopupShadow(new MockChrome(tabList));
+      const store = usePopupStore(new MockChrome(tabList));
 
-      await renderAndWait(<Popup shadow={popupShadow} />);
+      await renderAndWait(<Popup store={store} />);
       // Initially, the guidance should be "Press a key to select a tab"
       expect(await screen.findByText('Press a key to select a tab')).toBeTruthy();
-      fireEvent.keyDown(document, { key: popupShadow.keyForTab(tabList[1].id)! });
+      const state = store.getState();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[1].id)! });
       // After selecting a tab, the guidance should change
       expect(await screen.findByText('Select next action:')).toBeTruthy();
       const keyLabel = await screen.findByText((content, element) =>
@@ -59,6 +52,21 @@ describe('Popup', () => {
       );
       const container = keyLabel.closest('li')!;
       expect(within(container).getByText(/Move tab to the right of current tab/)).toBeTruthy();
+    });
+
+    it('move selected tab to the right of current tab', async () => {
+      const _tabList: Tab[] = [...tabList,
+        { id: 4, title: 'Music', url: 'https://music.example.com', lastAccessed: 1500 }
+      ];
+      const mockChrome = createMockChromeApi(_tabList);
+      const store = usePopupStore(mockChrome);
+
+      await renderAndWait(<Popup store={store} />);
+      const state = store.getState();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
+      fireEvent.keyDown(document, { key: ']' });
+
+      expect(mockChrome.tabs.moveTab).toHaveBeenCalledWith('toTheRight', _tabList[2].id);
     });
   });
 });

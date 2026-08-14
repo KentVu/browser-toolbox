@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import type { ChromeApi } from '@src/lib/Chrome';
 import { ChromeTabApi } from '@src/lib/Chrome';
 import type { Tab } from '@src/lib/Tab';
@@ -27,4 +28,20 @@ export class MockChrome implements ChromeApi {
   constructor(tabs: Tab[]) {
     this.tabs = new MockTabs(tabs);
   }
+}
+
+export function createMockChromeApi(tabs: Tab[] = []): ChromeApi {
+  const byLastAccessed = [...tabs].sort(
+    (a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0),
+  );
+  const mockTabs = {
+    get: vi.fn().mockResolvedValue(tabs),
+    activate: vi.fn().mockResolvedValue(undefined),
+    getByLastAccessed: vi.fn().mockResolvedValue(byLastAccessed),
+    moveTab: vi.fn().mockResolvedValue(undefined),
+  } satisfies Pick<ChromeTabApi, 'get' | 'activate' | 'getByLastAccessed' | 'moveTab'>;
+
+  return {
+    tabs: mockTabs as unknown as ChromeTabApi,
+  };
 }

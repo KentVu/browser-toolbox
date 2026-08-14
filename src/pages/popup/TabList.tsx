@@ -1,29 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
-import { genTabKeyMap, PopupShadow } from './PopupShadow';
+import { genTabKeyMap, PopupShadow, usePopupStore } from './PopupShadow';
 
 interface TabListProps {
-    shadow: PopupShadow;
+    store: ReturnType<typeof usePopupStore>;
 }
 
-function TabList({ shadow }: TabListProps) {
-    const tabList = shadow.tabList.use();
-    const selectedTabId = shadow.selectedTabId.use();
-    // TODO move to PopupShadow
-    const keyMap = shadow.tabList.use((tabs) => genTabKeyMap(tabs.map(tab => tab.id)));
+function TabList({ store }: TabListProps) {
+    // TODO move these into PopupShadow, let it store the store!
+    const tabList = store(s => s.tabList);
+    const selectedTabId = store(s => s.selectedTabId);
+    const keyMap = store(s => s.tabKeyMap);
     const listRef = useRef<HTMLUListElement>(null);
+    const fetchTabList = store(s => s.fetchTabList);
+    const onKeyPress = store(s => s.onKeyPress);
 
     useEffect(() => {
         listRef.current?.focus();
+        fetchTabList();
     }, []);
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
-            shadow.onKeyPress(pressed);
+            onKeyPress(pressed);
         }
         document.addEventListener('keydown', handleKeyDown);
-        shadow.fetchTabList();
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [tabList]);
 
@@ -71,7 +73,7 @@ function TabList({ shadow }: TabListProps) {
                 <div className="text-[10px] text-gray-500 px-1 py-1">No open tabs</div>
             )}
             <div className="text-[10px] text-gray-500 px-1 py-1">{
-                selectedTabId === null ?
+                selectedTabId === undefined ?
                     "Press a key to select a tab" :
                     <>
                         <div>Select next action:</div>
