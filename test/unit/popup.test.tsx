@@ -17,7 +17,7 @@ describe('Popup', () => {
       { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000 },
     ];
     it('lists all tabs in all windows', async () => {
-      const store = usePopupStore(new MockChrome(tabList));
+      const store = usePopupStore(createMockChromeApi(tabList));
 
       await renderAndWait(<Popup store={store} />);
 
@@ -28,7 +28,7 @@ describe('Popup', () => {
     });
 
     it('selects the correct tab when a key is pressed', async () => {
-      const store = usePopupStore(new MockChrome(tabList));
+      const store = usePopupStore(createMockChromeApi(tabList));
 
       await renderAndWait(<Popup store={store} />);
       const secondTabKey = store.getState().tabKeyMap.get(tabList[1].id);
@@ -38,7 +38,7 @@ describe('Popup', () => {
     });
 
     it('Show correct guidance according to current state', async () => {
-      const store = usePopupStore(new MockChrome(tabList));
+      const store = usePopupStore(createMockChromeApi(tabList));
 
       await renderAndWait(<Popup store={store} />);
       // Initially, the guidance should be "Press a key to select a tab"
@@ -55,6 +55,17 @@ describe('Popup', () => {
     });
 
     it('move selected tab to the right of current tab', async () => {
+      await expectMoveSelectedTab(']', 'toTheRight');
+    });
+
+    it('move selected tab to the left of current tab', async () => {
+      await expectMoveSelectedTab('[', 'toTheLeft');
+    });
+
+    async function expectMoveSelectedTab(
+      actionKey: string,
+      direction: 'toTheRight' | 'toTheLeft',
+    ) {
       const _tabList: Tab[] = [...tabList,
         { id: 4, title: 'Music', url: 'https://music.example.com', lastAccessed: 1500 }
       ];
@@ -64,10 +75,10 @@ describe('Popup', () => {
       await renderAndWait(<Popup store={store} />);
       const state = store.getState();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
-      fireEvent.keyDown(document, { key: ']' });
+      fireEvent.keyDown(document, { key: actionKey });
 
-      expect(mockChrome.tabs.moveTab).toHaveBeenCalledWith('toTheRight', _tabList[2].id);
-    });
+      expect(mockChrome.tabs.moveTab).toHaveBeenCalledWith(direction, _tabList[2].id);
+    }
   });
 });
 

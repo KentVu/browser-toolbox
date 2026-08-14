@@ -7,14 +7,13 @@ import { createMockChromeApi } from './MockChrome';
 describe('PopupShadow', () => {
   let chromeApi: ChromeApi;
   let popupShadow: PopupShadow;
-  let tabs: Tab[];
-
-  beforeEach(() => {
-    tabs = [
+  let tabs: Tab[] = [
       { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000 },
       { id: 2, title: 'Music', url: 'https://music.example.com', lastAccessed: 2000 },
       { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 3000 },
     ];
+
+  beforeEach(() => {
     chromeApi = createMockChromeApi(tabs);
     popupShadow = new PopupShadow(chromeApi);
   });
