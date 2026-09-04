@@ -7,9 +7,8 @@ interface TabListProps {
 }
 
 function TabList({ shadow }: TabListProps) {
-    const tabList = shadow.store(state => state.tabList);
-    const selectedTabId = shadow.store(state => state.selectedTabId);
-    const keyMap = shadow.store(state => state.tabKeyMap);
+    const [tabList, keyMap] = shadow.useTabList();
+    const selectedTabId = shadow.useSelectedTabId();
     const listRef = useRef<HTMLUListElement>(null);
 
     useEffect(() => {

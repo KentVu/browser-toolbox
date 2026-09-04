@@ -15,7 +15,7 @@ describe('Popup', () => {
       { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000 },
       { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000 },
     ];
-    it('lists all tabs in all windows', async () => {
+    it('lists all tabs in all windows sorted by last accessed', async () => {
       const chrome = createMockChromeApi(tabList);
       const shadow = new PopupShadow(chrome);
 
@@ -23,7 +23,7 @@ describe('Popup', () => {
 
       // Most recent tab (higher lastAccessed) should be listed first
       const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
-      const state = shadow.store.getState();
+      const state = shadow.s();
       await expectTabItem(items[0], 'game', 'game.example.com', state.tabKeyMap.get(tabList[1].id)!);
       await expectTabItem(items[1], 'Docs', 'docs.example.com', state.tabKeyMap.get(tabList[0].id)!);
     });
@@ -33,7 +33,7 @@ describe('Popup', () => {
       const shadow = new PopupShadow(chrome);
 
       await renderAndWait(<Popup shadow={shadow} />);
-      const secondTabKey = shadow.store.getState().tabKeyMap.get(tabList[1].id);
+      const secondTabKey = shadow.s().tabKeyMap.get(tabList[1].id);
       fireEvent.keyDown(document, { key: secondTabKey });
       const item = (await screen.findByText(tabList[1].title)).closest('li')!;
       expect(item.classList.contains('selected')).toBe(true);
@@ -46,7 +46,7 @@ describe('Popup', () => {
 
       await renderAndWait(<Popup shadow={shadow} />);
 
-      expect(shadow.store.getState().selectedTabId).toBe(currentTab.id);
+      expect(shadow.s().selectedTabId).toBe(currentTab.id);
     });
 
     it('Show correct guidance according to current state', async () => {
@@ -56,7 +56,7 @@ describe('Popup', () => {
       await renderAndWait(<Popup shadow={shadow} />);
       // Initially, the guidance should be "Press a key to select a tab"
       expect(await screen.findByText('Press a key to select a tab')).toBeTruthy();
-      const state = shadow.store.getState();
+      const state = shadow.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[1].id)! });
       // After selecting a tab, the guidance should change
       expect(await screen.findByText('Select next action:')).toBeTruthy();
@@ -86,7 +86,7 @@ describe('Popup', () => {
       const shadow = new PopupShadow(mockChrome);
 
       await renderAndWait(<Popup shadow={shadow} />);
-      const state = shadow.store.getState();
+      const state = shadow.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
       fireEvent.keyDown(document, { key: actionKey });
 

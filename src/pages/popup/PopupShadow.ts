@@ -1,10 +1,8 @@
 import { ChromeApi } from '@src/lib/Chrome';
 import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
-import { useEffect, useState } from 'react';
 import { create, type ExtractState } from 'zustand';
 import { combine } from 'zustand/middleware';
-import { entity } from 'simpler-state'
 
 export class PopupState {
   tabList: Tab[] = [];
@@ -13,32 +11,26 @@ export class PopupState {
 }
 
 export class PopupShadow {
-  readonly store = create(
-    combine({
-      tabList: [] as Tab[],
-      tabKeyMap: new Map<number, string>(),
-      selectedTabId: undefined as number | undefined,
-    }, (set) => ({
-      setTabList: (tabList: Tab[]) => set({ tabList }),
-      setTabKeyMap: (tabKeyMap: Map<number, string>) => set({ tabKeyMap }),
-      setSelectedTabId: (selectedTabId: number | undefined) => set({ selectedTabId }),
-    })),
-  );
+  private readonly store = create(() => ({
+    tabList: [] as Tab[],
+    tabKeyMap: new Map<number, string>(),
+    selectedTabId: undefined as number | undefined,
+  }));
 
   constructor(private readonly chrome: ChromeApi) {
   }
 
-  s = () => this.store.getState();
+  s = (): PopupState => this.store.getState();
+  setState = (state: Partial<PopupState>) => this.store.setState(state);
+  useTabList = (): [Tab[], Map<number, string>] => [this.store(state => state.tabList), this.store(state => state.tabKeyMap)];
+  useSelectedTabId = () => this.store(state => state.selectedTabId);
 
   async fetchTabList() {
     const [_tabs, currentTab] = await Promise.all([
       this.chrome.tabs.getByLastAccessed(),
       this.chrome.tabs.getCurrent(),
     ]);
-    /* this.store(s => s.setTabList)(_tabs);
-    this.store(s => s.setTabKeyMap)(genTabKeyMap(_tabs.map(tab => tab.id)));
-    this.store(s => s.setSelectedTabId)(currentTab?.id); */
-    this.store.setState({
+    this.setState({
       tabList: _tabs,
       tabKeyMap: genTabKeyMap(_tabs.map(tab => tab.id)),
       selectedTabId: currentTab?.id,
@@ -61,8 +53,7 @@ export class PopupShadow {
     if (tabId === undefined) {
       return;
     }
-    //this.store(s => s.setSelectedTabId)(tabId);
-    this.store.setState({ selectedTabId: tabId });
+    this.setState({ selectedTabId: tabId });
   }
 
   tabIdForKey(key: string): number | undefined {
