@@ -28,8 +28,12 @@ export class PopupShadow {
   }
 
   async fetchTabList() {
-      const _tabs = await this.chrome.tabs.getByLastAccessed();
+      const [_tabs, currentTab] = await Promise.all([
+        this.chrome.tabs.getByLastAccessed(),
+        this.chrome.tabs.getCurrent(),
+      ]);
       this.tabList.set(_tabs);
+      this.selectedTabId.set(currentTab?.id ?? null);
   }
 
   keyForTab(tabId: number): string {
@@ -93,9 +97,12 @@ export function usePopupStore(chrome: ChromeApi) {
       selectedTabId: undefined as number | undefined,
     }, (set) => ({
       fetchTabList: async () => {
-        const tabList: Tab[] = await chrome.tabs.getByLastAccessed();
+        const [tabList, currentTab] = await Promise.all([
+          chrome.tabs.getByLastAccessed(),
+          chrome.tabs.getCurrent(),
+        ]);
         const tabKeyMap = genTabKeyMap(tabList.map(tab => tab.id));
-        set({ tabList, tabKeyMap });
+        set({ tabList, tabKeyMap, selectedTabId: currentTab?.id });
       },
       selectTab: (tabId: number | undefined) => {
         set({ selectedTabId: tabId });

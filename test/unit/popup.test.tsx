@@ -37,6 +37,15 @@ describe('Popup', () => {
       expect(item.classList.contains('selected')).toBe(true);
     });
 
+    it('selects the current active tab after loading', async () => {
+      const currentTab = tabList[0];
+      const store = usePopupStore(createMockChromeApi(tabList, currentTab));
+
+      await renderAndWait(<Popup store={store} />);
+
+      expect(store.getState().selectedTabId).toBe(currentTab.id);
+    });
+
     it('Show correct guidance according to current state', async () => {
       const store = usePopupStore(createMockChromeApi(tabList));
 

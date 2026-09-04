@@ -5,6 +5,7 @@ export type MoveTabDirection = 'toTheRight' | 'toTheLeft';
 
 export abstract class ChromeTabApi {
     abstract get(): Promise<Tab[]>;
+    abstract getCurrent(): Promise<Tab | undefined>;
     abstract activate(tabId: number): Promise<void>;
     abstract moveTab(direction: MoveTabDirection, tabId: number): Promise<void>;
 
@@ -22,12 +23,19 @@ class DefaultTabs extends ChromeTabApi {
     async get(): Promise<Tab[]> {
         const chromeTabs = await chrome.tabs.query({});
         return chromeTabs 
-            .map((t): Tab => ({
-                id: t.id!,
-                title: t.title || '',
-                url: t.url,
-                lastAccessed: t.lastAccessed,
-            }))
+            .map(tab => this.toTab(tab));
+    }
+    async getCurrent(): Promise<Tab | undefined> {
+        const [currentTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+        return currentTab ? this.toTab(currentTab) : undefined;
+    }
+    private toTab(tab: chrome.tabs.Tab): Tab {
+        return {
+            id: tab.id!,
+            title: tab.title || '',
+            url: tab.url,
+            lastAccessed: tab.lastAccessed,
+        };
     }
     async activate(tabId: number): Promise<void> {
         await chrome.tabs.update(tabId, { active: true });
