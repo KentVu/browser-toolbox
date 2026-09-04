@@ -3,4 +3,5 @@ export interface Tab {
     title: string;
     url?: string;
     lastAccessed?: number;
+    icon?: string;
 }

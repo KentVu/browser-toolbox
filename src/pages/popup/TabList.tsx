@@ -45,7 +45,15 @@ function TabList({ shadow }: TabListProps) {
                             key={tab.id}
                             className={`px-2.5 py-1.5 flex items-center gap-2 hover:bg-gray-700/70 cursor-pointer transition-colors group ${isSelected ? 'selected' : ''}`}
                         >
-                            <div className="w-3.5 h-3.5 rounded-sm bg-gradient-to-br from-gray-500 to-gray-600 flex-shrink-0 ring-1 ring-gray-600/50" />
+                            {tab.icon ? (
+                                <img
+                                    src={tab.icon}
+                                    alt=""
+                                    className="w-3.5 h-3.5 rounded-sm object-cover flex-shrink-0 ring-1 ring-gray-600/50"
+                                />
+                            ) : (
+                                <div className="w-3.5 h-3.5 rounded-sm bg-gradient-to-br from-gray-500 to-gray-600 flex-shrink-0 ring-1 ring-gray-600/50" />
+                            )}
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-baseline gap-1.5">
                                     <div className="text-xs text-gray-100 truncate flex-1 group-hover:text-blue-300 transition-colors">

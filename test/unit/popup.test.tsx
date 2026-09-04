@@ -12,8 +12,8 @@ afterEach(() => {
 describe('Popup', () => {
   describe('Tablist', () => {
     const tabList: Tab[] = [
-      { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000 },
-      { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000 },
+      { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000, icon: 'https://docs.example.com/favicon.ico' },
+      { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000, icon: 'https://game.example.com/favicon.ico' },
     ];
     it('lists all tabs in all windows sorted by last accessed', async () => {
       const chrome = createMockChromeApi(tabList);
@@ -24,8 +24,19 @@ describe('Popup', () => {
       // Most recent tab (higher lastAccessed) should be listed first
       const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
       const state = shadow.s();
-      await expectTabItem(items[0], 'game', 'game.example.com', state.tabKeyMap.get(tabList[1].id)!);
-      await expectTabItem(items[1], 'Docs', 'docs.example.com', state.tabKeyMap.get(tabList[0].id)!);
+      await expectTabItem(items[0], 'game', 'game.example.com', state.tabKeyMap.get(tabList[1].id)!, tabList[1].icon);
+      await expectTabItem(items[1], 'Docs', 'docs.example.com', state.tabKeyMap.get(tabList[0].id)!, tabList[0].icon);
+    });
+
+    it('displays each tab icon when available', async () => {
+      const chrome = createMockChromeApi(tabList);
+      const shadow = new PopupShadow(chrome);
+
+      await renderAndWait(<Popup shadow={shadow} />);
+
+      const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
+      expect((items[0].querySelector('img') as HTMLImageElement).src).toBe(tabList[1].icon);
+      expect((items[1].querySelector('img') as HTMLImageElement).src).toBe(tabList[0].icon);
     });
 
     it('selects the correct tab when a key is pressed', async () => {
@@ -103,9 +114,14 @@ async function renderAndWait(
   await screen.findByText('game');
 }
 
-async function expectTabItem(item: HTMLLIElement, title: string, hostname: string, shortcut: string) {
+async function expectTabItem(item: HTMLLIElement, title: string, hostname: string, shortcut: string, icon?: string) {
   expect(within(item).getByText(title)).toBeTruthy();
   expect(within(item).getByText(hostname)).toBeTruthy();
   // Matcher requires the span's full text to equal the shortcut (not a substring).
   within(item).getByText((text, el) => el?.tagName === 'SPAN' && text === shortcut);
+  if (icon) {
+    const img = item.querySelector('img') as HTMLImageElement | null;
+    expect(img).toBeTruthy();
+    expect(img!.src).toBe(icon);
+  }
 }
