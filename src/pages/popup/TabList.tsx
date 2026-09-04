@@ -1,33 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
-import { genTabKeyMap, PopupShadow, usePopupStore } from './PopupShadow';
+import { PopupShadow } from './PopupShadow';
 
 interface TabListProps {
-    store: ReturnType<typeof usePopupStore>;
+    shadow: PopupShadow;
 }
 
-function TabList({ store }: TabListProps) {
-    // TODO move these into PopupShadow, let it store the store!
-    const tabList = store(s => s.tabList);
-    const selectedTabId = store(s => s.selectedTabId);
-    const keyMap = store(s => s.tabKeyMap);
+function TabList({ shadow }: TabListProps) {
+    const tabList = shadow.store(state => state.tabList);
+    const selectedTabId = shadow.store(state => state.selectedTabId);
+    const keyMap = shadow.store(state => state.tabKeyMap);
     const listRef = useRef<HTMLUListElement>(null);
-    const fetchTabList = store(s => s.fetchTabList);
-    const onKeyPress = store(s => s.onKeyPress);
 
     useEffect(() => {
         listRef.current?.focus();
-        fetchTabList();
-    }, []);
+        void shadow.fetchTabList();
+    }, [shadow]);
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
-            onKeyPress(pressed);
+            shadow.onKeyPress(pressed);
         }
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [tabList]);
+    }, [shadow, tabList]);
 
     return (
         <div className="w-full mt-2">

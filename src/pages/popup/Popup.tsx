@@ -1,22 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import logo from '@assets/img/logo.svg';
+import React from 'react';
 import { TabList } from './TabList';
-import { usePopupStore, type PopupStore as PopupStoreState, type PopupShadow } from './PopupShadow';
-import type { Tab } from '@src/lib/Tab';
-import { ChromeApi } from '@src/lib/Chrome';
+import { PopupShadow } from './PopupShadow';
 
 interface PopupProps {
-  store: ReturnType<typeof usePopupStore>;
-  //store: PopupStoreState;
+  shadow: PopupShadow;
 }
 
-export default function Popup({ store }: PopupProps) {
+export default function Popup({ shadow }: PopupProps) {
   return (
     <div className="w-[360px] min-h-[480px] p-2.5 bg-[#111113] text-white font-sans text-[13px] leading-tight">
       <div className="mb-2 px-1 text-center">
         <p className="text-sm font-medium tracking-wide text-gray-200">Welcome</p>
       </div>
-      <TabList store={store} />
+      <TabList shadow={shadow} />
     </div>
   );
 }

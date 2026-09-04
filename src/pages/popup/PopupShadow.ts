@@ -1,7 +1,7 @@
 import { ChromeApi } from '@src/lib/Chrome';
 import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { create, type ExtractState } from 'zustand';
 import { combine } from 'zustand/middleware';
 import { entity } from 'simpler-state'
@@ -13,41 +13,47 @@ export class PopupState {
 }
 
 export class PopupShadow {
-  private _tabKeyMap = new Map<number, string>();
-  private _selectedTabId: number | undefined;
-  tabList = entity<Tab[]>([]);
-  selectedTabId = entity<number | null>(null);
+  readonly store = create(
+    combine({
+      tabList: [] as Tab[],
+      tabKeyMap: new Map<number, string>(),
+      selectedTabId: undefined as number | undefined,
+    }, (set) => ({
+      setTabList: (tabList: Tab[]) => set({ tabList }),
+      setTabKeyMap: (tabKeyMap: Map<number, string>) => set({ tabKeyMap }),
+      setSelectedTabId: (selectedTabId: number | undefined) => set({ selectedTabId }),
+    })),
+  );
 
   constructor(private readonly chrome: ChromeApi) {
   }
 
-  async tabListByMostRecent(): Promise<Tab[]> {
-    const tabList: Tab[] = await this.chrome.tabs.getByLastAccessed();
-    this._tabKeyMap = genTabKeyMap(tabList.map(tab => tab.id));
-    return tabList;
-  }
+  s = () => this.store.getState();
 
   async fetchTabList() {
-      const [_tabs, currentTab] = await Promise.all([
-        this.chrome.tabs.getByLastAccessed(),
-        this.chrome.tabs.getCurrent(),
-      ]);
-      this.tabList.set(_tabs);
-      this.selectedTabId.set(currentTab?.id ?? null);
-  }
-
-  keyForTab(tabId: number): string {
-    return this._tabKeyMap.get(tabId)!;
+    const [_tabs, currentTab] = await Promise.all([
+      this.chrome.tabs.getByLastAccessed(),
+      this.chrome.tabs.getCurrent(),
+    ]);
+    /* this.store(s => s.setTabList)(_tabs);
+    this.store(s => s.setTabKeyMap)(genTabKeyMap(_tabs.map(tab => tab.id)));
+    this.store(s => s.setSelectedTabId)(currentTab?.id); */
+    this.store.setState({
+      tabList: _tabs,
+      tabKeyMap: genTabKeyMap(_tabs.map(tab => tab.id)),
+      selectedTabId: currentTab?.id,
+    });
   }
 
   onKeyPress(key: string): void {
-    if (key === ']' && this._selectedTabId !== undefined) {
-      void this.chrome.tabs.moveTab('toTheRight', this._selectedTabId);
+    const s = this.s();
+    if (key === ']' && s.selectedTabId !== undefined) {
+      this.chrome.tabs.moveTab('toTheRight', s.selectedTabId!);
       return;
     }
 
-    if (key === '[' && this._selectedTabId !== undefined) {
-      void this.chrome.tabs.moveTab('toTheLeft', this._selectedTabId);
+    if (key === '[' && s.selectedTabId !== undefined) {
+      this.chrome.tabs.moveTab('toTheLeft', s.selectedTabId!);
       return;
     }
 
@@ -55,17 +61,15 @@ export class PopupShadow {
     if (tabId === undefined) {
       return;
     }
-    this.selectedTabId.set(tabId);
+    //this.store(s => s.setSelectedTabId)(tabId);
+    this.store.setState({ selectedTabId: tabId });
   }
 
   tabIdForKey(key: string): number | undefined {
     const normalized = key.toLowerCase();
-    for (const [tabId, mappedKey] of this._tabKeyMap) {
-      if (mappedKey.toLowerCase() === normalized) {
-        return tabId;
-      }
-    }
-    return undefined;
+    const tabId = [...this.s().tabKeyMap.entries()]
+      .find(([, mappedKey]) => mappedKey === normalized)?.[0];
+    return tabId;
   }
 }
 
@@ -89,7 +93,6 @@ export function genTabKeyMap(tabList: number[], keys = shortcutKeys): Map<number
 }
 
 export function usePopupStore(chrome: ChromeApi) {
-  const popupShadow = new PopupShadow(chrome);
   const store = create(
     combine({
       tabList: [] as Tab[],
