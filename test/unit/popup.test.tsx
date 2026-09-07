@@ -51,14 +51,15 @@ describe('Popup', () => {
       expect(item.classList.contains('selected')).toBe(true);
     });
 
-    it('selects the current active tab after loading', async () => {
-      const currentTab = tabList[0];
+    it('selects the previously visited tab after loading', async () => {
+      const currentTab = tabList[1]; // most recently accessed
+      const previousTab = tabList[0]; // visited before current
       const chrome = createMockChromeApi(tabList, currentTab);
       const shadow = new PopupShadow(chrome);
 
       await renderAndWait(<Popup shadow={shadow} />);
 
-      expect(shadow.s().selectedTabId).toBe(currentTab.id);
+      expect(shadow.s().selectedTabId).toBe(previousTab.id);
     });
 
     it('Show correct guidance according to current state', async () => {
@@ -66,11 +67,7 @@ describe('Popup', () => {
       const shadow = new PopupShadow(chrome);
 
       await renderAndWait(<Popup shadow={shadow} />);
-      // Initially, the guidance should be "Press a key to select a tab"
-      expect(await screen.findByText('Press a key to select a tab')).toBeTruthy();
-      const state = shadow.s();
-      fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[1].id)! });
-      // After selecting a tab, the guidance should change
+      // Previously visited tab is pre-selected, so action guidance is shown
       expect(await screen.findByText('Select next action:')).toBeTruthy();
       const keyLabel = await screen.findByText((content, element) =>
         element?.tagName === 'SPAN' && element.textContent === ']'

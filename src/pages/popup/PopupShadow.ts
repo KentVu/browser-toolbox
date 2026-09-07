@@ -43,11 +43,13 @@ export class PopupShadow {
       this.chrome.tabs.getCurrent(),
     ]);
     const pageIndex = 0;
+    // Prefer the tab visited before the current one (second most recently accessed).
+    const previousTab = _tabs.find(tab => tab.id !== currentTab?.id) ?? currentTab;
     this.setState({
       tabList: _tabs,
       pageIndex,
       tabKeyMap: genTabKeyMap(visibleTabs(_tabs, pageIndex).map(tab => tab.id)),
-      selectedTabId: currentTab?.id,
+      selectedTabId: previousTab?.id,
     });
   }
 
