@@ -49,6 +49,11 @@ export class PopupShadow {
       return;
     }
 
+    if (key === 'enter' && s.selectedTabId !== undefined) {
+      void this.chrome.tabs.activate(s.selectedTabId);
+      return;
+    }
+
     const tabId = this.tabIdForKey(key);
     if (tabId === undefined) {
       return;

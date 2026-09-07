@@ -11,6 +11,7 @@ When working with several related tabs, he wants to bring them closely together,
 1. [x] He presses a key corresponding to a tab item to select it.
 1. [x] A list of next possible actions is displayed, with `]` corresponds to: place the selected tab next to the current one.
 1. [x] He presses `]` and sees the selected tab is placed next to the current one.
+1. [ ] The extension's popup is closed automatically.
 
 # TODO
 

@@ -86,6 +86,18 @@ describe('Popup', () => {
       await expectMoveSelectedTab('[', 'toTheLeft');
     });
 
+    it('activates the selected tab when Enter is pressed', async () => {
+      const chrome = createMockChromeApi(tabList);
+      const shadow = new PopupShadow(chrome);
+
+      await renderAndWait(<Popup shadow={shadow} />);
+      const state = shadow.s();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[1].id)! });
+      fireEvent.keyDown(document, { key: 'Enter' });
+
+      expect(chrome.tabs.activate).toHaveBeenCalledWith(tabList[1].id);
+    });
+
     async function expectMoveSelectedTab(
       actionKey: string,
       direction: 'toTheRight' | 'toTheLeft',

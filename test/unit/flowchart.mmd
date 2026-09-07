@@ -1,0 +1,35 @@
+---
+references:
+  - "File: /src/pages/popup/PopupShadow.ts"
+  - "File: /test/unit/popup.test.tsx"
+  - "File: /vitest.config.ts"
+generationTime: 2026-09-07T02:46:12.473Z
+---
+flowchart TD
+    Start(["PopupShadow Created"]) --> Fetch["fetchTabList()"]
+    Fetch --> Parallel["Promise.all getByLastAccessed + getCurrent"]
+    Parallel --> GenMap[["genTabKeyMap(tabIds)"]]
+    GenMap --> SetState["setState: tabList, tabKeyMap, selectedTabId"]
+    SetState --> Ready(["State Ready"])
+
+    KeyIn(["onKeyPress(key)"]) --> CheckR{"key === ']' AND selectedTabId?"}
+    CheckR -->|Yes| MoveR["chrome.tabs.moveTab('toTheRight')"]
+    CheckR -->|No| CheckL{"key === '[' AND selectedTabId?"}
+    CheckL -->|Yes| MoveL["chrome.tabs.moveTab('toTheLeft')"]
+    CheckL -->|No| CheckE{"key === 'enter' AND selectedTabId?"}
+    CheckE -->|Yes| Activate["chrome.tabs.activate(selectedTabId)"]
+    CheckE -->|No| Lookup[["tabIdForKey(key)"]]
+    Lookup --> Found{"tabId found in tabKeyMap?"}
+    Found -->|Yes| Select["setState selectedTabId = tabId"]
+    Found -->|No| NoOp["return / no-op"]
+
+    subgraph GenKeyMapFlow ["genTabKeyMap Loop"]
+        direction TB
+        Init["keyMap = new Map, keyIndex = 0"] --> ForEach["forEach tabId in tabList"]
+        ForEach --> HasKey{"keyIndex < keys.length?"}
+        HasKey -->|Yes| Assign["keyMap.set(tabId, keys[keyIndex++])"]
+        Assign --> ForEach
+        HasKey -->|No| DoneMap["return keyMap"]
+    end
+
+    GenMap -.-> GenKeyMapFlow
