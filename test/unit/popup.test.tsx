@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import Popup from '@pages/popup/Popup';
+import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { PopupShadow } from '@src/pages/popup/PopupShadow';
 import { createMockChromeApi } from './MockChrome';
@@ -99,6 +100,53 @@ describe('Popup', () => {
       await expectMoveSelectedTab('[', 'toTheLeft');
     });
 
+    describe('pagination', () => {
+      it('reserves j and k keys away from tab shortcuts', () => {
+        expect(shortcutKeys).not.toContain('j');
+        expect(shortcutKeys).not.toContain('k');
+        expect(shortcutKeys.length).toBeGreaterThanOrEqual(10);
+      });
+
+      it('shows at most 10 tabs on the first page', async () => {
+        const manyTabs = makeTabs(11);
+        const chrome = createMockChromeApi(manyTabs);
+        const shadow = new PopupShadow(chrome);
+
+        render(<Popup shadow={shadow} />);
+        await screen.findByText('Tab 1');
+
+        expect(screen.getByText('Tab 1')).toBeTruthy();
+        expect(screen.getByText('Tab 10')).toBeTruthy();
+        expect(screen.queryByText('Tab 11')).toBeNull();
+        expect(shadow.s().pageIndex).toBe(0);
+      });
+
+      it('navigates pages with . and , while keeping slot shortcut keys stable', async () => {
+        const manyTabs = makeTabs(11);
+        const chrome = createMockChromeApi(manyTabs);
+        const shadow = new PopupShadow(chrome);
+
+        render(<Popup shadow={shadow} />);
+        await screen.findByText('Tab 1');
+
+        const firstPageFirstKey = shadow.s().tabKeyMap.get(manyTabs[0].id);
+        expect(firstPageFirstKey).toBeTruthy();
+
+        fireEvent.keyDown(document, { key: '.' });
+
+        expect(shadow.s().pageIndex).toBe(1);
+        expect(screen.queryByText('Tab 1')).toBeNull();
+        expect(await screen.findByText('Tab 11')).toBeTruthy();
+        expect(shadow.s().tabKeyMap.get(manyTabs[10].id)).toBe(firstPageFirstKey);
+
+        fireEvent.keyDown(document, { key: ',' });
+
+        expect(shadow.s().pageIndex).toBe(0);
+        expect(await screen.findByText('Tab 1')).toBeTruthy();
+        expect(shadow.s().tabKeyMap.get(manyTabs[0].id)).toBe(firstPageFirstKey);
+      });
+    });
+
     async function expectMoveSelectedTab(
       actionKey: string,
       direction: 'toTheRight' | 'toTheLeft',
@@ -139,4 +187,13 @@ async function expectTabItem(item: HTMLLIElement, title: string, hostname: strin
     expect(img).toBeTruthy();
     expect(img!.src).toBe(icon);
   }
+}
+
+function makeTabs(count: number): Tab[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    title: `Tab ${i + 1}`,
+    url: `https://example.com/${i + 1}`,
+    lastAccessed: 1000 - i,
+  }));
 }

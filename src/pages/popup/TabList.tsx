@@ -9,10 +9,11 @@ interface TabListProps {
 function TabList({ shadow }: TabListProps) {
     const [tabList, keyMap] = shadow.useTabList();
     const selectedTabId = shadow.useSelectedTabId();
+    const { pageIndex, pageCount } = shadow.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
 
     useEffect(() => {
-        listRef.current?.focus();
+        //listRef.current?.focus();
         void shadow.fetchTabList();
     }, [shadow]);
 
@@ -23,7 +24,7 @@ function TabList({ shadow }: TabListProps) {
         }
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [shadow, tabList]);
+    }, [shadow]);
 
     return (
         <div className="w-full mt-2">
@@ -31,7 +32,7 @@ function TabList({ shadow }: TabListProps) {
             <ul
                 ref={listRef}
                 tabIndex={-1}
-                className="divide-y divide-gray-700 bg-gray-80/80 rounded-md border border-gray-700 text-left max-h-[360px] overflow-auto shadow-inner focus:outline-none"
+                className="divide-y divide-gray-700 bg-gray-80/80 rounded-md border border-gray-700 text-left shadow-inner focus:outline-none"
             >
                 {tabList.map((tab: Tab, index: number) => {
                     let hostname = '';
@@ -76,8 +77,13 @@ function TabList({ shadow }: TabListProps) {
             {tabList.length === 0 && (
                 <div className="text-[10px] text-gray-500 px-1 py-1">No open tabs</div>
             )}
-            <div className="text-[10px] text-gray-500 px-1 py-1">{
-                selectedTabId === undefined ?
+            {pageCount > 1 && (
+                <div className="text-[10px] text-gray-500 px-1 py-1">
+                    Page {pageIndex + 1}/{pageCount} · <span>,</span> prev · <span>.</span> next
+                </div>
+            )}
+            <div className="text-[10px] text-gray-500 px-1 py-1">
+                {selectedTabId === undefined ?
                     "Press a key to select a tab" :
                     <>
                         <div>Select next action:</div>
@@ -87,7 +93,8 @@ function TabList({ shadow }: TabListProps) {
                             <li><span>{'Enter'}</span>: Activate tab</li>
                         </ul>
                     </>
-            }</div>
+                }
+            </div>
         </div>
     );
 };
