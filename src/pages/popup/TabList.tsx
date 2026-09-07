@@ -7,7 +7,7 @@ interface TabListProps {
 }
 
 function TabList({ shadow }: TabListProps) {
-    const [tabList, keyMap] = shadow.useTabList();
+    const [tabList, keyMap] = shadow.useVisibleTabList();
     const selectedTabId = shadow.useSelectedTabId();
     const { pageIndex, pageCount } = shadow.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
@@ -88,6 +88,7 @@ function TabList({ shadow }: TabListProps) {
                     <>
                         <div>Select next action:</div>
                         <ul className="list-disc list-inside text-[9px] text-gray-500">
+                            <li><span>{'j'}</span>/<span>{'k'}</span>: Move selection down/up</li>
                             <li><span>{']'}</span>: Move tab to the right of current tab</li>
                             <li><span>{'['}</span>: Move tab to the left of current tab</li>
                             <li><span>{'Enter'}</span>: Activate tab</li>

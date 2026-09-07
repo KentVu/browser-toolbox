@@ -24,7 +24,7 @@ export class PopupShadow {
 
   s = (): PopupState => this.store.getState();
   setState = (state: Partial<PopupState>) => this.store.setState(state);
-  useTabList = (): [Tab[], Map<number, string>] => {
+  useVisibleTabList = (): [Tab[], Map<number, string>] => {
     const tabList = this.store(state => state.tabList);
     const pageIndex = this.store(state => state.pageIndex);
     const tabKeyMap = this.store(state => state.tabKeyMap);
@@ -87,11 +87,39 @@ export class PopupShadow {
       return;
     }
 
+    if (key === 'j') {
+      this.moveSelection(1);
+      return;
+    }
+    if (key === 'k') {
+      this.moveSelection(-1);
+      return;
+    }
+
     const tabId = this.tabIdForKey(key);
     if (tabId === undefined) {
       return;
     }
     this.setState({ selectedTabId: tabId });
+  }
+
+  /** Move selection within the currently visible page. Clamps at the ends. */
+  moveSelection(delta: number): void {
+    const s = this.s();
+    const pageTabs = visibleTabs(s.tabList, s.pageIndex);
+    if (pageTabs.length === 0) {
+      return;
+    }
+
+    const currentIndex = pageTabs.findIndex(tab => tab.id === s.selectedTabId);
+    let nextIndex: number;
+    if (currentIndex === -1) {
+      nextIndex = delta > 0 ? 0 : pageTabs.length - 1;
+    } else {
+      nextIndex = Math.min(pageTabs.length - 1, Math.max(0, currentIndex + delta));
+    }
+
+    this.setState({ selectedTabId: pageTabs[nextIndex].id });
   }
 
   changePage(delta: number): void {
