@@ -115,6 +115,7 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: actionKey });
 
       expect(mockChrome.tabs.moveTab).toHaveBeenCalledWith(direction, _tabList[2].id);
+      expect(mockChrome.tabs.activate).toHaveBeenCalledWith(_tabList[2].id);
       expect(mockChrome.tabs.close).toHaveBeenCalled();
     }
   });

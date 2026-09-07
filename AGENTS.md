@@ -37,6 +37,11 @@ Use this file as the fast-start operating guide for coding agents.
   - `@locales/*` -> `src/locales/*`
   - `@pages/*` -> `src/pages/*`
 
+## Chrome API Usage
+- Call native Chrome APIs only through the `ChromeApi` / `ChromeTabApi` wrapper in `src/lib/Chrome.ts`.
+- Do not call `chrome.*` directly from UI or feature code (`src/pages/**`, etc.).
+- In tests, mock `ChromeApi` (see `test/unit/MockChrome.ts`); do not mock the native `chrome` API directly, except when unit-testing the wrapper itself.
+
 ## Testing Conventions
 - Use Vitest for tests run in this repo (`npm run test`).
 - Write or update tests in `test/**` with `*.test.ts` or `*.test.tsx` naming.

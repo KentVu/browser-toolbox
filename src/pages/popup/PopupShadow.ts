@@ -40,13 +40,17 @@ export class PopupShadow {
   onKeyPress(key: string): void {
     const s = this.s();
     if (key === ']' && s.selectedTabId !== undefined) {
-      void this.chrome.tabs.moveTab('toTheRight', s.selectedTabId!);
+      const tabId = s.selectedTabId;
+      void this.chrome.tabs.moveTab('toTheRight', tabId);
+      void this.chrome.tabs.activate(tabId);
       this.chrome.tabs.close();
       return;
     }
 
     if (key === '[' && s.selectedTabId !== undefined) {
-      void this.chrome.tabs.moveTab('toTheLeft', s.selectedTabId!);
+      const tabId = s.selectedTabId;
+      void this.chrome.tabs.moveTab('toTheLeft', tabId);
+      void this.chrome.tabs.activate(tabId);
       this.chrome.tabs.close();
       return;
     }
