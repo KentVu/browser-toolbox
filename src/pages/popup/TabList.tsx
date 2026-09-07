@@ -6,6 +6,8 @@ interface TabListProps {
     shadow: PopupShadow;
 }
 
+const keyLabelClass = 'rounded border border-cyan-400/60 bg-cyan-400/10 px-1 font-mono font-semibold text-cyan-200';
+
 function TabList({ shadow }: TabListProps) {
     const [tabList, keyMap] = shadow.useVisibleTabList();
     const selectedTabId = shadow.useSelectedTabId();
@@ -60,9 +62,9 @@ function TabList({ shadow }: TabListProps) {
                                     <div className="text-xs text-gray-100 truncate flex-1 group-hover:text-blue-300 transition-colors">
                                         {tab.title || 'Untitled'}
                                     </div>
-                                    <span className="text-[9px] font-mono text-gray-500/70 tracking-tight shrink-0">
+                                    <kbd className={`${keyLabelClass} text-[9px] tracking-tight shrink-0`}>
                                         {shortcut}
-                                    </span>
+                                    </kbd>
                                 </div>
                                 {hostname && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
@@ -79,7 +81,7 @@ function TabList({ shadow }: TabListProps) {
             )}
             {pageCount > 1 && (
                 <div className="text-[10px] text-gray-500 px-1 py-1">
-                    Page {pageIndex + 1}/{pageCount} · <span>,</span> prev · <span>.</span> next
+                    Page {pageIndex + 1}/{pageCount} · <kbd className={keyLabelClass}>,</kbd> prev · <kbd className={keyLabelClass}>.</kbd> next
                 </div>
             )}
             <div className="text-[10px] text-gray-500 px-1 py-1">
@@ -88,10 +90,10 @@ function TabList({ shadow }: TabListProps) {
                     <>
                         <div>Select next action:</div>
                         <ul className="list-disc list-inside text-[9px] text-gray-500">
-                            <li><span>{'j'}</span>/<span>{'k'}</span>: Move selection down/up</li>
-                            <li><span>{']'}</span>: Move tab to the right of current tab</li>
-                            <li><span>{'['}</span>: Move tab to the left of current tab</li>
-                            <li><span>{'Enter'}</span>: Activate tab</li>
+                            <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd>: Move selection down/up</li>
+                            <li><kbd className={keyLabelClass}>]</kbd>: Move tab to the right of current tab</li>
+                            <li><kbd className={keyLabelClass}>[</kbd>: Move tab to the left of current tab</li>
+                            <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
                         </ul>
                     </>
                 }

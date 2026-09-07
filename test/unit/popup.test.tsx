@@ -71,8 +71,9 @@ describe('Popup', () => {
       expect(await screen.findByText('Select next action:')).toBeTruthy();
       expect(screen.getByText(/Move selection down\/up/)).toBeTruthy();
       const keyLabel = await screen.findByText((content, element) =>
-        element?.tagName === 'SPAN' && element.textContent === ']'
+        element?.tagName === 'KBD' && element.textContent === ']'
       );
+      expect(keyLabel.classList.contains('text-cyan-200')).toBe(true);
       const container = keyLabel.closest('li')!;
       expect(within(container).getByText(/Move tab to the right of current tab/)).toBeTruthy();
     });
@@ -243,8 +244,8 @@ async function renderAndWaitForTitle(
 async function expectTabItem(item: HTMLLIElement, title: string, hostname: string, shortcut: string, icon?: string) {
   expect(within(item).getByText(title)).toBeTruthy();
   expect(within(item).getByText(hostname)).toBeTruthy();
-  // Matcher requires the span's full text to equal the shortcut (not a substring).
-  within(item).getByText((text, el) => el?.tagName === 'SPAN' && text === shortcut);
+  // Matcher requires the key label's full text to equal the shortcut (not a substring).
+  within(item).getByText((text, el) => el?.tagName === 'KBD' && text === shortcut);
   if (icon) {
     const img = item.querySelector('img') as HTMLImageElement | null;
     expect(img).toBeTruthy();
