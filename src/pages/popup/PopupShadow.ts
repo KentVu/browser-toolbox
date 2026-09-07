@@ -40,17 +40,20 @@ export class PopupShadow {
   onKeyPress(key: string): void {
     const s = this.s();
     if (key === ']' && s.selectedTabId !== undefined) {
-      this.chrome.tabs.moveTab('toTheRight', s.selectedTabId!);
+      void this.chrome.tabs.moveTab('toTheRight', s.selectedTabId!);
+      this.chrome.tabs.close();
       return;
     }
 
     if (key === '[' && s.selectedTabId !== undefined) {
-      this.chrome.tabs.moveTab('toTheLeft', s.selectedTabId!);
+      void this.chrome.tabs.moveTab('toTheLeft', s.selectedTabId!);
+      this.chrome.tabs.close();
       return;
     }
 
     if (key === 'enter' && s.selectedTabId !== undefined) {
       void this.chrome.tabs.activate(s.selectedTabId);
+      this.chrome.tabs.close();
       return;
     }
 
@@ -111,10 +114,12 @@ export function usePopupStore(chrome: ChromeApi) {
           const tabKeyMap = genTabKeyMap(state.tabList.map(tab => tab.id));
           if (key === ']' && state.selectedTabId !== undefined) {
             void chrome.tabs.moveTab('toTheRight', state.selectedTabId);
+            chrome.tabs.close();
             return {};
           }
           if (key === '[' && state.selectedTabId !== undefined) {
             void chrome.tabs.moveTab('toTheLeft', state.selectedTabId);
+            chrome.tabs.close();
             return {};
           }
 

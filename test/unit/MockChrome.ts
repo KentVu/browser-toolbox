@@ -14,7 +14,8 @@ export function createMockChromeApi(tabs: Tab[] = [], currentTab?: Tab): ChromeA
     activate: vi.fn().mockResolvedValue(undefined),
     getByLastAccessed: vi.fn().mockResolvedValue(byLastAccessed),
     moveTab: vi.fn().mockResolvedValue(undefined),
-  } satisfies Pick<ChromeTabApi, 'get' | 'getCurrent' | 'activate' | 'getByLastAccessed' | 'moveTab'>;
+    close: vi.fn(),
+  } satisfies Pick<ChromeTabApi, 'get' | 'getCurrent' | 'activate' | 'getByLastAccessed' | 'moveTab' | 'close'>;
 
   return {
     tabs: mockTabs as unknown as ChromeTabApi,

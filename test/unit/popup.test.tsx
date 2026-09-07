@@ -78,14 +78,6 @@ describe('Popup', () => {
       expect(within(container).getByText(/Move tab to the right of current tab/)).toBeTruthy();
     });
 
-    it('move selected tab to the right of current tab', async () => {
-      await expectMoveSelectedTab(']', 'toTheRight');
-    });
-
-    it('move selected tab to the left of current tab', async () => {
-      await expectMoveSelectedTab('[', 'toTheLeft');
-    });
-
     it('activates the selected tab when Enter is pressed', async () => {
       const chrome = createMockChromeApi(tabList);
       const shadow = new PopupShadow(chrome);
@@ -96,6 +88,15 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: 'Enter' });
 
       expect(chrome.tabs.activate).toHaveBeenCalledWith(tabList[1].id);
+      expect(chrome.tabs.close).toHaveBeenCalled();
+    });
+
+    it('move selected tab to the right of current tab', async () => {
+      await expectMoveSelectedTab(']', 'toTheRight');
+    });
+
+    it('move selected tab to the left of current tab', async () => {
+      await expectMoveSelectedTab('[', 'toTheLeft');
     });
 
     async function expectMoveSelectedTab(
@@ -114,6 +115,7 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: actionKey });
 
       expect(mockChrome.tabs.moveTab).toHaveBeenCalledWith(direction, _tabList[2].id);
+      expect(mockChrome.tabs.close).toHaveBeenCalled();
     }
   });
 });
