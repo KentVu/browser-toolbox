@@ -4,4 +4,5 @@ export interface Tab {
     url?: string;
     lastAccessed?: number;
     icon?: string;
+    splitViewId?: number;
 }

@@ -8,8 +8,18 @@ interface TabListProps {
 
 const keyLabelClass = 'rounded border border-cyan-400/60 bg-cyan-400/10 px-1 font-mono font-semibold text-cyan-200';
 
+function getSplitViewLabels(tabList: Tab[]): Map<number, number> {
+    const splitViewIds = [...new Set(
+        tabList
+            .map(tab => tab.splitViewId)
+            .filter((splitViewId): splitViewId is number => splitViewId !== undefined && splitViewId !== -1),
+    )].sort((a, b) => a - b);
+    return new Map(splitViewIds.map((splitViewId, index) => [splitViewId, index + 1]));
+}
+
 function TabList({ shadow }: TabListProps) {
     const [tabList, keyMap] = shadow.useVisibleTabList();
+    const splitViewLabels = getSplitViewLabels(tabList);
     const selectedTabId = shadow.useSelectedTabId();
     const { pageIndex, pageCount } = shadow.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
@@ -42,6 +52,9 @@ function TabList({ shadow }: TabListProps) {
                         try { hostname = new URL(tab.url).hostname; } catch {}
                     }
                     const shortcut = keyMap.get(tab.id) || String((index % 26) + 1);
+                    const splitViewLabel = tab.splitViewId === undefined || tab.splitViewId === -1
+                        ? undefined
+                        : splitViewLabels.get(tab.splitViewId);
                     const isSelected = tab.id === selectedTabId;
                     return (
                         <li
@@ -66,9 +79,14 @@ function TabList({ shadow }: TabListProps) {
                                         {shortcut}
                                     </kbd>
                                 </div>
-                                {hostname && (
+                                {(hostname || splitViewLabel !== undefined) && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
-                                        {hostname}
+                                        {hostname && <span>{hostname}</span>}
+                                        {splitViewLabel !== undefined && (
+                                            <span className="ml-1" aria-label={`Split view ${splitViewLabel}`}>
+                                                &#128279;{splitViewLabel}
+                                            </span>
+                                        )}
                                     </div>
                                 )}
                             </div>

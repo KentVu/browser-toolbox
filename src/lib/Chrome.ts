@@ -37,6 +37,7 @@ class DefaultTabs extends ChromeTabApi {
             url: tab.url,
             lastAccessed: tab.lastAccessed,
             icon: tab.favIconUrl,
+            splitViewId: tab.splitViewId,
         };
     }
     async activate(tabId: number): Promise<void> {

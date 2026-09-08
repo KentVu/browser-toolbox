@@ -13,8 +13,8 @@ afterEach(() => {
 describe('Popup', () => {
   describe('Tablist', () => {
     const tabList: Tab[] = [
-      { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000, icon: 'https://docs.example.com/favicon.ico' },
-      { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000, icon: 'https://game.example.com/favicon.ico' },
+      { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000, icon: 'https://docs.example.com/favicon.ico', splitViewId: 900000001 },
+      { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000, icon: 'https://game.example.com/favicon.ico', splitViewId: 900000002 },
     ];
     it('lists all tabs in all windows sorted by last accessed', async () => {
       const chrome = createMockChromeApi(tabList);
@@ -27,6 +27,29 @@ describe('Popup', () => {
       const state = shadow.s();
       await expectTabItem(items[0], 'game', 'game.example.com', state.tabKeyMap.get(tabList[1].id)!, tabList[1].icon);
       await expectTabItem(items[1], 'Docs', 'docs.example.com', state.tabKeyMap.get(tabList[0].id)!, tabList[0].icon);
+    });
+
+    it('displays a link icon and split view ID next to the hostname', async () => {
+      const chrome = createMockChromeApi(tabList);
+      const shadow = new PopupShadow(chrome);
+
+      await renderAndWait(<Popup shadow={shadow} />);
+
+      const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
+      expect(within(items[0]).getByLabelText('Split view 2').textContent).toBe('🔗2');
+      expect(within(items[1]).getByLabelText('Split view 1').textContent).toBe('🔗1');
+    });
+
+    it('does not display the split view none sentinel', async () => {
+      const tabs = [{ ...tabList[0], splitViewId: -1 }];
+      const chrome = createMockChromeApi(tabs);
+      const shadow = new PopupShadow(chrome);
+
+      await renderAndWaitForTitle(<Popup shadow={shadow} />, 'Docs');
+
+      const item = (await screen.findByText('Docs')).closest('li')!;
+      expect(within(item).queryByLabelText('Split view -1')).toBeNull();
+      expect(within(item).getByText('docs.example.com')).toBeTruthy();
     });
 
     it('displays each tab icon when available', async () => {
