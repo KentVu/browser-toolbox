@@ -43,7 +43,11 @@ function TabList({ presenter }: TabListProps) {
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
-            presenter.onKeyPress(pressed);
+            const key = e.ctrlKey ? `ctrl+${pressed}` : pressed;
+            if (key === 'ctrl+w') {
+                e.preventDefault();
+            }
+            presenter.onKeyPress(key);
         }
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
@@ -131,6 +135,7 @@ function TabList({ presenter }: TabListProps) {
                             <li><kbd className={keyLabelClass}>]</kbd>: Move tab to the right of current tab</li>
                             <li><kbd className={keyLabelClass}>[</kbd>: Move tab to the left of current tab</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
+                            <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>w</kbd>: Close selected tab</li>
                         </ul>
                     </>
                 }

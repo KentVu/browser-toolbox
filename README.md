@@ -14,6 +14,7 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 
 - Bring a tab close to the current tab
 - Browse and select tabs from all windows with the keyboard
+- Close the selected tab without leaving the popup
 
 # Behaviors
 
@@ -43,6 +44,7 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 | `,` | Jump to the **first** item on the page; if already there, go to the **previous page** |
 | `.` | Jump to the **last** item on the page; if already there, go to the **next page** |
 | `Enter` | Activate the selected tab and close the popup |
+| `Ctrl`+`w` | Close the selected tab, refresh the list, and keep the popup open |
 | `]` | Move the selected tab to the **right** of the current tab, activate it, and close the popup |
 | `[` | Move the selected tab to the **left** of the current tab, activate it, and close the popup |
 

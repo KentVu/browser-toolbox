@@ -40,5 +40,36 @@ describe('ChromeAPI', () => {
         expect(windowsUpdate).toHaveBeenCalledWith(7, { focused: true });
       });
     });
+
+    describe('remove', () => {
+      const originalChrome = (globalThis as any).chrome;
+
+      afterEach(() => {
+        (globalThis as any).chrome = originalChrome;
+      });
+
+      it('closes the tab via chrome.tabs.remove', async () => {
+        const remove = vi.fn().mockResolvedValue(undefined);
+
+        (globalThis as any).chrome = {
+          tabs: { remove },
+        };
+
+        await Chrome.tabs.remove(42);
+
+        expect(remove).toHaveBeenCalledWith(42);
+      });
+    });
+  });
+
+  describe('closePopup', () => {
+    it('closes the popup window', () => {
+      const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+
+      Chrome.closePopup();
+
+      expect(close).toHaveBeenCalled();
+      close.mockRestore();
+    });
   });
 });

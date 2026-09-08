@@ -148,7 +148,24 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: 'Enter' });
 
       expect(chrome.tabs.activate).toHaveBeenCalledWith(tabList[1].id);
-      expect(chrome.tabs.close).toHaveBeenCalled();
+      expect(chrome.closePopup).toHaveBeenCalled();
+    });
+
+    it('closes the selected tab when Ctrl-W is pressed and refreshes the list', async () => {
+      const tabs = makeTabs(3);
+      setup(tabs, tabs[0]);
+      const closedTab = tabs[1]; // pre-selected: previously visited
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      expect(presenter.s().selectedTabId).toBe(closedTab.id);
+
+      fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
+
+      expect(chrome.tabs.remove).toHaveBeenCalledWith(closedTab.id);
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+      await screen.findByText('Tab 3');
+      expect(screen.queryByText(closedTab.title)).toBeNull();
+      expect(presenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
     });
 
     it('move selected tab to the right of current tab', async () => {
@@ -329,7 +346,7 @@ describe('Popup', () => {
 
       expect(chrome.tabs.moveTab).toHaveBeenCalledWith(direction, _tabList[2].id);
       expect(chrome.tabs.activate).toHaveBeenCalledWith(_tabList[2].id);
-      expect(chrome.tabs.close).toHaveBeenCalled();
+      expect(chrome.closePopup).toHaveBeenCalled();
     }
   });
 });

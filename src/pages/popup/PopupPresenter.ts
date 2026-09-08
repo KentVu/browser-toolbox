@@ -81,7 +81,7 @@ export class PopupPresenter {
       const tabId = s.selectedTabId;
       void this.chrome.tabs.moveTab('toTheRight', tabId);
       void this.chrome.tabs.activate(tabId);
-      this.chrome.tabs.close();
+      this.chrome.closePopup();
       return;
     }
 
@@ -89,13 +89,19 @@ export class PopupPresenter {
       const tabId = s.selectedTabId;
       void this.chrome.tabs.moveTab('toTheLeft', tabId);
       void this.chrome.tabs.activate(tabId);
-      this.chrome.tabs.close();
+      this.chrome.closePopup();
       return;
     }
 
     if (key === 'enter' && s.selectedTabId !== undefined) {
       void this.chrome.tabs.activate(s.selectedTabId);
-      this.chrome.tabs.close();
+      this.chrome.closePopup();
+      return;
+    }
+
+    if (key === 'ctrl+w' && s.selectedTabId !== undefined) {
+      const tabId = s.selectedTabId;
+      void this.chrome.tabs.remove(tabId).then(() => this.fetchTabList());
       return;
     }
 
@@ -249,12 +255,12 @@ export function usePopupStore(chrome: ChromeApi) {
           const tabKeyMap = genTabKeyMap(state.tabList.map(tab => tab.id));
           if (key === ']' && state.selectedTabId !== undefined) {
             void chrome.tabs.moveTab('toTheRight', state.selectedTabId);
-            chrome.tabs.close();
+            chrome.closePopup();
             return {};
           }
           if (key === '[' && state.selectedTabId !== undefined) {
             void chrome.tabs.moveTab('toTheLeft', state.selectedTabId);
-            chrome.tabs.close();
+            chrome.closePopup();
             return {};
           }
 

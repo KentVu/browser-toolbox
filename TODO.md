@@ -16,9 +16,9 @@ When working with several related tabs, he wants to bring them closely together,
 
 # TODO
 
-1. [ ] ~~Extract setup to function to support choosing e2e test or unit test at test case level~~.
 1. [ ] Eliminate duplicates in UI Text by introducing i18n.
 1. [x] Tab should be sorted most recent tab first.
 1. [x] Pagination.
 1. [x] j/k for moving up/down the tab list.
 1. [ ] Search using `/` key.
+1. [x] Move `ChromeTabApi.close()` to `ChromeApi` and rename it to `closePopup`.

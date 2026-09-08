@@ -8,7 +8,7 @@ export abstract class ChromeTabApi {
     abstract getCurrent(): Promise<Tab | undefined>;
     abstract activate(tabId: number): Promise<void>;
     abstract moveTab(direction: MoveTabDirection, tabId: number): Promise<void>;
-    abstract close(): void;
+    abstract remove(tabId: number): Promise<void>;
 
     async getByLastAccessed(): Promise<Tab[]> {
         const chromeTabs = await this.get();
@@ -18,6 +18,7 @@ export abstract class ChromeTabApi {
 
 export interface ChromeApi {
     tabs: ChromeTabApi;
+    closePopup(): void;
 }
 
 class DefaultTabs extends ChromeTabApi {
@@ -62,8 +63,8 @@ class DefaultTabs extends ChromeTabApi {
         });
     }
 
-    close(): void {
-        window.close();
+    async remove(tabId: number): Promise<void> {
+        await chrome.tabs.remove(tabId);
     }
 };
 
@@ -72,6 +73,10 @@ class DefaultChrome implements ChromeApi {
 
     constructor() {
         this.tabs = new DefaultTabs();
+    }
+
+    closePopup(): void {
+        window.close();
     }
 }
 export const Chrome = new DefaultChrome();
