@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import '@pages/popup/index.css';
 import '@assets/styles/tailwind.css';
 import Popup from '@pages/popup/Popup';
-import { PopupShadow } from './PopupShadow';
+import { PopupPresenter } from './PopupPresenter';
 import { Chrome } from '@src/lib/Chrome';
 
 async function init() {
@@ -11,9 +11,9 @@ async function init() {
   if (!rootContainer) throw new Error("Can't find Popup root element");
   const root = createRoot(rootContainer);
   const chrome = Chrome;
-  const shadow = new PopupShadow(chrome);
+  const presenter = new PopupPresenter(chrome);
 
-  root.render(<Popup shadow={shadow} />);
+  root.render(<Popup presenter={presenter} />);
 }
 
 init();

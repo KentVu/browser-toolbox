@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
-import { PopupShadow } from './PopupShadow';
+import { PopupPresenter } from './PopupPresenter';
 
 interface TabListProps {
-    shadow: PopupShadow;
+    presenter: PopupPresenter;
 }
 
 const keyLabelClass = 'rounded border border-cyan-400/60 bg-cyan-400/10 px-1 font-mono font-semibold text-cyan-200';
@@ -26,28 +26,28 @@ function getWindowLabels(tabList: Tab[]): Map<number, number> {
     return new Map(windowIds.map((windowId, index) => [windowId, index + 1]));
 }
 
-function TabList({ shadow }: TabListProps) {
-    const [tabList, keyMap] = shadow.useVisibleTabList();
+function TabList({ presenter }: TabListProps) {
+    const [tabList, keyMap] = presenter.useVisibleTabList();
     const splitViewLabels = getSplitViewLabels(tabList);
     const windowLabels = getWindowLabels(tabList);
-    const selectedTabId = shadow.useSelectedTabId();
-    const currentWindowId = shadow.useCurrentWindowId();
-    const { pageIndex, pageCount } = shadow.usePageInfo();
+    const selectedTabId = presenter.useSelectedTabId();
+    const currentWindowId = presenter.useCurrentWindowId();
+    const { pageIndex, pageCount } = presenter.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
 
     useEffect(() => {
         //listRef.current?.focus();
-        void shadow.fetchTabList();
-    }, [shadow]);
+        void presenter.fetchTabList();
+    }, [presenter]);
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
-            shadow.onKeyPress(pressed);
+            presenter.onKeyPress(pressed);
         }
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [shadow]);
+    }, [presenter]);
 
     return (
         <div className="w-full mt-2">
@@ -72,7 +72,7 @@ function TabList({ shadow }: TabListProps) {
                     return (
                         <li
                             key={tab.id}
-                            onClick={() => shadow.setState({ selectedTabId: tab.id })}
+                            onClick={() => presenter.setState({ selectedTabId: tab.id })}
                             className={`px-2.5 py-1.5 flex items-center gap-2 hover:bg-gray-700/70 cursor-pointer transition-colors group ${isSelected ? 'selected' : ''}`}
                         >
                             {tab.icon ? (

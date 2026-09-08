@@ -1,12 +1,12 @@
 ---
 references:
-  - "File: /src/pages/popup/PopupShadow.ts"
+  - "File: /src/pages/popup/PopupPresenter.ts"
   - "File: /test/unit/popup.test.tsx"
   - "File: /vitest.config.ts"
 generationTime: 2026-09-07T02:46:12.473Z
 ---
 flowchart TD
-    Start(["PopupShadow Created"]) --> Fetch["fetchTabList()"]
+    Start(["PopupPresenter Created"]) --> Fetch["fetchTabList()"]
     Fetch --> Parallel["Promise.all getByLastAccessed + getCurrent"]
     Parallel --> GenMap[["genTabKeyMap(tabIds)"]]
     GenMap --> SetState["setState: tabList, tabKeyMap, selectedTabId"]

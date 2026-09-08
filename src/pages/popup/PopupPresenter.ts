@@ -12,7 +12,15 @@ export class PopupState {
   pageIndex = 0;
 }
 
-export class PopupShadow {
+/**
+ * Business logic layer for the popup UI.
+ *
+ * Mediates between React views and ChromeApi: owns popup state (tab list,
+ * selection, pagination, shortcut map), loads tabs, and handles keyboard
+ * navigation, activation, and tab moves. Views subscribe via hooks and
+ * stay presentational.
+ */
+export class PopupPresenter {
   private readonly store = create(() => ({
     tabList: [] as Tab[],
     tabKeyMap: new Map<number, string>(),
