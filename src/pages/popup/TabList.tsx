@@ -47,7 +47,7 @@ function TabList({ presenter }: TabListProps) {
             if (key === 'ctrl+w') {
                 e.preventDefault();
             }
-            presenter.onKeyPress(key);
+            void presenter.onKeyPress(key);
         }
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);

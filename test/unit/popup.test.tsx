@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
@@ -148,7 +148,7 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: 'Enter' });
 
       expect(chrome.tabs.activate).toHaveBeenCalledWith(tabList[1].id);
-      expect(chrome.closePopup).toHaveBeenCalled();
+      await waitFor(() => expect(chrome.closePopup).toHaveBeenCalled());
     });
 
     it('closes the selected tab when Ctrl-W is pressed and refreshes the list', async () => {
@@ -161,7 +161,7 @@ describe('Popup', () => {
 
       fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
 
-      expect(chrome.tabs.remove).toHaveBeenCalledWith(closedTab.id);
+      expect(chrome.tabs.close).toHaveBeenCalledWith(closedTab.id);
       expect(chrome.closePopup).not.toHaveBeenCalled();
       await screen.findByText('Tab 3');
       expect(screen.queryByText(closedTab.title)).toBeNull();
@@ -344,9 +344,13 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
       fireEvent.keyDown(document, { key: actionKey });
 
-      expect(chrome.tabs.moveTab).toHaveBeenCalledWith(direction, _tabList[2].id);
-      expect(chrome.tabs.activate).toHaveBeenCalledWith(_tabList[2].id);
-      expect(chrome.closePopup).toHaveBeenCalled();
+      expect(chrome.tabs.move).toHaveBeenCalledWith(direction, _tabList[2].id);
+      await waitFor(() => {
+        expect(chrome.tabs.activate).toHaveBeenCalledWith(_tabList[2].id);
+        expect(chrome.closePopup).toHaveBeenCalled();
+      });
+      expect(vi.mocked(chrome.tabs.move).mock.invocationCallOrder[0])
+        .toBeLessThan(vi.mocked(chrome.tabs.activate).mock.invocationCallOrder[0]);
     }
   });
 });

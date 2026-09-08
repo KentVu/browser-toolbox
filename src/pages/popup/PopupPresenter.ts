@@ -65,7 +65,7 @@ export class PopupPresenter {
     });
   }
 
-  onKeyPress(key: string): void {
+  async onKeyPress(key: string): Promise<void> {
     const s = this.s();
 
     if (key === ',') {
@@ -79,29 +79,30 @@ export class PopupPresenter {
 
     if (key === ']' && s.selectedTabId !== undefined) {
       const tabId = s.selectedTabId;
-      void this.chrome.tabs.moveTab('toTheRight', tabId);
-      void this.chrome.tabs.activate(tabId);
+      await this.chrome.tabs.move('toTheRight', tabId);
+      await this.chrome.tabs.activate(tabId);
       this.chrome.closePopup();
       return;
     }
 
     if (key === '[' && s.selectedTabId !== undefined) {
       const tabId = s.selectedTabId;
-      void this.chrome.tabs.moveTab('toTheLeft', tabId);
-      void this.chrome.tabs.activate(tabId);
+      await this.chrome.tabs.move('toTheLeft', tabId);
+      await this.chrome.tabs.activate(tabId);
       this.chrome.closePopup();
       return;
     }
 
     if (key === 'enter' && s.selectedTabId !== undefined) {
-      void this.chrome.tabs.activate(s.selectedTabId);
+      await this.chrome.tabs.activate(s.selectedTabId);
       this.chrome.closePopup();
       return;
     }
 
     if (key === 'ctrl+w' && s.selectedTabId !== undefined) {
       const tabId = s.selectedTabId;
-      void this.chrome.tabs.remove(tabId).then(() => this.fetchTabList());
+      await this.chrome.tabs.close(tabId);
+      await this.fetchTabList();
       return;
     }
 
@@ -254,12 +255,12 @@ export function usePopupStore(chrome: ChromeApi) {
         set((state) => {
           const tabKeyMap = genTabKeyMap(state.tabList.map(tab => tab.id));
           if (key === ']' && state.selectedTabId !== undefined) {
-            void chrome.tabs.moveTab('toTheRight', state.selectedTabId);
+            void chrome.tabs.move('toTheRight', state.selectedTabId);
             chrome.closePopup();
             return {};
           }
           if (key === '[' && state.selectedTabId !== undefined) {
-            void chrome.tabs.moveTab('toTheLeft', state.selectedTabId);
+            void chrome.tabs.move('toTheLeft', state.selectedTabId);
             chrome.closePopup();
             return {};
           }

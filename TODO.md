@@ -21,4 +21,5 @@ When working with several related tabs, he wants to bring them closely together,
 1. [x] Pagination.
 1. [x] j/k for moving up/down the tab list.
 1. [ ] Search using `/` key.
-1. [x] Move `ChromeTabApi.close()` to `ChromeApi` and rename it to `closePopup`.
+1. [ ] Should maintain current page after closing.
+1. [ ] Move the behaviour of `,`/`.` to pageUp/pageDown, `,`/`.` remain simply prev/next page.

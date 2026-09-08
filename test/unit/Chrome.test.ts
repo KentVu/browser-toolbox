@@ -41,7 +41,7 @@ describe('ChromeAPI', () => {
       });
     });
 
-    describe('remove', () => {
+    describe('close', () => {
       const originalChrome = (globalThis as any).chrome;
 
       afterEach(() => {
@@ -55,7 +55,7 @@ describe('ChromeAPI', () => {
           tabs: { remove },
         };
 
-        await Chrome.tabs.remove(42);
+        await Chrome.tabs.close(42);
 
         expect(remove).toHaveBeenCalledWith(42);
       });

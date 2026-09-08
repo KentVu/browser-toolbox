@@ -10,12 +10,6 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 - Or click the extension toolbar icon
 - Remap anytime in `chrome://extensions/shortcuts`
 
-# Current status
-
-- Bring a tab close to the current tab
-- Browse and select tabs from all windows with the keyboard
-- Close the selected tab without leaving the popup
-
 # Behaviors
 
 ## Tab list
