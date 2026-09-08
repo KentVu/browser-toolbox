@@ -33,6 +33,7 @@ class DefaultTabs extends ChromeTabApi {
     private toTab(tab: chrome.tabs.Tab): Tab {
         return {
             id: tab.id!,
+            windowId: tab.windowId,
             title: tab.title || '',
             url: tab.url,
             lastAccessed: tab.lastAccessed,

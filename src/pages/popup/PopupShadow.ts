@@ -8,6 +8,7 @@ export class PopupState {
   tabList: Tab[] = [];
   tabKeyMap: Map<number, string> = new Map();
   selectedTabId: number | undefined;
+  currentWindowId: number | undefined;
   pageIndex = 0;
 }
 
@@ -16,6 +17,7 @@ export class PopupShadow {
     tabList: [] as Tab[],
     tabKeyMap: new Map<number, string>(),
     selectedTabId: undefined as number | undefined,
+    currentWindowId: undefined as number | undefined,
     pageIndex: 0,
   }));
 
@@ -31,6 +33,7 @@ export class PopupShadow {
     return [visibleTabs(tabList, pageIndex), tabKeyMap];
   };
   useSelectedTabId = () => this.store(state => state.selectedTabId);
+  useCurrentWindowId = () => this.store(state => state.currentWindowId);
   usePageInfo = (): { pageIndex: number; pageCount: number } => {
     const pageIndex = this.store(state => state.pageIndex);
     const tabCount = this.store(state => state.tabList.length);
@@ -50,6 +53,7 @@ export class PopupShadow {
       pageIndex,
       tabKeyMap: genTabKeyMap(visibleTabs(_tabs, pageIndex).map(tab => tab.id)),
       selectedTabId: previousTab?.id,
+      currentWindowId: currentTab?.windowId,
     });
   }
 
@@ -87,11 +91,11 @@ export class PopupShadow {
       return;
     }
 
-    if (key === 'j') {
+    if (key === 'j' || key === 'arrowdown') {
       this.moveSelection(1);
       return;
     }
-    if (key === 'k') {
+    if (key === 'k' || key === 'arrowup') {
       this.moveSelection(-1);
       return;
     }

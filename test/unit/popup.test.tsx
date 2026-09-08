@@ -63,6 +63,20 @@ describe('Popup', () => {
       expect((items[1].querySelector('img') as HTMLImageElement).src).toBe(tabList[0].icon);
     });
 
+    it('displays the window ID for tabs in a different window', async () => {
+      const tabs = [
+        { ...tabList[0], windowId: 10 },
+        { ...tabList[1], windowId: 20 },
+      ];
+      const chrome = createMockChromeApi(tabs, tabs[1]);
+      const shadow = new PopupShadow(chrome);
+
+      await renderAndWaitForTitle(<Popup shadow={shadow} />, 'game');
+
+      expect(screen.getByLabelText('Window 1').textContent).toBe('🪟1');
+      expect(screen.queryByLabelText('Window 2')).toBeNull();
+    });
+
     it('selects the correct tab when a key is pressed', async () => {
       const chrome = createMockChromeApi(tabList);
       const shadow = new PopupShadow(chrome);
@@ -72,6 +86,32 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: secondTabKey });
       const item = (await screen.findByText(tabList[1].title)).closest('li')!;
       expect(item.classList.contains('selected')).toBe(true);
+    });
+
+    it('moves selection with the up and down arrow keys', async () => {
+      const chrome = createMockChromeApi(tabList);
+      const shadow = new PopupShadow(chrome);
+
+      await renderAndWaitForTitle(<Popup shadow={shadow} />, 'game');
+
+      fireEvent.keyDown(document, { key: 'ArrowDown' });
+      expect(shadow.s().selectedTabId).toBe(tabList[0].id);
+
+      fireEvent.keyDown(document, { key: 'ArrowUp' });
+      expect(shadow.s().selectedTabId).toBe(tabList[1].id);
+    });
+
+    it('selects a tab when its row is clicked', async () => {
+      const chrome = createMockChromeApi(tabList);
+      const shadow = new PopupShadow(chrome);
+
+      await renderAndWaitForTitle(<Popup shadow={shadow} />, 'game');
+
+      const docsItem = (await screen.findByText(tabList[0].title)).closest('li')!;
+      fireEvent.click(docsItem);
+
+      expect(shadow.s().selectedTabId).toBe(tabList[0].id);
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
     });
 
     it('selects the previously visited tab after loading', async () => {

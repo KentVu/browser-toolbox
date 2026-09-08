@@ -17,10 +17,21 @@ function getSplitViewLabels(tabList: Tab[]): Map<number, number> {
     return new Map(splitViewIds.map((splitViewId, index) => [splitViewId, index + 1]));
 }
 
+function getWindowLabels(tabList: Tab[]): Map<number, number> {
+    const windowIds = [...new Set(
+        tabList
+            .map(tab => tab.windowId)
+            .filter((windowId): windowId is number => windowId !== undefined),
+    )].sort((a, b) => a - b);
+    return new Map(windowIds.map((windowId, index) => [windowId, index + 1]));
+}
+
 function TabList({ shadow }: TabListProps) {
     const [tabList, keyMap] = shadow.useVisibleTabList();
     const splitViewLabels = getSplitViewLabels(tabList);
+    const windowLabels = getWindowLabels(tabList);
     const selectedTabId = shadow.useSelectedTabId();
+    const currentWindowId = shadow.useCurrentWindowId();
     const { pageIndex, pageCount } = shadow.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
 
@@ -55,10 +66,13 @@ function TabList({ shadow }: TabListProps) {
                     const splitViewLabel = tab.splitViewId === undefined || tab.splitViewId === -1
                         ? undefined
                         : splitViewLabels.get(tab.splitViewId);
+                    const differentWindow = currentWindowId !== undefined && tab.windowId !== currentWindowId;
+                    const windowLabel = tab.windowId === undefined ? undefined : windowLabels.get(tab.windowId);
                     const isSelected = tab.id === selectedTabId;
                     return (
                         <li
                             key={tab.id}
+                            onClick={() => shadow.setState({ selectedTabId: tab.id })}
                             className={`px-2.5 py-1.5 flex items-center gap-2 hover:bg-gray-700/70 cursor-pointer transition-colors group ${isSelected ? 'selected' : ''}`}
                         >
                             {tab.icon ? (
@@ -82,6 +96,11 @@ function TabList({ shadow }: TabListProps) {
                                 {(hostname || splitViewLabel !== undefined) && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
                                         {hostname && <span>{hostname}</span>}
+                                        {differentWindow && windowLabel !== undefined && (
+                                            <span className="ml-1" aria-label={`Window ${windowLabel}`}>
+                                                &#129695;{windowLabel}
+                                            </span>
+                                        )}
                                         {splitViewLabel !== undefined && (
                                             <span className="ml-1" aria-label={`Split view ${splitViewLabel}`}>
                                                 &#128279;{splitViewLabel}
@@ -108,7 +127,7 @@ function TabList({ shadow }: TabListProps) {
                     <>
                         <div>Select next action:</div>
                         <ul className="list-disc list-inside text-[9px] text-gray-500">
-                            <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd>: Move selection down/up</li>
+                            <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↑</kbd>/<kbd className={keyLabelClass}>↓</kbd>: Move selection down/up</li>
                             <li><kbd className={keyLabelClass}>]</kbd>: Move tab to the right of current tab</li>
                             <li><kbd className={keyLabelClass}>[</kbd>: Move tab to the left of current tab</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
