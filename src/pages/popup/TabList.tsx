@@ -118,7 +118,7 @@ function TabList({ shadow }: TabListProps) {
             )}
             {pageCount > 1 && (
                 <div className="text-[10px] text-gray-500 px-1 py-1">
-                    Page {pageIndex + 1}/{pageCount} · <kbd className={keyLabelClass}>,</kbd> prev · <kbd className={keyLabelClass}>.</kbd> next
+                    Page {pageIndex + 1}/{pageCount} · <kbd className={keyLabelClass}>,</kbd> first/prev · <kbd className={keyLabelClass}>.</kbd> last/next
                 </div>
             )}
             <div className="text-[10px] text-gray-500 px-1 py-1">
@@ -127,7 +127,7 @@ function TabList({ shadow }: TabListProps) {
                     <>
                         <div>Select next action:</div>
                         <ul className="list-disc list-inside text-[9px] text-gray-500">
-                            <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↑</kbd>/<kbd className={keyLabelClass}>↓</kbd>: Move selection down/up</li>
+                            <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↑</kbd>/<kbd className={keyLabelClass}>↓</kbd>: Move selection down/up (pages at edges)</li>
                             <li><kbd className={keyLabelClass}>]</kbd>: Move tab to the right of current tab</li>
                             <li><kbd className={keyLabelClass}>[</kbd>: Move tab to the left of current tab</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>

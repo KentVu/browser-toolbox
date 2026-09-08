@@ -132,7 +132,7 @@ describe('Popup', () => {
       await renderAndWait(<Popup shadow={shadow} />);
       // Previously visited tab is pre-selected, so action guidance is shown
       expect(await screen.findByText('Select next action:')).toBeTruthy();
-      expect(screen.getByText(/Move selection down\/up/)).toBeTruthy();
+      expect(screen.getByText(/Move selection down\/up \(pages at edges\)/)).toBeTruthy();
       const keyLabel = await screen.findByText((content, element) =>
         element?.tagName === 'KBD' && element.textContent === ']'
       );
@@ -183,7 +183,7 @@ describe('Popup', () => {
         expect(shadow.s().selectedTabId).toBe(tabs[0].id);
       });
 
-      it('clamps selection at the ends of the visible page', async () => {
+      it('clamps selection at the ends when there is no adjacent page', async () => {
         const tabs = makeTabs(3);
         const chrome = createMockChromeApi(tabs, tabs[0]);
         const shadow = new PopupShadow(chrome);
@@ -191,23 +191,47 @@ describe('Popup', () => {
         await renderAndWaitForTitle(<Popup shadow={shadow} />, 'Tab 1');
 
         fireEvent.keyDown(document, { key: 'k' }); // Tab 2 → Tab 1
-        fireEvent.keyDown(document, { key: 'k' }); // already first
+        fireEvent.keyDown(document, { key: 'k' }); // already first page/item
         expect(shadow.s().selectedTabId).toBe(tabs[0].id);
+        expect(shadow.s().pageIndex).toBe(0);
 
         fireEvent.keyDown(document, { key: 'j' });
         fireEvent.keyDown(document, { key: 'j' });
-        fireEvent.keyDown(document, { key: 'j' }); // already last
+        fireEvent.keyDown(document, { key: 'j' }); // already last page/item
         expect(shadow.s().selectedTabId).toBe(tabs[2].id);
+        expect(shadow.s().pageIndex).toBe(0);
       });
 
-      it('navigates only within the current page after pagination', async () => {
+      it('moves to the next/prev page with j/k when selection is at the page edge', async () => {
+        const manyTabs = makeTabs(15);
+        const chrome = createMockChromeApi(manyTabs, manyTabs[0]);
+        const shadow = new PopupShadow(chrome);
+
+        await renderAndWaitForTitle(<Popup shadow={shadow} />, 'Tab 1');
+        // Current is Tab 1 → previous (pre-selected) is Tab 2
+        expect(shadow.s().selectedTabId).toBe(manyTabs[1].id);
+
+        fireEvent.keyDown(document, { key: '.' }); // jump to last on page 0
+        expect(shadow.s().selectedTabId).toBe(manyTabs[9].id);
+
+        fireEvent.keyDown(document, { key: 'j' });
+        expect(shadow.s().pageIndex).toBe(1);
+        expect(shadow.s().selectedTabId).toBe(manyTabs[10].id);
+
+        fireEvent.keyDown(document, { key: 'k' });
+        expect(shadow.s().pageIndex).toBe(0);
+        expect(shadow.s().selectedTabId).toBe(manyTabs[9].id);
+      });
+
+      it('selects the nearest visible item with j/k when selection is off-page', async () => {
         const manyTabs = makeTabs(11);
         const chrome = createMockChromeApi(manyTabs, manyTabs[0]);
         const shadow = new PopupShadow(chrome);
 
         await renderAndWaitForTitle(<Popup shadow={shadow} />, 'Tab 1');
 
-        fireEvent.keyDown(document, { key: '.' });
+        fireEvent.keyDown(document, { key: '.' }); // jump to last on page
+        fireEvent.keyDown(document, { key: '.' }); // then next page
         expect(shadow.s().pageIndex).toBe(1);
 
         // Selection may still point at a previous-page tab; j selects first visible item
@@ -215,7 +239,7 @@ describe('Popup', () => {
         expect(shadow.s().selectedTabId).toBe(manyTabs[10].id);
 
         fireEvent.keyDown(document, { key: 'j' });
-        expect(shadow.s().selectedTabId).toBe(manyTabs[10].id); // only one item on page 2
+        expect(shadow.s().selectedTabId).toBe(manyTabs[10].id); // last page — no further page
         expect(shadow.s().pageIndex).toBe(1);
       });
     });
@@ -241,6 +265,30 @@ describe('Popup', () => {
         expect(shadow.s().pageIndex).toBe(0);
       });
 
+      it('jumps . to last item then next page, and , to first item then prev page', async () => {
+        const manyTabs = makeTabs(15);
+        const chrome = createMockChromeApi(manyTabs, manyTabs[0]);
+        const shadow = new PopupShadow(chrome);
+
+        await renderAndWaitForTitle(<Popup shadow={shadow} />, 'Tab 1');
+        // Current is Tab 1 → previous (pre-selected) is Tab 2
+        expect(shadow.s().selectedTabId).toBe(manyTabs[1].id);
+
+        fireEvent.keyDown(document, { key: '.' });
+        expect(shadow.s().pageIndex).toBe(0);
+        expect(shadow.s().selectedTabId).toBe(manyTabs[9].id);
+
+        fireEvent.keyDown(document, { key: '.' });
+        expect(shadow.s().pageIndex).toBe(1);
+
+        fireEvent.keyDown(document, { key: ',' });
+        expect(shadow.s().pageIndex).toBe(1);
+        expect(shadow.s().selectedTabId).toBe(manyTabs[10].id);
+
+        fireEvent.keyDown(document, { key: ',' });
+        expect(shadow.s().pageIndex).toBe(0);
+      });
+
       it('navigates pages with . and , while keeping slot shortcut keys stable', async () => {
         const manyTabs = makeTabs(11);
         const chrome = createMockChromeApi(manyTabs);
@@ -252,15 +300,23 @@ describe('Popup', () => {
         const firstPageFirstKey = shadow.s().tabKeyMap.get(manyTabs[0].id);
         expect(firstPageFirstKey).toBeTruthy();
 
+        // Selected Tab 1 is first, not last → . jumps to last on page
         fireEvent.keyDown(document, { key: '.' });
+        expect(shadow.s().pageIndex).toBe(0);
+        expect(shadow.s().selectedTabId).toBe(manyTabs[9].id);
 
+        fireEvent.keyDown(document, { key: '.' });
         expect(shadow.s().pageIndex).toBe(1);
         expect(screen.queryByText('Tab 1')).toBeNull();
         expect(await screen.findByText('Tab 11')).toBeTruthy();
         expect(shadow.s().tabKeyMap.get(manyTabs[10].id)).toBe(firstPageFirstKey);
 
+        // Selection still off-page → , jumps to first (only) item on page 2
         fireEvent.keyDown(document, { key: ',' });
+        expect(shadow.s().pageIndex).toBe(1);
+        expect(shadow.s().selectedTabId).toBe(manyTabs[10].id);
 
+        fireEvent.keyDown(document, { key: ',' });
         expect(shadow.s().pageIndex).toBe(0);
         expect(await screen.findByText('Tab 1')).toBeTruthy();
         expect(shadow.s().tabKeyMap.get(manyTabs[0].id)).toBe(firstPageFirstKey);

@@ -61,11 +61,11 @@ export class PopupShadow {
     const s = this.s();
 
     if (key === ',') {
-      this.changePage(-1);
+      this.jumpToPageEdgeOrChangePage('first');
       return;
     }
     if (key === '.') {
-      this.changePage(1);
+      this.jumpToPageEdgeOrChangePage('last');
       return;
     }
 
@@ -107,7 +107,11 @@ export class PopupShadow {
     this.setState({ selectedTabId: tabId });
   }
 
-  /** Move selection within the currently visible page. Clamps at the ends. */
+  /**
+   * Move selection within the currently visible page.
+   * At the page edge, advances to the next/previous page and selects the first/last item there.
+   * Clamps when there is no adjacent page.
+   */
   moveSelection(delta: number): void {
     const s = this.s();
     const pageTabs = visibleTabs(s.tabList, s.pageIndex);
@@ -116,14 +120,53 @@ export class PopupShadow {
     }
 
     const currentIndex = pageTabs.findIndex(tab => tab.id === s.selectedTabId);
-    let nextIndex: number;
     if (currentIndex === -1) {
-      nextIndex = delta > 0 ? 0 : pageTabs.length - 1;
-    } else {
-      nextIndex = Math.min(pageTabs.length - 1, Math.max(0, currentIndex + delta));
+      const nextIndex = delta > 0 ? 0 : pageTabs.length - 1;
+      this.setState({ selectedTabId: pageTabs[nextIndex].id });
+      return;
     }
 
-    this.setState({ selectedTabId: pageTabs[nextIndex].id });
+    const nextIndex = currentIndex + delta;
+    if (nextIndex >= 0 && nextIndex < pageTabs.length) {
+      this.setState({ selectedTabId: pageTabs[nextIndex].id });
+      return;
+    }
+
+    const pageDelta = delta > 0 ? 1 : -1;
+    const maxPage = pageCount(s.tabList) - 1;
+    const pageIndex = Math.min(maxPage, Math.max(0, s.pageIndex + pageDelta));
+    if (pageIndex === s.pageIndex) {
+      return;
+    }
+
+    const newPageTabs = visibleTabs(s.tabList, pageIndex);
+    const edgeIndex = delta > 0 ? 0 : newPageTabs.length - 1;
+    this.setState({
+      pageIndex,
+      tabKeyMap: genTabKeyMap(newPageTabs.map(tab => tab.id)),
+      selectedTabId: newPageTabs[edgeIndex].id,
+    });
+  }
+
+  /**
+   * Jump selection to the first/last item on the current page.
+   * If already there, switch to the previous/next page.
+   */
+  jumpToPageEdgeOrChangePage(edge: 'first' | 'last'): void {
+    const s = this.s();
+    const pageTabs = visibleTabs(s.tabList, s.pageIndex);
+    if (pageTabs.length === 0) {
+      return;
+    }
+
+    const edgeIndex = edge === 'first' ? 0 : pageTabs.length - 1;
+    const edgeTabId = pageTabs[edgeIndex].id;
+    if (s.selectedTabId !== edgeTabId) {
+      this.setState({ selectedTabId: edgeTabId });
+      return;
+    }
+
+    this.changePage(edge === 'first' ? -1 : 1);
   }
 
   changePage(delta: number): void {
