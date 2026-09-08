@@ -35,8 +35,10 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 | Letter shortcut (`a`, `s`, `d`, …) | Select the tab in that slot on the current page |
 | `j` / `↓` | Move selection down; at the last item, go to the **next page** and select its first item |
 | `k` / `↑` | Move selection up; at the first item, go to the **previous page** and select its last item |
-| `,` | Jump to the **first** item on the page; if already there, go to the **previous page** |
-| `.` | Jump to the **last** item on the page; if already there, go to the **next page** |
+| `J` / `PageDown` | Jump to the **last** item on the page; if already there, go to the **next page** |
+| `K` / `PageUp` | Jump to the **first** item on the page; if already there, go to the **previous page** |
+| `,` | Go to the **previous page** |
+| `.` | Go to the **next page** |
 | `Enter` | Activate the selected tab and close the popup |
 | `Ctrl`+`w` | Close the selected tab, refresh the list, and keep the popup open |
 | `]` | Move the selected tab to the **right** of the current tab, activate it, and close the popup |

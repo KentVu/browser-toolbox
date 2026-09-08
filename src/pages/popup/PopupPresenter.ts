@@ -69,11 +69,11 @@ export class PopupPresenter {
     const s = this.s();
 
     if (key === ',') {
-      this.jumpToPageEdgeOrChangePage('first');
+      this.changePage(-1);
       return;
     }
     if (key === '.') {
-      this.jumpToPageEdgeOrChangePage('last');
+      this.changePage(1);
       return;
     }
 
@@ -106,6 +106,14 @@ export class PopupPresenter {
       return;
     }
 
+    if (key === 'J' || key === 'pagedown') {
+      this.jumpToPageEdgeOrChangePage('last');
+      return;
+    }
+    if (key === 'K' || key === 'pageup') {
+      this.jumpToPageEdgeOrChangePage('first');
+      return;
+    }
     if (key === 'j' || key === 'arrowdown') {
       this.moveSelection(1);
       return;

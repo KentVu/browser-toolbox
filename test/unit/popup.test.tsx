@@ -214,7 +214,7 @@ describe('Popup', () => {
         expect(presenter.s().pageIndex).toBe(0);
       });
 
-      it('moves to the next/prev page with j/k when selection is at the page edge', async () => {
+      it('jumps to page edges with J/K and changes page at the edge', async () => {
         const manyTabs = makeTabs(15);
         setup(manyTabs, manyTabs[0]);
 
@@ -222,40 +222,46 @@ describe('Popup', () => {
         // Current is Tab 1 → previous (pre-selected) is Tab 2
         expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
 
-        fireEvent.keyDown(document, { key: '.' }); // jump to last on page 0
+        fireEvent.keyDown(document, { key: 'J', shiftKey: true });
+        expect(presenter.s().pageIndex).toBe(0);
         expect(presenter.s().selectedTabId).toBe(manyTabs[9].id);
 
-        fireEvent.keyDown(document, { key: 'j' });
+        fireEvent.keyDown(document, { key: 'PageDown' });
+        expect(presenter.s().pageIndex).toBe(1);
+
+        fireEvent.keyDown(document, { key: 'J', shiftKey: true });
+        expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.s().selectedTabId).toBe(manyTabs[14].id);
+
+        fireEvent.keyDown(document, { key: 'K', shiftKey: true });
         expect(presenter.s().pageIndex).toBe(1);
         expect(presenter.s().selectedTabId).toBe(manyTabs[10].id);
 
-        fireEvent.keyDown(document, { key: 'k' });
+        fireEvent.keyDown(document, { key: 'PageUp' });
         expect(presenter.s().pageIndex).toBe(0);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[9].id);
       });
 
-      it('selects the nearest visible item with j/k when selection is off-page', async () => {
+      it('selects the nearest visible item with J/K when selection is off-page', async () => {
         const manyTabs = makeTabs(11);
         setup(manyTabs, manyTabs[0]);
 
         await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
 
-        fireEvent.keyDown(document, { key: '.' }); // jump to last on page
-        fireEvent.keyDown(document, { key: '.' }); // then next page
+        fireEvent.keyDown(document, { key: '.' }); // move to next page
         expect(presenter.s().pageIndex).toBe(1);
 
-        // Selection may still point at a previous-page tab; j selects first visible item
-        fireEvent.keyDown(document, { key: 'j' });
+        // Selection may still point at a previous-page tab; J selects the last visible item
+        fireEvent.keyDown(document, { key: 'J', shiftKey: true });
         expect(presenter.s().selectedTabId).toBe(manyTabs[10].id);
 
-        fireEvent.keyDown(document, { key: 'j' });
+        fireEvent.keyDown(document, { key: 'J', shiftKey: true });
         expect(presenter.s().selectedTabId).toBe(manyTabs[10].id); // last page — no further page
         expect(presenter.s().pageIndex).toBe(1);
       });
     });
 
     describe('pagination', () => {
-      it('reserves j and k keys away from tab shortcuts', () => {
+      it('reserves j and k for item navigation', () => {
         expect(shortcutKeys).not.toContain('j');
         expect(shortcutKeys).not.toContain('k');
         expect(shortcutKeys.length).toBeGreaterThanOrEqual(10);
@@ -274,7 +280,7 @@ describe('Popup', () => {
         expect(presenter.s().pageIndex).toBe(0);
       });
 
-      it('jumps . to last item then next page, and , to first item then prev page', async () => {
+      it('uses . and , for next and previous page', async () => {
         const manyTabs = makeTabs(15);
         setup(manyTabs, manyTabs[0]);
 
@@ -283,18 +289,12 @@ describe('Popup', () => {
         expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: '.' });
-        expect(presenter.s().pageIndex).toBe(0);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[9].id);
-
-        fireEvent.keyDown(document, { key: '.' });
         expect(presenter.s().pageIndex).toBe(1);
-
-        fireEvent.keyDown(document, { key: ',' });
-        expect(presenter.s().pageIndex).toBe(1);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[10].id);
+        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: ',' });
         expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
       });
 
       it('navigates pages with . and , while keeping slot shortcut keys stable', async () => {
@@ -307,24 +307,18 @@ describe('Popup', () => {
         const firstPageFirstKey = presenter.s().tabKeyMap.get(manyTabs[0].id);
         expect(firstPageFirstKey).toBeTruthy();
 
-        // Selected Tab 1 is first, not last → . jumps to last on page
-        fireEvent.keyDown(document, { key: '.' });
-        expect(presenter.s().pageIndex).toBe(0);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[9].id);
-
+        // . advances directly to the next page.
         fireEvent.keyDown(document, { key: '.' });
         expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
         expect(screen.queryByText('Tab 1')).toBeNull();
         expect(await screen.findByText('Tab 11')).toBeTruthy();
         expect(presenter.s().tabKeyMap.get(manyTabs[10].id)).toBe(firstPageFirstKey);
 
-        // Selection still off-page → , jumps to first (only) item on page 2
-        fireEvent.keyDown(document, { key: ',' });
-        expect(presenter.s().pageIndex).toBe(1);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[10].id);
-
+        // , returns directly to the previous page without changing selection.
         fireEvent.keyDown(document, { key: ',' });
         expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
         expect(await screen.findByText('Tab 1')).toBeTruthy();
         expect(presenter.s().tabKeyMap.get(manyTabs[0].id)).toBe(firstPageFirstKey);
       });
