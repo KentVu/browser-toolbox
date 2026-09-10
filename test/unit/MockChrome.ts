@@ -16,6 +16,7 @@ export function createMockChromeApi(tabs: Tab[] = [], currentTab?: Tab): ChromeA
     close: vi.fn().mockImplementation(async (tabId: number) => {
       openTabs = openTabs.filter(tab => tab.id !== tabId);
     }),
+    updateUrl: vi.fn().mockResolvedValue(undefined),
   };
 
   return {

@@ -60,6 +60,26 @@ describe('ChromeAPI', () => {
         expect(remove).toHaveBeenCalledWith(42);
       });
     });
+
+    describe('updateUrl', () => {
+      const originalChrome = (globalThis as any).chrome;
+
+      afterEach(() => {
+        (globalThis as any).chrome = originalChrome;
+      });
+
+      it('updates the tab URL via chrome.tabs.update', async () => {
+        const update = vi.fn().mockResolvedValue({});
+
+        (globalThis as any).chrome = {
+          tabs: { update },
+        };
+
+        await Chrome.tabs.updateUrl(42, 'https://pasted.example.com');
+
+        expect(update).toHaveBeenCalledWith(42, { url: 'https://pasted.example.com' });
+      });
+    });
   });
 
   describe('closePopup', () => {

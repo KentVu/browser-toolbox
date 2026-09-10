@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
-import { shortcutKeys } from '@src/lib/constants';
+import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { PopupPresenter } from '@src/pages/popup/PopupPresenter';
 import { createMockBrowserApi } from './MockBrowser';
@@ -139,7 +139,7 @@ describe('Popup', () => {
       );
       expect(keyLabel.classList.contains('text-cyan-200')).toBe(true);
       const container = keyLabel.closest('li')!;
-      expect(within(container).getByText(/Move tab to the right of current tab/)).toBeTruthy();
+      expect(within(container).getByText(/Move tab to the right\/left of current tab/)).toBeTruthy();
     });
 
     it('activates the selected tab when Enter is pressed', async () => {
@@ -182,6 +182,53 @@ describe('Popup', () => {
 
       await waitFor(() => expect(browser.clipboard.writeText).toHaveBeenCalledWith(tabs[1].url));
       expect(chrome.closePopup).not.toHaveBeenCalled();
+    });
+
+    it('pastes a clipboard URL into the selected tab when Ctrl-V is pressed', async () => {
+      const tabs = makeTabs(3);
+      setup(tabs, tabs[0]);
+      vi.mocked(browser.clipboard.readText).mockResolvedValue('https://pasted.example.com/page');
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      expect(presenter.s().selectedTabId).toBe(tabs[1].id);
+
+      fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
+
+      await waitFor(() => {
+        expect(browser.clipboard.readText).toHaveBeenCalled();
+        expect(chrome.tabs.updateUrl).toHaveBeenCalledWith(tabs[1].id, 'https://pasted.example.com/page');
+      });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.getByText('pasted.example.com')).toBeTruthy();
+    });
+
+    it('shows a footer error when Ctrl-V clipboard text is not a URL', async () => {
+      const tabs = makeTabs(3);
+      setup(tabs, tabs[0]);
+      vi.mocked(browser.clipboard.readText).mockResolvedValue('not a url');
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+
+      fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
+
+      expect((await screen.findByRole('alert')).textContent).toBe('Not a URL to paste!');
+      expect(chrome.tabs.updateUrl).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+    });
+
+    it('shows a footer error when Ctrl-V clipboard text is empty', async () => {
+      const tabs = makeTabs(3);
+      setup(tabs, tabs[0]);
+      vi.mocked(browser.clipboard.readText).mockResolvedValue('   ');
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+
+      fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
+
+      expect((await screen.findByRole('alert')).textContent).toBe('Not a URL to paste!');
+      expect(chrome.tabs.updateUrl).not.toHaveBeenCalled();
     });
 
     it('move selected tab to the right of current tab', async () => {
@@ -280,7 +327,7 @@ describe('Popup', () => {
       it('reserves j and k for item navigation', () => {
         expect(shortcutKeys).not.toContain('j');
         expect(shortcutKeys).not.toContain('k');
-        expect(shortcutKeys.length).toBeGreaterThanOrEqual(10);
+        expect(shortcutKeys.length).toBeGreaterThan(PAGE_SIZE);
       });
 
       it('shows at most 10 tabs on the first page', async () => {

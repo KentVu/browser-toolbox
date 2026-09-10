@@ -32,6 +32,7 @@ function TabList({ presenter }: TabListProps) {
     const windowLabels = getWindowLabels(tabList);
     const selectedTabId = presenter.useSelectedTabId();
     const currentWindowId = presenter.useCurrentWindowId();
+    const errorMessage = presenter.useErrorMessage();
     const { pageIndex, pageCount } = presenter.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
 
@@ -44,7 +45,7 @@ function TabList({ presenter }: TabListProps) {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
             const key = e.ctrlKey ? `ctrl+${pressed}` : e.shiftKey ? e.key : pressed;
-            if (key === 'ctrl+w' || key === 'ctrl+c') {
+            if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v') {
                 e.preventDefault();
             }
             void presenter.onKeyPress(key);
@@ -125,7 +126,16 @@ function TabList({ presenter }: TabListProps) {
                     Page {pageIndex + 1}/{pageCount} · <kbd className={keyLabelClass}>,</kbd> previous · <kbd className={keyLabelClass}>.</kbd> next
                 </div>
             )}
-            <div className="text-[10px] text-gray-500 px-1 py-1">
+            <div
+                className={`text-[10px] text-gray-500 px-1 py-1 ${errorMessage
+                    ? 'rounded-md border border-red-500/80 bg-red-950/40 text-red-200'
+                    : ''}`}
+            >
+                {errorMessage && (
+                    <div role="alert" className="mb-1 text-[10px] font-medium text-red-300">
+                        {errorMessage}
+                    </div>
+                )}
                 {selectedTabId === undefined ?
                     "Press a key to select a tab" :
                     <>
@@ -133,11 +143,11 @@ function TabList({ presenter }: TabListProps) {
                         <ul className="list-disc list-inside text-[9px] text-gray-500">
                             <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↓</kbd>/<kbd className={keyLabelClass}>↑</kbd>: Move selection down/up (pages at edges)</li>
                             <li><kbd className={keyLabelClass}>J</kbd>/<kbd className={keyLabelClass}>PageDown</kbd> / <kbd className={keyLabelClass}>K</kbd>/<kbd className={keyLabelClass}>PageUp</kbd>: Jump to last/first item (change page at edge)</li>
-                            <li><kbd className={keyLabelClass}>]</kbd>: Move tab to the right of current tab</li>
-                            <li><kbd className={keyLabelClass}>[</kbd>: Move tab to the left of current tab</li>
+                            <li><kbd className={keyLabelClass}>]</kbd>/<kbd className={keyLabelClass}>[</kbd>: Move tab to the right/left of current tab</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>w</kbd>: Close selected tab</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>c</kbd>: Copy selected tab URL</li>
+                            <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>v</kbd>: Paste URL into selected tab</li>
                         </ul>
                     </>
                 }

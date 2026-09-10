@@ -3,6 +3,7 @@
  */
 export interface ClipboardApi {
     writeText(text: string): Promise<void>;
+    readText(): Promise<string>;
 }
 
 /**
@@ -18,6 +19,10 @@ export interface BrowserApi {
 class DefaultClipboard implements ClipboardApi {
     async writeText(text: string): Promise<void> {
         await navigator.clipboard.writeText(text);
+    }
+
+    async readText(): Promise<string> {
+        return navigator.clipboard.readText();
     }
 }
 

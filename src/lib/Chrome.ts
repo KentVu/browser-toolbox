@@ -13,6 +13,7 @@ export abstract class ChromeTabApi {
     abstract activate(tabId: number): Promise<void>;
     abstract move(direction: MoveTabDirection, tabId: number): Promise<void>;
     abstract close(tabId: number): Promise<void>;
+    abstract updateUrl(tabId: number, url: string): Promise<void>;
 
     async getByLastAccessed(): Promise<Tab[]> {
         const chromeTabs = await this.get();
@@ -76,6 +77,10 @@ class DefaultTabs extends ChromeTabApi {
 
     async close(tabId: number): Promise<void> {
         await chrome.tabs.remove(tabId);
+    }
+
+    async updateUrl(tabId: number, url: string): Promise<void> {
+        await chrome.tabs.update(tabId, { url });
     }
 };
 

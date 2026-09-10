@@ -5,6 +5,7 @@ export function createMockBrowserApi(): BrowserApi {
   return {
     clipboard: {
       writeText: vi.fn().mockResolvedValue(undefined),
+      readText: vi.fn().mockResolvedValue(''),
     },
   };
 }

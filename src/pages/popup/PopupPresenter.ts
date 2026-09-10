@@ -2,8 +2,11 @@ import type { BrowserApi } from '@src/lib/Browser';
 import { ChromeApi } from '@src/lib/Chrome';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
+import { tryParseHttpUrl } from '@src/lib/Util';
 import { create, type ExtractState } from 'zustand';
 import { combine } from 'zustand/middleware';
+
+export const PASTE_URL_ERROR = 'Not a URL to paste!';
 
 export class PopupState {
   tabList: Tab[] = [];
@@ -11,6 +14,7 @@ export class PopupState {
   selectedTabId: number | undefined;
   currentWindowId: number | undefined;
   pageIndex = 0;
+  errorMessage: string | undefined;
 }
 
 /**
@@ -28,6 +32,7 @@ export class PopupPresenter {
     selectedTabId: undefined as number | undefined,
     currentWindowId: undefined as number | undefined,
     pageIndex: 0,
+    errorMessage: undefined as string | undefined,
   }));
 
   constructor(
@@ -46,6 +51,7 @@ export class PopupPresenter {
   };
   useSelectedTabId = () => this.store(state => state.selectedTabId);
   useCurrentWindowId = () => this.store(state => state.currentWindowId);
+  useErrorMessage = () => this.store(state => state.errorMessage);
   usePageInfo = (): { pageIndex: number; pageCount: number } => {
     const pageIndex = this.store(state => state.pageIndex);
     const tabCount = this.store(state => state.tabList.length);
@@ -71,6 +77,9 @@ export class PopupPresenter {
 
   async onKeyPress(key: string): Promise<void> {
     const s = this.s();
+    if (s.errorMessage !== undefined) {
+      this.setState({ errorMessage: undefined });
+    }
 
     if (key === ',') {
       this.changePage(-1);
@@ -115,6 +124,23 @@ export class PopupPresenter {
       if (selectedTab?.url) {
         await this.browser.clipboard.writeText(selectedTab.url);
       }
+      return;
+    }
+
+    if (key === 'ctrl+v' && s.selectedTabId !== undefined) {
+      const clipboardText = await this.browser.clipboard.readText();
+      const url = tryParseHttpUrl(clipboardText);
+      if (!url) {
+        this.setState({ errorMessage: PASTE_URL_ERROR });
+        return;
+      }
+
+      const tabId = s.selectedTabId;
+      await this.chrome.tabs.updateUrl(tabId, url);
+      this.setState({
+        errorMessage: undefined,
+        tabList: s.tabList.map(tab => (tab.id === tabId ? { ...tab, url } : tab)),
+      });
       return;
     }
 
