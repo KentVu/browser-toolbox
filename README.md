@@ -41,6 +41,7 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 | `.` | Go to the **next page** |
 | `Enter` | Activate the selected tab and close the popup |
 | `Ctrl`+`w` | Close the selected tab, refresh the list, and keep the popup open |
+| `Ctrl`+`c` | Copy the selected tab's URL |
 | `]` | Move the selected tab to the **right** of the current tab, activate it, and close the popup |
 | `[` | Move the selected tab to the **left** of the current tab, activate it, and close the popup |
 

@@ -3,6 +3,10 @@ import { sortByLastAccessed } from '@src/lib/Util';
 
 export type MoveTabDirection = 'toTheRight' | 'toTheLeft';
 
+/**
+ * Thin wrapper around Chrome extension tab APIs (`chrome.tabs`, `chrome.windows`).
+ * Feature code should depend on this instead of calling `chrome.*` directly.
+ */
 export abstract class ChromeTabApi {
     abstract get(): Promise<Tab[]>;
     abstract getCurrent(): Promise<Tab | undefined>;
@@ -16,6 +20,13 @@ export abstract class ChromeTabApi {
     }
 }
 
+/**
+ * Facade over Chrome extension APIs used by this extension.
+ *
+ * Wraps Chrome-specific surfaces such as `chrome.tabs` / `chrome.windows`
+ * (via {@link ChromeTabApi}) and popup lifecycle helpers. Keep web platform
+ * APIs (e.g. clipboard) on {@link BrowserApi} instead.
+ */
 export interface ChromeApi {
     tabs: ChromeTabApi;
     closePopup(): void;

@@ -1,3 +1,4 @@
+import type { BrowserApi } from '@src/lib/Browser';
 import { ChromeApi } from '@src/lib/Chrome';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
@@ -15,10 +16,10 @@ export class PopupState {
 /**
  * Business logic layer for the popup UI.
  *
- * Mediates between React views and ChromeApi: owns popup state (tab list,
- * selection, pagination, shortcut map), loads tabs, and handles keyboard
- * navigation, activation, and tab moves. Views subscribe via hooks and
- * stay presentational.
+ * Mediates between React views and ChromeApi/BrowserApi: owns popup state
+ * (tab list, selection, pagination, shortcut map), loads tabs, and handles
+ * keyboard navigation, activation, clipboard, and tab moves. Views subscribe
+ * via hooks and stay presentational.
  */
 export class PopupPresenter {
   private readonly store = create(() => ({
@@ -29,7 +30,10 @@ export class PopupPresenter {
     pageIndex: 0,
   }));
 
-  constructor(private readonly chrome: ChromeApi) {
+  constructor(
+    private readonly chrome: ChromeApi,
+    private readonly browser: BrowserApi,
+  ) {
   }
 
   s = (): PopupState => this.store.getState();
@@ -103,6 +107,14 @@ export class PopupPresenter {
       const tabId = s.selectedTabId;
       await this.chrome.tabs.close(tabId);
       await this.fetchTabList();
+      return;
+    }
+
+    if (key === 'ctrl+c' && s.selectedTabId !== undefined) {
+      const selectedTab = s.tabList.find(tab => tab.id === s.selectedTabId);
+      if (selectedTab?.url) {
+        await this.browser.clipboard.writeText(selectedTab.url);
+      }
       return;
     }
 

@@ -4,6 +4,7 @@ import Popup from '@pages/popup/Popup';
 import { shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { PopupPresenter } from '@src/pages/popup/PopupPresenter';
+import { createMockBrowserApi } from './MockBrowser';
 import { createMockChromeApi } from './MockChrome';
 
 afterEach(() => {
@@ -17,11 +18,13 @@ describe('Popup', () => {
       { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000, icon: 'https://game.example.com/favicon.ico', splitViewId: 900000002 },
     ];
     let chrome: ReturnType<typeof createMockChromeApi>;
+    let browser: ReturnType<typeof createMockBrowserApi>;
     let presenter: PopupPresenter;
 
     function setup(tabs: Tab[] = tabList, currentTab?: Tab) {
       chrome = createMockChromeApi(tabs, currentTab);
-      presenter = new PopupPresenter(chrome);
+      browser = createMockBrowserApi();
+      presenter = new PopupPresenter(chrome, browser);
     }
 
     it('lists all tabs in all windows sorted by last accessed', async () => {
@@ -166,6 +169,19 @@ describe('Popup', () => {
       await screen.findByText('Tab 3');
       expect(screen.queryByText(closedTab.title)).toBeNull();
       expect(presenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
+    });
+
+    it('copies the selected tab URL when Ctrl-C is pressed', async () => {
+      const tabs = makeTabs(3);
+      setup(tabs, tabs[0]);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      expect(presenter.s().selectedTabId).toBe(tabs[1].id);
+
+      fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
+
+      await waitFor(() => expect(browser.clipboard.writeText).toHaveBeenCalledWith(tabs[1].url));
+      expect(chrome.closePopup).not.toHaveBeenCalled();
     });
 
     it('move selected tab to the right of current tab', async () => {

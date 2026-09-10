@@ -44,7 +44,7 @@ function TabList({ presenter }: TabListProps) {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
             const key = e.ctrlKey ? `ctrl+${pressed}` : e.shiftKey ? e.key : pressed;
-            if (key === 'ctrl+w') {
+            if (key === 'ctrl+w' || key === 'ctrl+c') {
                 e.preventDefault();
             }
             void presenter.onKeyPress(key);
@@ -137,6 +137,7 @@ function TabList({ presenter }: TabListProps) {
                             <li><kbd className={keyLabelClass}>[</kbd>: Move tab to the left of current tab</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>w</kbd>: Close selected tab</li>
+                            <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>c</kbd>: Copy selected tab URL</li>
                         </ul>
                     </>
                 }
