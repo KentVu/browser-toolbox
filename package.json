@@ -53,6 +53,6 @@
     "vite": "^6.3.5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.1.7",
-    "vitest-environment-web-ext": "^0.0.3"
+    "vitest-environment-web-ext": "^0.0.4"
   }
 }
