@@ -58,6 +58,11 @@ class DefaultTabs extends ChromeTabApi {
         const tab = await chrome.tabs.get(tabId);
         await chrome.tabs.update(tabId, { active: true });
         await chrome.windows.update(tab.windowId, { focused: true });
+        // Memory Saver / discarded tabs can stay blank after API activation;
+        // native Chrome tab switching reloads them — mirror that here.
+        if (tab.discarded) {
+            await chrome.tabs.reload(tabId);
+        }
     }
 
     async move(direction: MoveTabDirection, tabId: number): Promise<void> {

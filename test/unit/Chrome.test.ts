@@ -24,12 +24,13 @@ describe('ChromeAPI', () => {
       });
 
       it('activates the tab and focuses its window', async () => {
-        const get = vi.fn().mockResolvedValue({ id: 42, windowId: 7 });
+        const get = vi.fn().mockResolvedValue({ id: 42, windowId: 7, discarded: false });
         const update = vi.fn().mockResolvedValue({});
+        const reload = vi.fn().mockResolvedValue({});
         const windowsUpdate = vi.fn().mockResolvedValue({});
 
         (globalThis as any).chrome = {
-          tabs: { get, update },
+          tabs: { get, update, reload },
           windows: { update: windowsUpdate },
         };
 
@@ -38,6 +39,26 @@ describe('ChromeAPI', () => {
         expect(get).toHaveBeenCalledWith(42);
         expect(update).toHaveBeenCalledWith(42, { active: true });
         expect(windowsUpdate).toHaveBeenCalledWith(7, { focused: true });
+        expect(reload).not.toHaveBeenCalled();
+      });
+
+      it('reloads a discarded tab after activation so Chrome restores its content', async () => {
+        const get = vi.fn().mockResolvedValue({ id: 42, windowId: 7, discarded: true });
+        const update = vi.fn().mockResolvedValue({});
+        const reload = vi.fn().mockResolvedValue({});
+        const windowsUpdate = vi.fn().mockResolvedValue({});
+
+        (globalThis as any).chrome = {
+          tabs: { get, update, reload },
+          windows: { update: windowsUpdate },
+        };
+
+        await Chrome.tabs.activate(42);
+
+        expect(get).toHaveBeenCalledWith(42);
+        expect(update).toHaveBeenCalledWith(42, { active: true });
+        expect(windowsUpdate).toHaveBeenCalledWith(7, { focused: true });
+        expect(reload).toHaveBeenCalledWith(42);
       });
     });
 
