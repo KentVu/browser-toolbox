@@ -171,6 +171,31 @@ describe('Popup', () => {
       expect(presenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
     });
 
+    it('retains the current page after closing a tab with Ctrl-W', async () => {
+      const manyTabs = makeTabs(15);
+      setup(manyTabs, manyTabs[0]);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+
+      fireEvent.keyDown(document, { key: '.' });
+      expect(presenter.s().pageIndex).toBe(1);
+
+      // Selection is still on page 1; j selects the first item on the current page.
+      fireEvent.keyDown(document, { key: 'j' });
+      const closedTab = manyTabs[10];
+      expect(presenter.s().selectedTabId).toBe(closedTab.id);
+
+      fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
+
+      await waitFor(() => {
+        expect(chrome.tabs.close).toHaveBeenCalledWith(closedTab.id);
+        expect(presenter.s().tabList).toHaveLength(14);
+      });
+      expect(presenter.s().pageIndex).toBe(1);
+      expect(screen.queryByText(closedTab.title)).toBeNull();
+      expect(await screen.findByText('Tab 12')).toBeTruthy();
+    });
+
     it('copies the selected tab URL when Ctrl-C is pressed', async () => {
       const tabs = makeTabs(3);
       setup(tabs, tabs[0]);

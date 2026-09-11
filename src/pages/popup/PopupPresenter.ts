@@ -58,12 +58,15 @@ export class PopupPresenter {
     return { pageIndex, pageCount: Math.max(1, Math.ceil(tabCount / PAGE_SIZE)) };
   };
 
-  async fetchTabList() {
+  async fetchTabList(options?: { preservePage?: boolean }) {
     const [_tabs, currentTab] = await Promise.all([
       this.chrome.tabs.getByLastAccessed(),
       this.chrome.tabs.getCurrent(),
     ]);
-    const pageIndex = 0;
+    const maxPage = pageCount(_tabs) - 1;
+    const pageIndex = options?.preservePage
+      ? Math.min(this.s().pageIndex, maxPage)
+      : 0;
     // Prefer the tab visited before the current one (second most recently accessed).
     const previousTab = _tabs.find(tab => tab.id !== currentTab?.id) ?? currentTab;
     this.setState({
@@ -115,7 +118,7 @@ export class PopupPresenter {
     if (key === 'ctrl+w' && s.selectedTabId !== undefined) {
       const tabId = s.selectedTabId;
       await this.chrome.tabs.close(tabId);
-      await this.fetchTabList();
+      await this.fetchTabList({ preservePage: true });
       return;
     }
 
