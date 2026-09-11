@@ -18,7 +18,7 @@
   },
   "type": "module",
   "dependencies": {
-    "happy-dom": "^20.9.0",
+    "happy-dom": "^20.14.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "simpler-state": "^1.2.2",
