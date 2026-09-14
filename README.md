@@ -28,11 +28,25 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 - Tabs are shown **10 per page**
 - Letter shortcuts are **slot-stable**: the same key maps to the same position on every page
 
+## Search (vim-style)
+
+- Press `/` to enter search mode; a `/query` indicator appears in the footer
+- Typed characters build a **case-insensitive** title query; the first match is selected and the matched substring is highlighted with `<mark>`
+- `Backspace` deletes the last query character; on an empty query it **exits** search mode
+- `Enter` exits search mode without activating the tab
+- After leaving search, `n` jumps to the **next** title match (wrapping) and highlights it
+- Moving selection with another key (for example `j`/`k`) clears the highlight but **keeps** the last query so `n` still works
+
 ## Keyboard shortcuts (in the popup)
 
 | Key | Action |
 |---|---|
 | Letter shortcut (`a`, `s`, `d`, …) | Select the tab in that slot on the current page |
+| `/` | Enter search mode |
+| letters (in search mode) | Append to the search query |
+| `Backspace` (in search mode) | Delete last query character; exit search when the query is empty |
+| `Enter` (in search mode) | Exit search mode (do not activate) |
+| `n` (after search) | Jump to the next title match and highlight it |
 | `j` / `↓` | Move selection down; at the last item, go to the **next page** and select its first item |
 | `k` / `↑` | Move selection up; at the first item, go to the **previous page** and select its last item |
 | `J` / `PageDown` | Jump to the **last** item on the page; if already there, go to the **next page** |

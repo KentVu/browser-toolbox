@@ -16,12 +16,13 @@ When working with several related tabs, he wants to bring them closely together,
 
 # Search flow:
 
-1. [ ] On tablist page, press `/` key. An indicator showing we're in search mode (Something start with `/` like vim).
-1. [ ] Follow input keys are treated as search string until the `Enter` key, the search string is displayed in the indicator, if there's a match: highlight that matched part of the tab item, and jump (select) that item.
-1. [ ] The `enter` key ends search mode.
-1. [ ] Subsequent `n` key jump to next match item and highlight the matched part.
-1. [ ] Highlight clears when another key changes selection; last search query is retained so `n` still works.
-1. [ ] Search should be case-insensitive.
+1. [x] On tablist page, press `/` key. An indicator showing we're in search mode (Something start with `/` like vim).
+1. [x] Follow input keys are treated as search string until the `Enter` key, the search string is displayed in the indicator, if there's a match: highlight that matched part of the tab item, and jump (select) that item.
+1. [x] `Backspace` deletes the last query character; on an empty query it exits search mode.
+1. [x] The `enter` key ends search mode.
+1. [x] Subsequent `n` key jump to next match item and highlight the matched part.
+1. [x] Highlight clears when another key changes selection; last search query is retained so `n` still works.
+1. [x] Search should be case-insensitive.
 
 # TODO
 
@@ -29,6 +30,8 @@ When working with several related tabs, he wants to bring them closely together,
 1. [x] Tab should be sorted most recent tab first.
 1. [x] Pagination.
 1. [x] j/k for moving up/down the tab list.
-1. [ ] Search using `/` key.
+1. [x] Search using `/` key.
 1. [x] Should maintain current page after closing.
 1. [x] Move the behaviour of `,`/`.` to `J`/`K` (Shift-j/k), `,`/`.` remain simply prev/next page.
+1. [ ] Move shortcut help into a floating element.
+1. [ ] Also support searching the hostname too.

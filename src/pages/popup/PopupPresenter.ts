@@ -109,6 +109,23 @@ export class PopupPresenter {
         });
         return;
       }
+      if (key === 'backspace') {
+        if (s.searchQuery.length === 0) {
+          this.setState({
+            searchQuery: undefined,
+            highlightQuery: undefined,
+          });
+          return;
+        }
+        const searchQuery = s.searchQuery.slice(0, -1);
+        const match = findTitleMatch(s.tabList, searchQuery);
+        this.setState({
+          searchQuery,
+          highlightQuery: searchQuery || undefined,
+          ...(match ? { selectedTabId: match.id } : {}),
+        });
+        return;
+      }
       if (key.length === 1) {
         const searchQuery = s.searchQuery + key;
         const match = findTitleMatch(s.tabList, searchQuery);

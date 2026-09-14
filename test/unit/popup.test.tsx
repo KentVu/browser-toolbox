@@ -506,6 +506,35 @@ describe('Popup', () => {
         expect(chrome.closePopup).not.toHaveBeenCalled();
       });
 
+      it('deletes the last query character with Backspace and exits when empty', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['g', 'a', 'm', 'e']) {
+          fireEvent.keyDown(document, { key });
+        }
+        expect(screen.getByLabelText('Search').textContent).toBe('/game');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+
+        fireEvent.keyDown(document, { key: 'Backspace' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/gam');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(screen.getByText((_, el) =>
+          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'gam'
+        )).toBeTruthy();
+
+        fireEvent.keyDown(document, { key: 'Backspace' });
+        fireEvent.keyDown(document, { key: 'Backspace' });
+        fireEvent.keyDown(document, { key: 'Backspace' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/');
+
+        fireEvent.keyDown(document, { key: 'Backspace' });
+        expect(screen.queryByLabelText('Search')).toBeNull();
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+      });
+
       it('jumps to the next title match with n, highlights it, and wraps around', async () => {
         setup(searchTabs, searchTabs[0]);
 
