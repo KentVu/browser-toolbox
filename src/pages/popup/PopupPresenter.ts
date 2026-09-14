@@ -223,7 +223,7 @@ export class PopupPresenter {
     if (tabId === undefined) {
       return;
     }
-    this.setState({ selectedTabId: tabId });
+    this.setState({ selectedTabId: tabId, highlightQuery: undefined });
   }
 
   /**
@@ -241,13 +241,13 @@ export class PopupPresenter {
     const currentIndex = pageTabs.findIndex(tab => tab.id === s.selectedTabId);
     if (currentIndex === -1) {
       const nextIndex = delta > 0 ? 0 : pageTabs.length - 1;
-      this.setState({ selectedTabId: pageTabs[nextIndex].id });
+      this.setState({ selectedTabId: pageTabs[nextIndex].id, highlightQuery: undefined });
       return;
     }
 
     const nextIndex = currentIndex + delta;
     if (nextIndex >= 0 && nextIndex < pageTabs.length) {
-      this.setState({ selectedTabId: pageTabs[nextIndex].id });
+      this.setState({ selectedTabId: pageTabs[nextIndex].id, highlightQuery: undefined });
       return;
     }
 
@@ -264,6 +264,7 @@ export class PopupPresenter {
       pageIndex,
       tabKeyMap: genTabKeyMap(newPageTabs.map(tab => tab.id)),
       selectedTabId: newPageTabs[edgeIndex].id,
+      highlightQuery: undefined,
     });
   }
 
@@ -281,7 +282,7 @@ export class PopupPresenter {
     const edgeIndex = edge === 'first' ? 0 : pageTabs.length - 1;
     const edgeTabId = pageTabs[edgeIndex].id;
     if (s.selectedTabId !== edgeTabId) {
-      this.setState({ selectedTabId: edgeTabId });
+      this.setState({ selectedTabId: edgeTabId, highlightQuery: undefined });
       return;
     }
 
