@@ -26,6 +26,23 @@ function getWindowLabels(tabList: Tab[]): Map<number, number> {
     return new Map(windowIds.map((windowId, index) => [windowId, index + 1]));
 }
 
+function renderTabTitle(title: string, searchQuery: string | undefined): React.ReactNode {
+    if (!searchQuery) {
+        return title;
+    }
+    const index = title.toLowerCase().indexOf(searchQuery.toLowerCase());
+    if (index === -1) {
+        return title;
+    }
+    return (
+        <>
+            {title.slice(0, index)}
+            <mark>{title.slice(index, index + searchQuery.length)}</mark>
+            {title.slice(index + searchQuery.length)}
+        </>
+    );
+}
+
 function TabList({ presenter }: TabListProps) {
     const [tabList, keyMap] = presenter.useVisibleTabList();
     const splitViewLabels = getSplitViewLabels(tabList);
@@ -33,6 +50,7 @@ function TabList({ presenter }: TabListProps) {
     const selectedTabId = presenter.useSelectedTabId();
     const currentWindowId = presenter.useCurrentWindowId();
     const errorMessage = presenter.useErrorMessage();
+    const searchQuery = presenter.useSearchQuery();
     const { pageIndex, pageCount } = presenter.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
 
@@ -92,7 +110,7 @@ function TabList({ presenter }: TabListProps) {
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-baseline gap-1.5">
                                     <div className="text-xs text-gray-100 truncate flex-1 group-hover:text-blue-300 transition-colors">
-                                        {tab.title || 'Untitled'}
+                                        {renderTabTitle(tab.title || 'Untitled', isSelected ? searchQuery : undefined)}
                                     </div>
                                     <kbd className={`${keyLabelClass} text-[9px] tracking-tight shrink-0`}>
                                         {shortcut}
@@ -134,6 +152,11 @@ function TabList({ presenter }: TabListProps) {
                 {errorMessage && (
                     <div role="alert" className="mb-1 text-[10px] font-medium text-red-300">
                         {errorMessage}
+                    </div>
+                )}
+                {searchQuery !== undefined && (
+                    <div aria-label="Search" className="mb-1 font-mono text-cyan-200">
+                        /{searchQuery}
                     </div>
                 )}
                 {selectedTabId === undefined ?

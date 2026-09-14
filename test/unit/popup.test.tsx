@@ -465,7 +465,7 @@ describe('Popup', () => {
           el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'game'
         )).closest('li')!;
         expect(item.classList.contains('selected')).toBe(true);
-        expect(within(item).getByText('Game Hub')).toBeTruthy();
+        expect(item.textContent).toContain('Game Hub');
       });
 
       it('matches tab titles case-insensitively', async () => {

@@ -15,6 +15,8 @@ export class PopupState {
   currentWindowId: number | undefined;
   pageIndex = 0;
   errorMessage: string | undefined;
+  /** `undefined` means not in search mode; otherwise the current query (may be empty). */
+  searchQuery: string | undefined;
 }
 
 /**
@@ -33,6 +35,7 @@ export class PopupPresenter {
     currentWindowId: undefined as number | undefined,
     pageIndex: 0,
     errorMessage: undefined as string | undefined,
+    searchQuery: undefined as string | undefined,
   }));
 
   constructor(
@@ -52,6 +55,7 @@ export class PopupPresenter {
   useSelectedTabId = () => this.store(state => state.selectedTabId);
   useCurrentWindowId = () => this.store(state => state.currentWindowId);
   useErrorMessage = () => this.store(state => state.errorMessage);
+  useSearchQuery = () => this.store(state => state.searchQuery);
   usePageInfo = (): { pageIndex: number; pageCount: number } => {
     const pageIndex = this.store(state => state.pageIndex);
     const tabCount = this.store(state => state.tabList.length);
@@ -82,6 +86,23 @@ export class PopupPresenter {
     const s = this.s();
     if (s.errorMessage !== undefined) {
       this.setState({ errorMessage: undefined });
+    }
+
+    if (key === '/' && s.searchQuery === undefined) {
+      this.setState({ searchQuery: '' });
+      return;
+    }
+
+    if (s.searchQuery !== undefined) {
+      if (key.length === 1) {
+        const searchQuery = s.searchQuery + key;
+        const match = findTitleMatch(s.tabList, searchQuery);
+        this.setState({
+          searchQuery,
+          ...(match ? { selectedTabId: match.id } : {}),
+        });
+      }
+      return;
     }
 
     if (key === ',') {
@@ -259,6 +280,14 @@ export class PopupPresenter {
       .find(([, mappedKey]) => mappedKey === normalized)?.[0];
     return tabId;
   }
+}
+
+export function findTitleMatch(tabList: Tab[], query: string): Tab | undefined {
+  if (!query) {
+    return undefined;
+  }
+  const needle = query.toLowerCase();
+  return tabList.find(tab => tab.title.toLowerCase().includes(needle));
 }
 
 export function visibleTabs(tabList: Tab[], pageIndex: number, pageSize = PAGE_SIZE): Tab[] {
