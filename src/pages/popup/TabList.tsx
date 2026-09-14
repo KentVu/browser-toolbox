@@ -51,6 +51,7 @@ function TabList({ presenter }: TabListProps) {
     const currentWindowId = presenter.useCurrentWindowId();
     const errorMessage = presenter.useErrorMessage();
     const searchQuery = presenter.useSearchQuery();
+    const highlightQuery = presenter.useHighlightQuery();
     const { pageIndex, pageCount } = presenter.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
 
@@ -110,7 +111,10 @@ function TabList({ presenter }: TabListProps) {
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-baseline gap-1.5">
                                     <div className="text-xs text-gray-100 truncate flex-1 group-hover:text-blue-300 transition-colors">
-                                        {renderTabTitle(tab.title || 'Untitled', isSelected ? searchQuery : undefined)}
+                                        {renderTabTitle(
+                                            tab.title || 'Untitled',
+                                            isSelected ? (searchQuery ?? highlightQuery) : undefined,
+                                        )}
                                     </div>
                                     <kbd className={`${keyLabelClass} text-[9px] tracking-tight shrink-0`}>
                                         {shortcut}

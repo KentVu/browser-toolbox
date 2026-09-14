@@ -17,6 +17,10 @@ export class PopupState {
   errorMessage: string | undefined;
   /** `undefined` means not in search mode; otherwise the current query (may be empty). */
   searchQuery: string | undefined;
+  /** Retained after leaving search mode so `n` can jump to the next match. */
+  lastSearchQuery: string | undefined;
+  /** Query used to render `<mark>` on the selected match outside active typing. */
+  highlightQuery: string | undefined;
 }
 
 /**
@@ -36,6 +40,8 @@ export class PopupPresenter {
     pageIndex: 0,
     errorMessage: undefined as string | undefined,
     searchQuery: undefined as string | undefined,
+    lastSearchQuery: undefined as string | undefined,
+    highlightQuery: undefined as string | undefined,
   }));
 
   constructor(
@@ -56,6 +62,7 @@ export class PopupPresenter {
   useCurrentWindowId = () => this.store(state => state.currentWindowId);
   useErrorMessage = () => this.store(state => state.errorMessage);
   useSearchQuery = () => this.store(state => state.searchQuery);
+  useHighlightQuery = () => this.store(state => state.highlightQuery);
   usePageInfo = (): { pageIndex: number; pageCount: number } => {
     const pageIndex = this.store(state => state.pageIndex);
     const tabCount = this.store(state => state.tabList.length);
@@ -95,7 +102,11 @@ export class PopupPresenter {
 
     if (s.searchQuery !== undefined) {
       if (key === 'enter') {
-        this.setState({ searchQuery: undefined });
+        this.setState({
+          lastSearchQuery: s.searchQuery,
+          searchQuery: undefined,
+          highlightQuery: undefined,
+        });
         return;
       }
       if (key.length === 1) {
@@ -103,7 +114,19 @@ export class PopupPresenter {
         const match = findTitleMatch(s.tabList, searchQuery);
         this.setState({
           searchQuery,
+          highlightQuery: searchQuery,
           ...(match ? { selectedTabId: match.id } : {}),
+        });
+      }
+      return;
+    }
+
+    if (key === 'n' && s.lastSearchQuery) {
+      const match = findNextTitleMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
+      if (match) {
+        this.setState({
+          selectedTabId: match.id,
+          highlightQuery: s.lastSearchQuery,
         });
       }
       return;
@@ -292,6 +315,25 @@ export function findTitleMatch(tabList: Tab[], query: string): Tab | undefined {
   }
   const needle = query.toLowerCase();
   return tabList.find(tab => tab.title.toLowerCase().includes(needle));
+}
+
+export function findNextTitleMatch(
+  tabList: Tab[],
+  query: string,
+  afterTabId: number | undefined,
+): Tab | undefined {
+  if (!query || tabList.length === 0) {
+    return undefined;
+  }
+  const needle = query.toLowerCase();
+  const startIndex = Math.max(0, tabList.findIndex(tab => tab.id === afterTabId));
+  for (let offset = 1; offset <= tabList.length; offset++) {
+    const tab = tabList[(startIndex + offset) % tabList.length];
+    if (tab.title.toLowerCase().includes(needle)) {
+      return tab;
+    }
+  }
+  return undefined;
 }
 
 export function visibleTabs(tabList: Tab[], pageIndex: number, pageSize = PAGE_SIZE): Tab[] {
