@@ -94,6 +94,10 @@ export class PopupPresenter {
     }
 
     if (s.searchQuery !== undefined) {
+      if (key === 'enter') {
+        this.setState({ searchQuery: undefined });
+        return;
+      }
       if (key.length === 1) {
         const searchQuery = s.searchQuery + key;
         const match = findTitleMatch(s.tabList, searchQuery);
