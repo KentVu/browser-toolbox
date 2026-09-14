@@ -45,5 +45,6 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 | `Ctrl`+`v` | Paste a clipboard http(s) URL into the selected tab (keeps the popup open; shows a footer error if the clipboard is not a URL) |
 | `]` | Move the selected tab to the **right** of the current tab, activate it, and close the popup |
 | `[` | Move the selected tab to the **left** of the current tab, activate it, and close the popup |
+| `!` (Shift-1) | Break the selected tab into a **new window** and close the popup |
 
 Clicking a row selects that tab (does not activate it).

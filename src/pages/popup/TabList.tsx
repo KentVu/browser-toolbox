@@ -144,6 +144,7 @@ function TabList({ presenter }: TabListProps) {
                             <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↓</kbd>/<kbd className={keyLabelClass}>↑</kbd>: Move selection down/up (pages at edges)</li>
                             <li><kbd className={keyLabelClass}>J</kbd>/<kbd className={keyLabelClass}>PageDown</kbd> / <kbd className={keyLabelClass}>K</kbd>/<kbd className={keyLabelClass}>PageUp</kbd>: Jump to last/first item (change page at edge)</li>
                             <li><kbd className={keyLabelClass}>]</kbd>/<kbd className={keyLabelClass}>[</kbd>: Move tab to the right/left of current tab</li>
+                            <li><kbd className={keyLabelClass}>!</kbd>: Break selected tab into a new window</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>w</kbd>: Close selected tab</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>c</kbd>: Copy selected tab URL</li>

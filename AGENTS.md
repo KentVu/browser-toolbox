@@ -5,8 +5,8 @@ This repository is a browser extension template using React + TypeScript + Vite 
 Use this file as the fast-start operating guide for coding agents.
 
 ## Start Here
-- Project overview and setup flow: [README.md](README.md)
-- Local notes and pending cleanup: [TODO.md](TODO.md)
+- Project overview and setup flow: [README.template.md](README.template.md)
+- Pending TODO: [TODO.md](TODO.md)
 
 ## Preferred Stack and Active Tooling
 - Language: TypeScript for new application code.

@@ -264,6 +264,23 @@ describe('Popup', () => {
       await expectMoveSelectedTab('[', 'toTheLeft');
     });
 
+    it('breaks the selected tab into a new window when ! is pressed', async () => {
+      const _tabList: Tab[] = [...tabList,
+        { id: 4, title: 'Music', url: 'https://music.example.com', lastAccessed: 1500 }
+      ];
+      setup(_tabList);
+
+      await renderAndWait(<Popup presenter={presenter} />);
+      const state = presenter.s();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
+      fireEvent.keyDown(document, { key: '!', shiftKey: true });
+
+      expect(chrome.tabs.breakIntoNewWindow).toHaveBeenCalledWith(_tabList[2].id);
+      await waitFor(() => {
+        expect(chrome.closePopup).toHaveBeenCalled();
+      });
+    });
+
     describe('j/k item navigation', () => {
       it('moves selection down with j and up with k within the visible page', async () => {
         const tabs = makeTabs(3);

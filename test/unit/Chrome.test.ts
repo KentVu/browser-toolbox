@@ -101,6 +101,26 @@ describe('ChromeAPI', () => {
         expect(update).toHaveBeenCalledWith(42, { url: 'https://pasted.example.com' });
       });
     });
+
+    describe('breakIntoNewWindow', () => {
+      const originalChrome = (globalThis as any).chrome;
+
+      afterEach(() => {
+        (globalThis as any).chrome = originalChrome;
+      });
+
+      it('moves the tab into a new window via chrome.windows.create', async () => {
+        const create = vi.fn().mockResolvedValue({ id: 99 });
+
+        (globalThis as any).chrome = {
+          windows: { create },
+        };
+
+        await Chrome.tabs.breakIntoNewWindow(42);
+
+        expect(create).toHaveBeenCalledWith({ tabId: 42 });
+      });
+    });
   });
 
   describe('closePopup', () => {

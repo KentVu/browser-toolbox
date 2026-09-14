@@ -12,6 +12,7 @@ export abstract class ChromeTabApi {
     abstract getCurrent(): Promise<Tab | undefined>;
     abstract activate(tabId: number): Promise<void>;
     abstract move(direction: MoveTabDirection, tabId: number): Promise<void>;
+    abstract breakIntoNewWindow(tabId: number): Promise<void>;
     abstract close(tabId: number): Promise<void>;
     abstract updateUrl(tabId: number, url: string): Promise<void>;
 
@@ -78,6 +79,10 @@ class DefaultTabs extends ChromeTabApi {
             index: targetIndex,
             windowId: activeTab.windowId,
         });
+    }
+
+    async breakIntoNewWindow(tabId: number): Promise<void> {
+        await chrome.windows.create({ tabId });
     }
 
     async close(tabId: number): Promise<void> {

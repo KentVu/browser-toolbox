@@ -109,6 +109,13 @@ export class PopupPresenter {
       return;
     }
 
+    if (key === '!' && s.selectedTabId !== undefined) {
+      const tabId = s.selectedTabId;
+      await this.chrome.tabs.breakIntoNewWindow(tabId);
+      this.chrome.closePopup();
+      return;
+    }
+
     if (key === 'enter' && s.selectedTabId !== undefined) {
       await this.chrome.tabs.activate(s.selectedTabId);
       this.chrome.closePopup();
