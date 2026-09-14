@@ -429,6 +429,139 @@ describe('Popup', () => {
       });
     });
 
+    describe('search flow', () => {
+      const searchTabs: Tab[] = [
+        { id: 1, title: 'React Docs', url: 'https://react.example.com/docs', lastAccessed: 3000 },
+        { id: 2, title: 'Game Hub', url: 'https://game.example.com', lastAccessed: 2000 },
+        { id: 3, title: 'react patterns', url: 'https://patterns.example.com', lastAccessed: 1000 },
+      ];
+
+      it('enters search mode with / and shows a vim-style indicator', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+
+        const indicator = screen.getByLabelText('Search');
+        expect(indicator.textContent).toBe('/');
+      });
+
+      it('updates the indicator while typing, selects the first match, and highlights it', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        fireEvent.keyDown(document, { key: 'g' });
+        fireEvent.keyDown(document, { key: 'a' });
+        fireEvent.keyDown(document, { key: 'm' });
+        fireEvent.keyDown(document, { key: 'e' });
+
+        expect(screen.getByLabelText('Search').textContent).toBe('/game');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+
+        const item = (await screen.findByText((_, el) =>
+          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'game'
+        )).closest('li')!;
+        expect(item.classList.contains('selected')).toBe(true);
+        expect(item.textContent).toContain('Game Hub');
+      });
+
+      it('matches tab titles case-insensitively', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
+          fireEvent.keyDown(document, { key });
+        }
+
+        expect(screen.getByLabelText('Search').textContent).toBe('/react');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+
+        const mark = await screen.findByText((_, el) =>
+          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
+        );
+        expect(mark.closest('li')?.classList.contains('selected')).toBe(true);
+      });
+
+      it('ends search mode on Enter without activating the selected tab', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['g', 'a', 'm', 'e']) {
+          fireEvent.keyDown(document, { key });
+        }
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+
+        fireEvent.keyDown(document, { key: 'Enter' });
+
+        expect(screen.queryByLabelText('Search')).toBeNull();
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(chrome.tabs.activate).not.toHaveBeenCalled();
+        expect(chrome.closePopup).not.toHaveBeenCalled();
+      });
+
+      it('jumps to the next title match with n, highlights it, and wraps around', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
+          fireEvent.keyDown(document, { key });
+        }
+        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+
+        fireEvent.keyDown(document, { key: 'Enter' });
+        expect(screen.queryByLabelText('Search')).toBeNull();
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(screen.getByText((_, el) =>
+          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
+        ).closest('li')?.classList.contains('selected')).toBe(true);
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(screen.getByText((_, el) =>
+          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
+        ).closest('li')?.classList.contains('selected')).toBe(true);
+      });
+
+      it('clears the highlight when another key changes selection but keeps the last search query', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
+          fireEvent.keyDown(document, { key });
+        }
+        fireEvent.keyDown(document, { key: 'Enter' });
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(screen.getByText((_, el) =>
+          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
+        )).toBeTruthy();
+
+        fireEvent.keyDown(document, { key: 'k' });
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(screen.queryByText((_, el) => el?.tagName === 'MARK')).toBeNull();
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(screen.getByText((_, el) =>
+          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
+        ).closest('li')?.classList.contains('selected')).toBe(true);
+      });
+    });
+
     async function expectMoveSelectedTab(
       actionKey: string,
       direction: 'toTheRight' | 'toTheLeft',
