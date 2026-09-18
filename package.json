@@ -50,7 +50,7 @@
     "tailwindcss": "^4.1.16",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5",
+    "vite": "^8.3.0",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.7",
     "vitest-environment-web-ext": "^0.0.4"
