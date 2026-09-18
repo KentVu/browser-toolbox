@@ -37,7 +37,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/webextension-polyfill": "^0.12.6",
     "@typescript-eslint/eslint-plugin": "^8.67.0",
-    "@typescript-eslint/parser": "^8.67.0",
+    "@typescript-eslint/parser": "^8.70.0",
     "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
