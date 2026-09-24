@@ -164,8 +164,9 @@ export class PopupPresenter {
         return;
       }
       const direction = key === '>' ? 'toTheRight' : 'toTheLeft';
+      // Do not activate after move: activate() focuses the browser window and
+      // Chrome auto-closes the popup when focus leaves it.
       await this.chrome.tabs.move(direction, currentTabId);
-      await this.chrome.tabs.activate(currentTabId);
       return;
     }
 

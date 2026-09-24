@@ -276,12 +276,14 @@ describe('Popup', () => {
       await waitFor(() => {
         expect(chrome.tabs.move).toHaveBeenCalledWith('toTheRight', currentTab.id);
       });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
       expect(chrome.closePopup).not.toHaveBeenCalled();
 
       fireEvent.keyDown(document, { key: '<' });
       await waitFor(() => {
         expect(chrome.tabs.move).toHaveBeenLastCalledWith('toTheLeft', currentTab.id);
       });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
       expect(chrome.closePopup).not.toHaveBeenCalled();
       expect(chrome.tabs.move).toHaveBeenCalledTimes(2);
     });
