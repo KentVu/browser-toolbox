@@ -139,7 +139,7 @@ describe('Popup', () => {
       );
       expect(keyLabel.classList.contains('text-cyan-200')).toBe(true);
       const container = keyLabel.closest('li')!;
-      expect(within(container).getByText(/Move tab to the right\/left of current tab/)).toBeTruthy();
+      expect(within(container).getByText(/Move selected tab to the right\/left of current tab/)).toBeTruthy();
     });
 
     it('activates the selected tab when Enter is pressed', async () => {
@@ -262,6 +262,28 @@ describe('Popup', () => {
 
     it('move selected tab to the left of current tab', async () => {
       await expectMoveSelectedTab('[', 'toTheLeft');
+    });
+
+    it('moves the current active tab left and right with < and > without closing the popup', async () => {
+      const currentTab = tabList[1];
+      const selectedTab = tabList[0];
+      setup(tabList, currentTab);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'game');
+      expect(presenter.s().selectedTabId).toBe(selectedTab.id);
+
+      fireEvent.keyDown(document, { key: '>' });
+      await waitFor(() => {
+        expect(chrome.tabs.move).toHaveBeenCalledWith('toTheRight', currentTab.id);
+      });
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(document, { key: '<' });
+      await waitFor(() => {
+        expect(chrome.tabs.move).toHaveBeenLastCalledWith('toTheLeft', currentTab.id);
+      });
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+      expect(chrome.tabs.move).toHaveBeenCalledTimes(2);
     });
 
     it('breaks the selected tab into a new window when ! is pressed', async () => {

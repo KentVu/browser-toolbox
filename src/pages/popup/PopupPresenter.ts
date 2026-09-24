@@ -158,6 +158,17 @@ export class PopupPresenter {
       return;
     }
 
+    if (key === '>' || key === '<') {
+      const currentTabId = (await this.chrome.tabs.getCurrent())?.id;
+      if (currentTabId === undefined) {
+        return;
+      }
+      const direction = key === '>' ? 'toTheRight' : 'toTheLeft';
+      await this.chrome.tabs.move(direction, currentTabId);
+      await this.chrome.tabs.activate(currentTabId);
+      return;
+    }
+
     if (key === ']' && s.selectedTabId !== undefined) {
       const tabId = s.selectedTabId;
       await this.chrome.tabs.move('toTheRight', tabId);
