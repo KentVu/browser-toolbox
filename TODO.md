@@ -24,6 +24,10 @@ When working with several related tabs, he wants to bring them closely together,
 1. [x] Highlight clears when another key changes selection; last search query is retained so `n` still works.
 1. [x] Search should be case-insensitive.
 
+# Big refactoring: Move tab management into a mode, give way for next big new feature...
+
+... that's: (drums roll...): scroll-sync!!!!
+
 # TODO
 
 1. [ ] Eliminate duplicates in UI Text by introducing i18n.
@@ -40,8 +44,8 @@ When working with several related tabs, he wants to bring them closely together,
 1. [x] Move current tab left/right by `<`, `>`.
 1. [x] Indicator for duplicated tab.
 1. [ ] Legend box (for split-tab, other-window icons etc.).
-1. [ ] chore: remove legacy code paths.
+1. [x] chore: remove legacy code paths.
 
 # Bugs
 
-1. [ ] Not switching page automatically when search match is not on current page
+1. [ ] If there're matches on other pages, switch to that page automatically.

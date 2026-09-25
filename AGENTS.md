@@ -26,7 +26,6 @@ Use this file as the fast-start operating guide for coding agents.
 - Add new features in modern code paths:
   - `src/pages/**` for extension pages (popup/background/content/options/newtab/devtools/panel)
   - `src/lib/**` for shared types/helpers used by modern TS code
-- Treat `src/js/**` as legacy code. Do not add new features there unless the change is explicitly legacy-maintenance.
 - Do not edit build outputs in `dist/` or `dist_chrome/`; regenerate via build/dev commands.
 
 ## TypeScript and Imports
@@ -54,7 +53,6 @@ Use this file as the fast-start operating guide for coding agents.
 - Keep browser-specific behavior isolated and avoid assumptions that Chrome-only APIs behave identically in Firefox.
 
 ## Known Pitfalls
-- `jest.config.js` and `webpack.config.js` exist but are not the primary dev/build/test path for current work.
 - i18n support exists but is currently disabled by default (`localize = false` in `vite.config.base.ts`).
 
 ## Change Hygiene

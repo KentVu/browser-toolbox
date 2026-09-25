@@ -6,7 +6,7 @@
 			"script": "dev",
 			"problemMatcher": [],
 			"label": "npm: dev",
-			"detail": "webpack --watch"
+			"detail": "nodemon --config nodemon.chrome.json"
 		}
 	]
 }
