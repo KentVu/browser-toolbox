@@ -83,6 +83,54 @@ describe('Popup', () => {
       expect(screen.queryByLabelText('Window 2')).toBeNull();
     });
 
+    it('displays a duplicate indicator ordered by older tab first', async () => {
+      const tabs = [
+        { id: 10, title: 'New copy', url: 'https://docs.example.com/page#later', lastAccessed: 3000 },
+        { id: 2, title: 'Old copy', url: 'https://docs.example.com/page#earlier', lastAccessed: 1000 },
+        { id: 5, title: 'Unique', url: 'https://unique.example.com/', lastAccessed: 2000 },
+      ];
+      setup(tabs);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'New copy');
+
+      const oldCopy = (await screen.findByText('Old copy')).closest('li')!;
+      const newCopy = (await screen.findByText('New copy')).closest('li')!;
+      const unique = (await screen.findByText('Unique')).closest('li')!;
+
+      expect(within(oldCopy).getByLabelText('Duplicate 1').textContent).toBe('⧉1');
+      expect(within(newCopy).getByLabelText('Duplicate 2').textContent).toBe('⧉2');
+      expect(within(unique).queryByLabelText(/Duplicate/)).toBeNull();
+    });
+
+    it('treats URLs that differ only by fragment as duplicates', async () => {
+      const tabs = [
+        { id: 1, title: 'With fragment', url: 'https://example.com/a#section', lastAccessed: 2000 },
+        { id: 2, title: 'Without fragment', url: 'https://example.com/a', lastAccessed: 1000 },
+      ];
+      setup(tabs);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'With fragment');
+
+      expect(screen.getByLabelText('Duplicate 1').textContent).toBe('⧉1');
+      expect(screen.getByLabelText('Duplicate 2').textContent).toBe('⧉2');
+    });
+
+    it('shows duplicate indicators using the full tab list across pages', async () => {
+      const pageTabs = makeTabs(PAGE_SIZE - 1);
+      const tabs = [
+        { id: 100, title: 'Dup A', url: 'https://dup.example.com/page#one', lastAccessed: 2000 },
+        ...pageTabs,
+        { id: 101, title: 'Dup B', url: 'https://dup.example.com/page#two', lastAccessed: 1 },
+      ];
+      setup(tabs);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Dup A');
+      expect(within((await screen.findByText('Dup A')).closest('li')!).getByLabelText('Duplicate 1').textContent).toBe('⧉1');
+
+      fireEvent.keyDown(document, { key: '.' });
+      expect(within((await screen.findByText('Dup B')).closest('li')!).getByLabelText('Duplicate 2').textContent).toBe('⧉2');
+    });
+
     it('selects the correct tab when a key is pressed', async () => {
       setup();
 

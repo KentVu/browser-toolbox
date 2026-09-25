@@ -23,3 +23,14 @@ export function tryParseHttpUrl(text: string): string | undefined {
     return undefined;
   }
 }
+
+/** Returns the URL without its fragment, or undefined when the text is not a valid URL. */
+export function urlWithoutFragment(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = '';
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}

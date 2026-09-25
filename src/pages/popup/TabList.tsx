@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
+import { urlWithoutFragment } from '@src/lib/Util';
 import { PopupPresenter } from './PopupPresenter';
 
 interface TabListProps {
@@ -26,6 +27,39 @@ function getWindowLabels(tabList: Tab[]): Map<number, number> {
     return new Map(windowIds.map((windowId, index) => [windowId, index + 1]));
 }
 
+/** Labels duplicated tabs (same URL up to fragment) by creation order; older tab id first. */
+function getDuplicateLabels(tabList: Tab[]): Map<number, number> {
+    const byUrl = new Map<string, Tab[]>();
+    for (const tab of tabList) {
+        if (!tab.url) {
+            continue;
+        }
+        const key = urlWithoutFragment(tab.url);
+        if (!key) {
+            continue;
+        }
+        const group = byUrl.get(key);
+        if (group) {
+            group.push(tab);
+        } else {
+            byUrl.set(key, [tab]);
+        }
+    }
+
+    const labels = new Map<number, number>();
+    for (const group of byUrl.values()) {
+        if (group.length < 2) {
+            continue;
+        }
+        [...group]
+            .sort((a, b) => a.id - b.id)
+            .forEach((tab, index) => {
+                labels.set(tab.id, index + 1);
+            });
+    }
+    return labels;
+}
+
 function renderTabTitle(title: string, searchQuery: string | undefined): React.ReactNode {
     if (!searchQuery) {
         return title;
@@ -45,8 +79,10 @@ function renderTabTitle(title: string, searchQuery: string | undefined): React.R
 
 function TabList({ presenter }: TabListProps) {
     const [tabList, keyMap] = presenter.useVisibleTabList();
+    const allTabs = presenter.useTabList();
     const splitViewLabels = getSplitViewLabels(tabList);
     const windowLabels = getWindowLabels(tabList);
+    const duplicateLabels = getDuplicateLabels(allTabs);
     const selectedTabId = presenter.useSelectedTabId();
     const currentWindowId = presenter.useCurrentWindowId();
     const errorMessage = presenter.useErrorMessage();
@@ -92,6 +128,7 @@ function TabList({ presenter }: TabListProps) {
                         : splitViewLabels.get(tab.splitViewId);
                     const differentWindow = currentWindowId !== undefined && tab.windowId !== currentWindowId;
                     const windowLabel = tab.windowId === undefined ? undefined : windowLabels.get(tab.windowId);
+                    const duplicateLabel = duplicateLabels.get(tab.id);
                     const isSelected = tab.id === selectedTabId;
                     return (
                         <li
@@ -120,7 +157,7 @@ function TabList({ presenter }: TabListProps) {
                                         {shortcut}
                                     </kbd>
                                 </div>
-                                {(hostname || splitViewLabel !== undefined) && (
+                                {(hostname || splitViewLabel !== undefined || duplicateLabel !== undefined) && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
                                         {hostname && <span>{hostname}</span>}
                                         {differentWindow && windowLabel !== undefined && (
@@ -131,6 +168,11 @@ function TabList({ presenter }: TabListProps) {
                                         {splitViewLabel !== undefined && (
                                             <span className="ml-1" aria-label={`Split view ${splitViewLabel}`}>
                                                 &#128279;{splitViewLabel}
+                                            </span>
+                                        )}
+                                        {duplicateLabel !== undefined && (
+                                            <span className="ml-1" aria-label={`Duplicate ${duplicateLabel}`}>
+                                                &#10697;{duplicateLabel}
                                             </span>
                                         )}
                                     </div>

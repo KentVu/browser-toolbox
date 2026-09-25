@@ -58,6 +58,7 @@ export class PopupPresenter {
     const tabKeyMap = this.store(state => state.tabKeyMap);
     return [visibleTabs(tabList, pageIndex), tabKeyMap];
   };
+  useTabList = (): Tab[] => this.store(state => state.tabList);
   useSelectedTabId = () => this.store(state => state.selectedTabId);
   useCurrentWindowId = () => this.store(state => state.currentWindowId);
   useErrorMessage = () => this.store(state => state.errorMessage);
