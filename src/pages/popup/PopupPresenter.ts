@@ -22,6 +22,8 @@ export class PopupState {
   lastSearchQuery: string | undefined;
   /** Query used to render `<mark>` on the selected match outside active typing. */
   highlightQuery: string | undefined;
+  /** Whether the floating shortcut help overlay is visible. */
+  showHelp = false;
 }
 
 /**
@@ -44,6 +46,7 @@ export class PopupPresenter {
     searchQuery: undefined as string | undefined,
     lastSearchQuery: undefined as string | undefined,
     highlightQuery: undefined as string | undefined,
+    showHelp: false,
   }));
 
   constructor(
@@ -53,7 +56,18 @@ export class PopupPresenter {
   }
 
   s = (): PopupState => this.store.getState();
-  setState = (state: Partial<PopupState>) => this.store.setState(state);
+  setState = (state: Partial<PopupState>) => {
+    // Close floating help whenever the selected tab actually changes.
+    if (
+      'selectedTabId' in state
+      && state.selectedTabId !== this.s().selectedTabId
+      && state.showHelp === undefined
+    ) {
+      this.store.setState({ ...state, showHelp: false });
+      return;
+    }
+    this.store.setState(state);
+  };
   useVisibleTabList = (): [Tab[], Map<number, string>] => {
     const tabList = this.store(state => state.tabList);
     const pageIndex = this.store(state => state.pageIndex);
@@ -67,6 +81,7 @@ export class PopupPresenter {
   useErrorMessage = () => this.store(state => state.errorMessage);
   useSearchQuery = () => this.store(state => state.searchQuery);
   useHighlightQuery = () => this.store(state => state.highlightQuery);
+  useShowHelp = () => this.store(state => state.showHelp);
   usePageInfo = (): { pageIndex: number; pageCount: number } => {
     const pageIndex = this.store(state => state.pageIndex);
     const tabCount = this.store(state => state.tabList.length);
@@ -140,6 +155,11 @@ export class PopupPresenter {
           ...(match ? { selectedTabId: match.id } : {}),
         });
       }
+      return;
+    }
+
+    if (key === '?') {
+      this.setState({ showHelp: !s.showHelp });
       return;
     }
 
@@ -346,6 +366,7 @@ export class PopupPresenter {
     this.setState({
       pageIndex,
       tabKeyMap: genTabKeyMap(visibleTabs(s.tabList, pageIndex).map(tab => tab.id)),
+      showHelp: false,
     });
   }
 

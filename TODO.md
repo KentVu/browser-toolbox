@@ -37,8 +37,8 @@ When working with several related tabs, he wants to bring them closely together,
 1. [x] Search using `/` key.
 1. [x] Should maintain current page after closing.
 1. [x] Move the behaviour of `,`/`.` to `J`/`K` (Shift-j/k), `,`/`.` remain simply prev/next page.
-1. [ ] Move shortcut help into a floating element??
-1. [ ] Toggle instructions by `?`.
+1. [x] Move shortcut help into a floating element??
+1. [x] Toggle instructions by `?`.
 1. [ ] Also support searching the hostname too.
 1. [ ] prev/next page by left/right arrow also.
 1. [x] Move current tab left/right by `<`, `>`.

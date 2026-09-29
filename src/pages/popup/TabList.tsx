@@ -89,6 +89,7 @@ function TabList({ presenter }: TabListProps) {
     const errorMessage = presenter.useErrorMessage();
     const searchQuery = presenter.useSearchQuery();
     const highlightQuery = presenter.useHighlightQuery();
+    const showHelp = presenter.useShowHelp();
     const { pageIndex, pageCount } = presenter.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
     const moveBesideActiveDisabled = selectedTabId !== undefined && selectedTabId === currentTabId;
@@ -208,11 +209,28 @@ function TabList({ presenter }: TabListProps) {
                         /{searchQuery}
                     </div>
                 )}
-                {selectedTabId === undefined ?
-                    "Press a key to select a tab" :
-                    <>
-                        <div>Select next action:</div>
-                        <ul className="list-disc list-inside text-[9px] text-gray-500">
+                {selectedTabId === undefined && (
+                    <div className="mb-1">Press a key to select a tab</div>
+                )}
+                <div aria-label="Toggle shortcut help">
+                    <kbd className={keyLabelClass}>?</kbd> shortcuts
+                </div>
+            </div>
+            {showHelp && (
+                <div
+                    role="dialog"
+                    aria-label="Shortcut help"
+                    className="fixed inset-0 z-50 flex items-end justify-center p-2"
+                >
+                    <div className="absolute inset-0 bg-black/70" aria-hidden="true" />
+                    <div className="relative z-10 w-full max-h-[85%] overflow-y-auto rounded-md border border-cyan-500/40 bg-[#151518] p-3 text-[10px] text-gray-300 shadow-xl shadow-black/50">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                            <div className="font-semibold text-gray-200">Select next action:</div>
+                            <div className="text-gray-500">
+                                <kbd className={keyLabelClass}>?</kbd> close
+                            </div>
+                        </div>
+                        <ul className="list-disc list-inside space-y-1 text-[9px] text-gray-400">
                             <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↓</kbd>/<kbd className={keyLabelClass}>↑</kbd>: Move selection down/up (pages at edges)</li>
                             <li><kbd className={keyLabelClass}>J</kbd>/<kbd className={keyLabelClass}>PageDown</kbd> / <kbd className={keyLabelClass}>K</kbd>/<kbd className={keyLabelClass}>PageUp</kbd>: Jump to last/first item (change page at edge)</li>
                             <li><kbd className={keyLabelClass}>]</kbd>/<kbd className={keyLabelClass}>[</kbd>: Move selected tab to the right/left of current tab (and go there)</li>
@@ -231,9 +249,9 @@ function TabList({ presenter }: TabListProps) {
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>c</kbd>: Copy selected tab URL</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>v</kbd>: Paste URL into selected tab</li>
                         </ul>
-                    </>
-                }
-            </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

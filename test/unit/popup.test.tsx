@@ -17,6 +17,7 @@ describe('Popup', () => {
       { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000, icon: 'https://docs.example.com/favicon.ico', splitViewId: 900000001 },
       { id: 3, title: 'game', url: 'https://game.example.com/inbox', lastAccessed: 2000, icon: 'https://game.example.com/favicon.ico', splitViewId: 900000002 },
     ];
+    // TODO: make these 3 setup's return object members.
     let chrome: ReturnType<typeof createMockChromeApi>;
     let browser: ReturnType<typeof createMockBrowserApi>;
     let presenter: PopupPresenter;
@@ -175,19 +176,81 @@ describe('Popup', () => {
       expect(presenter.s().selectedTabId).toBe(previousTab.id);
     });
 
-    it('Show correct guidance according to current state', async () => {
+    it('shows a compact ? help hint and keeps full instructions hidden by default', async () => {
       setup();
 
       await renderAndWait(<Popup presenter={presenter} />);
-      // Previously visited tab is pre-selected, so action guidance is shown
-      expect(await screen.findByText('Select next action:')).toBeTruthy();
-      expect(screen.getByText(/Move selection down\/up \(pages at edges\)/)).toBeTruthy();
-      const keyLabel = await screen.findByText((content, element) =>
+
+      expect(screen.getByLabelText('Toggle shortcut help')).toBeTruthy();
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+      expect(screen.queryByText('Select next action:')).toBeNull();
+    });
+
+    it('toggles floating shortcut help with ?', async () => {
+      setup();
+
+      await renderAndWait(<Popup presenter={presenter} />);
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+
+      const help = await screen.findByRole('dialog', { name: 'Shortcut help' });
+      expect(within(help).getByText('Select next action:')).toBeTruthy();
+      expect(within(help).getByText(/Move selection down\/up \(pages at edges\)/)).toBeTruthy();
+      const keyLabel = within(help).getByText((content, element) =>
         element?.tagName === 'KBD' && element.textContent === ']'
       );
       expect(keyLabel.classList.contains('text-cyan-200')).toBe(true);
-      const container = keyLabel.closest('li')!;
-      expect(within(container).getByText(/Move selected tab to the right\/left of current tab/)).toBeTruthy();
+      expect(within(keyLabel.closest('li')!).getByText(/Move selected tab to the right\/left of current tab/)).toBeTruthy();
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+    });
+
+    it('closes floating help whenever the selected tab changes', async () => {
+      setup();
+
+      await renderAndWait(<Popup presenter={presenter} />);
+      // With no current tab, the most recent tab (game) is pre-selected.
+      expect(presenter.s().selectedTabId).toBe(tabList[1].id);
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      const state = presenter.s();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[0].id)! });
+
+      expect(presenter.s().selectedTabId).toBe(tabList[0].id);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      fireEvent.keyDown(document, { key: 'k' });
+
+      expect(presenter.s().selectedTabId).toBe(tabList[1].id);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+    });
+
+    it('closes floating help when changing page with . or ,', async () => {
+      const manyTabs = makeTabs(15);
+      setup(manyTabs, manyTabs[0]);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      fireEvent.keyDown(document, { key: '.' });
+
+      expect(presenter.s().pageIndex).toBe(1);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      fireEvent.keyDown(document, { key: ',' });
+
+      expect(presenter.s().pageIndex).toBe(0);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
     });
 
     it('activates the selected tab when Enter is pressed', async () => {
@@ -346,7 +409,9 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: presenter.s().tabKeyMap.get(currentTab.id)! });
       expect(presenter.s().selectedTabId).toBe(currentTab.id);
 
-      const stayInPopupHelp = screen.getByText(/Move selected tab to the right\/left of current tab \(stay in popup\)/);
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      const stayInPopupHelp = within(await screen.findByRole('dialog', { name: 'Shortcut help' }))
+        .getByText(/Move selected tab to the right\/left of current tab \(stay in popup\)/);
       expect(stayInPopupHelp.closest('li')?.getAttribute('aria-disabled')).toBe('true');
 
       fireEvent.keyDown(document, { key: '}', shiftKey: true });
