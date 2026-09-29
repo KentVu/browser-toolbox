@@ -22,6 +22,8 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
   - A letter shortcut for that slot on the current page
   - Split-view badge (`🔗N`) when the tab is in a split view
   - Window badge (`🪟N`) when the tab is in another window
+  - Duplicate badge (`⧉N`) when another tab shares the same URL (ignoring `#fragment`)
+- Footer legend explains only the indicator icons currently visible on the page
 
 ## Pagination
 

@@ -116,7 +116,7 @@ export class PopupPresenter {
     }
 
     if (key === '/' && s.searchQuery === undefined) {
-      this.setState({ searchQuery: '' });
+      this.setState({ searchQuery: '', showHelp: false });
       return;
     }
 

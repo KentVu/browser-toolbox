@@ -9,6 +9,18 @@ interface TabListProps {
 
 const keyLabelClass = 'rounded border border-cyan-400/60 bg-cyan-400/10 px-1 font-mono font-semibold text-cyan-200';
 
+type TabBadges = {
+    windowLabel?: number;
+    splitViewLabel?: number;
+    duplicateLabel?: number;
+};
+
+const INDICATOR_LEGEND = [
+    { key: 'windowLabel', icon: '\u{1FA9F}', label: 'other window', ariaPrefix: 'Window' },
+    { key: 'splitViewLabel', icon: '\u{1F517}', label: 'split view', ariaPrefix: 'Split view' },
+    { key: 'duplicateLabel', icon: '\u{29C9}', label: 'duplicate', ariaPrefix: 'Duplicate' },
+] as const;
+
 function getSplitViewLabels(tabList: Tab[]): Map<number, number> {
     const splitViewIds = [...new Set(
         tabList
@@ -60,6 +72,31 @@ function getDuplicateLabels(tabList: Tab[]): Map<number, number> {
     return labels;
 }
 
+function getTabBadges(
+    tab: Tab,
+    currentWindowId: number | undefined,
+    windowLabels: Map<number, number>,
+    splitViewLabels: Map<number, number>,
+    duplicateLabels: Map<number, number>,
+): TabBadges {
+    const differentWindow = currentWindowId !== undefined
+        && tab.windowId !== undefined
+        && tab.windowId !== currentWindowId;
+    return {
+        windowLabel: differentWindow ? windowLabels.get(tab.windowId!) : undefined,
+        splitViewLabel: tab.splitViewId === undefined || tab.splitViewId === -1
+            ? undefined
+            : splitViewLabels.get(tab.splitViewId),
+        duplicateLabel: duplicateLabels.get(tab.id),
+    };
+}
+
+function getLegendItems(badgesList: TabBadges[]) {
+    return INDICATOR_LEGEND
+        .filter(({ key }) => badgesList.some(badges => badges[key] !== undefined))
+        .map(({ icon, label }) => ({ icon, label }));
+}
+
 function renderTabTitle(title: string, searchQuery: string | undefined): React.ReactNode {
     if (!searchQuery) {
         return title;
@@ -94,6 +131,14 @@ function TabList({ presenter }: TabListProps) {
     const listRef = useRef<HTMLUListElement>(null);
     const moveBesideActiveDisabled = selectedTabId !== undefined && selectedTabId === currentTabId;
     const inactiveKeyLabelClass = 'rounded border border-gray-600 bg-gray-800/60 px-1 font-mono font-semibold text-gray-500';
+    const tabBadges = tabList.map(tab => getTabBadges(
+        tab,
+        currentWindowId,
+        windowLabels,
+        splitViewLabels,
+        duplicateLabels,
+    ));
+    const legendItems = getLegendItems(tabBadges);
 
     useEffect(() => {
         //listRef.current?.focus();
@@ -127,12 +172,8 @@ function TabList({ presenter }: TabListProps) {
                         try { hostname = new URL(tab.url).hostname; } catch {}
                     }
                     const shortcut = keyMap.get(tab.id) || String((index % 26) + 1);
-                    const splitViewLabel = tab.splitViewId === undefined || tab.splitViewId === -1
-                        ? undefined
-                        : splitViewLabels.get(tab.splitViewId);
-                    const differentWindow = currentWindowId !== undefined && tab.windowId !== currentWindowId;
-                    const windowLabel = tab.windowId === undefined ? undefined : windowLabels.get(tab.windowId);
-                    const duplicateLabel = duplicateLabels.get(tab.id);
+                    const badges = tabBadges[index];
+                    const hasBadges = INDICATOR_LEGEND.some(({ key }) => badges[key] !== undefined);
                     const isSelected = tab.id === selectedTabId;
                     return (
                         <li
@@ -161,24 +202,20 @@ function TabList({ presenter }: TabListProps) {
                                         {shortcut}
                                     </kbd>
                                 </div>
-                                {(hostname || splitViewLabel !== undefined || duplicateLabel !== undefined) && (
+                                {(hostname || hasBadges) && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
                                         {hostname && <span>{hostname}</span>}
-                                        {differentWindow && windowLabel !== undefined && (
-                                            <span className="ml-1" aria-label={`Window ${windowLabel}`}>
-                                                &#129695;{windowLabel}
-                                            </span>
-                                        )}
-                                        {splitViewLabel !== undefined && (
-                                            <span className="ml-1" aria-label={`Split view ${splitViewLabel}`}>
-                                                &#128279;{splitViewLabel}
-                                            </span>
-                                        )}
-                                        {duplicateLabel !== undefined && (
-                                            <span className="ml-1" aria-label={`Duplicate ${duplicateLabel}`}>
-                                                &#10697;{duplicateLabel}
-                                            </span>
-                                        )}
+                                        {INDICATOR_LEGEND.map(({ key, icon, ariaPrefix }) => {
+                                            const value = badges[key];
+                                            if (value === undefined) {
+                                                return null;
+                                            }
+                                            return (
+                                                <span key={key} className="ml-1" aria-label={`${ariaPrefix} ${value}`}>
+                                                    {icon}{value}
+                                                </span>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -212,6 +249,15 @@ function TabList({ presenter }: TabListProps) {
                 {selectedTabId === undefined && (
                     <div className="mb-1">Press a key to select a tab</div>
                 )}
+                {legendItems.length > 0 && (
+                    <div aria-label="Indicator legend" className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {legendItems.map((item) => (
+                            <span key={item.label} className="shrink-0">
+                                {item.icon} {item.label}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <div aria-label="Toggle shortcut help">
                     <kbd className={keyLabelClass}>?</kbd> shortcuts
                 </div>
@@ -231,6 +277,8 @@ function TabList({ presenter }: TabListProps) {
                             </div>
                         </div>
                         <ul className="list-disc list-inside space-y-1 text-[9px] text-gray-400">
+                            <li><kbd className={keyLabelClass}>/</kbd>: Enter search mode</li>
+                            <li><kbd className={keyLabelClass}>n</kbd>: Jump to next search match</li>
                             <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↓</kbd>/<kbd className={keyLabelClass}>↑</kbd>: Move selection down/up (pages at edges)</li>
                             <li><kbd className={keyLabelClass}>J</kbd>/<kbd className={keyLabelClass}>PageDown</kbd> / <kbd className={keyLabelClass}>K</kbd>/<kbd className={keyLabelClass}>PageUp</kbd>: Jump to last/first item (change page at edge)</li>
                             <li><kbd className={keyLabelClass}>]</kbd>/<kbd className={keyLabelClass}>[</kbd>: Move selected tab to the right/left of current tab (and go there)</li>

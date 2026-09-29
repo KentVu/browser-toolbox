@@ -132,6 +132,33 @@ describe('Popup', () => {
       expect(within((await screen.findByText('Dup B')).closest('li')!).getByLabelText('Duplicate 2').textContent).toBe('⧉2');
     });
 
+    it('shows a footer legend only for indicators visible on the current page', async () => {
+      const tabs = [
+        { id: 1, title: 'Docs', url: 'https://docs.example.com/page', lastAccessed: 1000, windowId: 10, splitViewId: 900000001 },
+        { id: 2, title: 'Docs copy', url: 'https://docs.example.com/page#copy', lastAccessed: 3000, windowId: 10 },
+        { id: 3, title: 'Other window', url: 'https://other.example.com/', lastAccessed: 2000, windowId: 20 },
+      ];
+      setup(tabs, tabs[0]);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Docs copy');
+
+      const legend = screen.getByLabelText('Indicator legend');
+      expect(legend.textContent).toContain('🪟 other window');
+      expect(legend.textContent).toContain('🔗 split view');
+      expect(legend.textContent).toContain('⧉ duplicate');
+    });
+
+    it('hides footer legend entries for indicators not visible on the current page', async () => {
+      const tabs = [
+        { id: 1, title: 'Unique', url: 'https://unique.example.com/', lastAccessed: 1000, windowId: 10 },
+      ];
+      setup(tabs, tabs[0]);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Unique');
+
+      expect(screen.queryByLabelText('Indicator legend')).toBeNull();
+    });
+
     it('selects the correct tab when a key is pressed', async () => {
       setup();
 
@@ -196,6 +223,8 @@ describe('Popup', () => {
       const help = await screen.findByRole('dialog', { name: 'Shortcut help' });
       expect(within(help).getByText('Select next action:')).toBeTruthy();
       expect(within(help).getByText(/Move selection down\/up \(pages at edges\)/)).toBeTruthy();
+      expect(within(help).getByText(/Enter search mode/)).toBeTruthy();
+      expect(within(help).getByText(/Jump to next search match/)).toBeTruthy();
       const keyLabel = within(help).getByText((content, element) =>
         element?.tagName === 'KBD' && element.textContent === ']'
       );
@@ -206,41 +235,33 @@ describe('Popup', () => {
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
     });
 
-    it('closes floating help whenever the selected tab changes', async () => {
-      setup();
-
-      await renderAndWait(<Popup presenter={presenter} />);
-      // With no current tab, the most recent tab (game) is pre-selected.
-      expect(presenter.s().selectedTabId).toBe(tabList[1].id);
-
-      fireEvent.keyDown(document, { key: '?', shiftKey: true });
-      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
-
-      const state = presenter.s();
-      fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[0].id)! });
-
-      expect(presenter.s().selectedTabId).toBe(tabList[0].id);
-      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
-
-      fireEvent.keyDown(document, { key: '?', shiftKey: true });
-      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
-
-      fireEvent.keyDown(document, { key: 'k' });
-
-      expect(presenter.s().selectedTabId).toBe(tabList[1].id);
-      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
-    });
-
-    it('closes floating help when changing page with . or ,', async () => {
+    it('closes floating help on selection change, page change, or search', async () => {
       const manyTabs = makeTabs(15);
       setup(manyTabs, manyTabs[0]);
 
       await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      // Current is Tab 1 → previous (pre-selected) is Tab 2
+      expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      const tabKey = presenter.s().tabKeyMap.get(manyTabs[0].id)!;
+      fireEvent.keyDown(document, { key: tabKey });
+      expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      fireEvent.keyDown(document, { key: 'j' });
+      expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
       fireEvent.keyDown(document, { key: '.' });
-
       expect(presenter.s().pageIndex).toBe(1);
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
 
@@ -248,8 +269,14 @@ describe('Popup', () => {
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
       fireEvent.keyDown(document, { key: ',' });
-
       expect(presenter.s().pageIndex).toBe(0);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      fireEvent.keyDown(document, { key: '/' });
+      expect(presenter.s().searchQuery).toBe('');
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
     });
 

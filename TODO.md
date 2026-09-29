@@ -44,9 +44,9 @@ When working with several related tabs, he wants to bring them closely together,
 1. [x] Move current tab left/right by `<`, `>`.
 1. [x] `{`/`}` move selected tab left/right of active tab without activating or closing the popup.
 1. [x] Indicator for duplicated tab.
-1. [ ] Legend box (for split-tab, other-window icons etc.).
+1. [x] Legend box (for split-tab, other-window icons etc.).
 1. [x] chore: remove legacy code paths.
 
 # Bugs
 
-1. [ ] If there're matches on other pages, switch to that page automatically.
+1. [ ] If there're matches on other pages, also switch to that page too.
