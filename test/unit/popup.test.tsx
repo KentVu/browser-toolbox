@@ -680,9 +680,7 @@ describe('Popup', () => {
         expect(screen.getByLabelText('Search').textContent).toBe('/game');
         expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
 
-        const item = (await screen.findByText((_, el) =>
-          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'game'
-        )).closest('li')!;
+        const item = await findHighlightedItem('game');
         expect(item.classList.contains('selected')).toBe(true);
         expect(item.textContent).toContain('Game Hub');
       });
@@ -700,10 +698,7 @@ describe('Popup', () => {
         expect(screen.getByLabelText('Search').textContent).toBe('/react');
         expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
 
-        const mark = await screen.findByText((_, el) =>
-          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
-        );
-        expect(mark.closest('li')?.classList.contains('selected')).toBe(true);
+        expectSelectedHighlight('react');
       });
 
       it('ends search mode on Enter without activating the selected tab', async () => {
@@ -740,9 +735,7 @@ describe('Popup', () => {
         fireEvent.keyDown(document, { key: 'Backspace' });
         expect(screen.getByLabelText('Search').textContent).toBe('/gam');
         expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
-        expect(screen.getByText((_, el) =>
-          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'gam'
-        )).toBeTruthy();
+        expect(screen.getByText(isHighlightMark('gam'))).toBeTruthy();
 
         fireEvent.keyDown(document, { key: 'Backspace' });
         fireEvent.keyDown(document, { key: 'Backspace' });
@@ -770,15 +763,11 @@ describe('Popup', () => {
 
         fireEvent.keyDown(document, { key: 'n' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
-        expect(screen.getByText((_, el) =>
-          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
-        ).closest('li')?.classList.contains('selected')).toBe(true);
+        expectSelectedHighlight('react');
 
         fireEvent.keyDown(document, { key: 'n' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
-        expect(screen.getByText((_, el) =>
-          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
-        ).closest('li')?.classList.contains('selected')).toBe(true);
+        expectSelectedHighlight('react');
       });
 
       it('clears the highlight when another key changes selection but keeps the last search query', async () => {
@@ -794,9 +783,7 @@ describe('Popup', () => {
 
         fireEvent.keyDown(document, { key: 'n' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
-        expect(screen.getByText((_, el) =>
-          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
-        )).toBeTruthy();
+        expect(screen.getByText(isHighlightMark('react'))).toBeTruthy();
 
         fireEvent.keyDown(document, { key: 'k' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
@@ -804,9 +791,57 @@ describe('Popup', () => {
 
         fireEvent.keyDown(document, { key: 'n' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
-        expect(screen.getByText((_, el) =>
-          el?.tagName === 'MARK' && el.textContent?.toLowerCase() === 'react'
-        ).closest('li')?.classList.contains('selected')).toBe(true);
+        expectSelectedHighlight('react');
+      });
+
+      it('switches to the page that contains a typed search match', async () => {
+        const manyTabs = makeTabs(PAGE_SIZE + 2);
+        manyTabs[PAGE_SIZE].title = 'Unique Match Tab';
+        setup(manyTabs, manyTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+        expect(presenter.s().pageIndex).toBe(0);
+        expect(screen.queryByText('Unique Match Tab')).toBeNull();
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of 'unique') {
+          fireEvent.keyDown(document, { key });
+        }
+
+        expect(presenter.s().selectedTabId).toBe(manyTabs[PAGE_SIZE].id);
+        expect(presenter.s().pageIndex).toBe(1);
+        const item = await findHighlightedItem('unique');
+        expect(item.classList.contains('selected')).toBe(true);
+        expect(item.textContent).toContain('Unique Match Tab');
+      });
+
+      it('switches page when n jumps to a match on another page, including wrap-around', async () => {
+        const manyTabs = makeTabs(PAGE_SIZE + 2);
+        manyTabs[0].title = 'React Docs';
+        manyTabs[PAGE_SIZE].title = 'react patterns';
+        setup(manyTabs, manyTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        expect(presenter.s().pageIndex).toBe(0);
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of 'react') {
+          fireEvent.keyDown(document, { key });
+        }
+        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
+        expect(presenter.s().pageIndex).toBe(0);
+
+        fireEvent.keyDown(document, { key: 'Enter' });
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(manyTabs[PAGE_SIZE].id);
+        expect(presenter.s().pageIndex).toBe(1);
+        expectSelectedHighlight('react');
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
+        expect(presenter.s().pageIndex).toBe(0);
+        expectSelectedHighlight('react');
       });
     });
 
@@ -869,4 +904,18 @@ function makeTabs(count: number): Tab[] {
     url: `https://example.com/${i + 1}`,
     lastAccessed: 1000 - i,
   }));
+}
+
+function isHighlightMark(query: string) {
+  const needle = query.toLowerCase();
+  return (_: string, el: Element | null) =>
+    el?.tagName === 'MARK' && el.textContent?.toLowerCase() === needle;
+}
+
+function expectSelectedHighlight(query: string) {
+  expect(screen.getByText(isHighlightMark(query)).closest('li')?.classList.contains('selected')).toBe(true);
+}
+
+async function findHighlightedItem(query: string): Promise<HTMLLIElement> {
+  return (await screen.findByText(isHighlightMark(query))).closest('li')!;
 }

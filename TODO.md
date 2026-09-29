@@ -49,4 +49,4 @@ When working with several related tabs, he wants to bring them closely together,
 
 # Bugs
 
-1. [ ] If there're matches on other pages, also switch to that page too.
+1. [x] If there're matches on other pages, also switch to that page too.

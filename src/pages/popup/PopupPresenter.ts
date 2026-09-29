@@ -139,20 +139,18 @@ export class PopupPresenter {
         }
         const searchQuery = s.searchQuery.slice(0, -1);
         const match = findTitleMatch(s.tabList, searchQuery);
-        this.setState({
+        this.selectSearchMatch(match, {
           searchQuery,
           highlightQuery: searchQuery || undefined,
-          ...(match ? { selectedTabId: match.id } : {}),
         });
         return;
       }
       if (key.length === 1) {
         const searchQuery = s.searchQuery + key;
         const match = findTitleMatch(s.tabList, searchQuery);
-        this.setState({
+        this.selectSearchMatch(match, {
           searchQuery,
           highlightQuery: searchQuery,
-          ...(match ? { selectedTabId: match.id } : {}),
         });
       }
       return;
@@ -166,8 +164,7 @@ export class PopupPresenter {
     if (key === 'n' && s.lastSearchQuery) {
       const match = findNextTitleMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
       if (match) {
-        this.setState({
-          selectedTabId: match.id,
+        this.selectSearchMatch(match, {
           highlightQuery: s.lastSearchQuery,
         });
       }
@@ -291,6 +288,35 @@ export class PopupPresenter {
       return;
     }
     this.setState({ selectedTabId: tabId, highlightQuery: undefined });
+  }
+
+  /**
+   * Select a search match and switch to its page when needed.
+   * Extra state (query/highlight) is merged in either case.
+   */
+  selectSearchMatch(match: Tab | undefined, extra: Partial<PopupState> = {}): void {
+    if (!match) {
+      this.setState(extra);
+      return;
+    }
+
+    const s = this.s();
+    const matchIndex = s.tabList.findIndex(tab => tab.id === match.id);
+    const pageIndex = matchIndex >= 0 ? Math.floor(matchIndex / PAGE_SIZE) : s.pageIndex;
+    if (pageIndex === s.pageIndex) {
+      this.setState({
+        ...extra,
+        selectedTabId: match.id,
+      });
+      return;
+    }
+
+    this.setState({
+      ...extra,
+      selectedTabId: match.id,
+      pageIndex,
+      tabKeyMap: genTabKeyMap(visibleTabs(s.tabList, pageIndex).map(tab => tab.id)),
+    });
   }
 
   /**
