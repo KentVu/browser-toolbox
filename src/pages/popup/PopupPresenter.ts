@@ -12,6 +12,7 @@ export class PopupState {
   tabList: Tab[] = [];
   tabKeyMap: Map<number, string> = new Map();
   selectedTabId: number | undefined;
+  currentTabId: number | undefined;
   currentWindowId: number | undefined;
   pageIndex = 0;
   errorMessage: string | undefined;
@@ -36,6 +37,7 @@ export class PopupPresenter {
     tabList: [] as Tab[],
     tabKeyMap: new Map<number, string>(),
     selectedTabId: undefined as number | undefined,
+    currentTabId: undefined as number | undefined,
     currentWindowId: undefined as number | undefined,
     pageIndex: 0,
     errorMessage: undefined as string | undefined,
@@ -60,6 +62,7 @@ export class PopupPresenter {
   };
   useTabList = (): Tab[] => this.store(state => state.tabList);
   useSelectedTabId = () => this.store(state => state.selectedTabId);
+  useCurrentTabId = () => this.store(state => state.currentTabId);
   useCurrentWindowId = () => this.store(state => state.currentWindowId);
   useErrorMessage = () => this.store(state => state.errorMessage);
   useSearchQuery = () => this.store(state => state.searchQuery);
@@ -86,6 +89,7 @@ export class PopupPresenter {
       pageIndex,
       tabKeyMap: genTabKeyMap(visibleTabs(_tabs, pageIndex).map(tab => tab.id)),
       selectedTabId: previousTab?.id,
+      currentTabId: currentTab?.id,
       currentWindowId: currentTab?.windowId,
     });
   }
@@ -184,6 +188,19 @@ export class PopupPresenter {
       await this.chrome.tabs.move('toTheLeft', tabId);
       await this.chrome.tabs.activate(tabId);
       this.chrome.closePopup();
+      return;
+    }
+
+    if ((key === '}' || key === '{') && s.selectedTabId !== undefined) {
+      const currentTabId = (await this.chrome.tabs.getCurrent())?.id ?? s.currentTabId;
+      // Inactive when the selected tab is already the active tab.
+      if (currentTabId !== undefined && s.selectedTabId === currentTabId) {
+        return;
+      }
+      const direction = key === '}' ? 'toTheRight' : 'toTheLeft';
+      // Do not activate after move: activate() focuses the browser window and
+      // Chrome auto-closes the popup when focus leaves it.
+      await this.chrome.tabs.move(direction, s.selectedTabId);
       return;
     }
 

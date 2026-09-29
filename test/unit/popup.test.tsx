@@ -312,6 +312,53 @@ describe('Popup', () => {
       await expectMoveSelectedTab('[', 'toTheLeft');
     });
 
+    it('moves selected tab next to the active tab with } and { without activating or closing', async () => {
+      const _tabList: Tab[] = [...tabList,
+        { id: 4, title: 'Music', url: 'https://music.example.com', lastAccessed: 1500 }
+      ];
+      setup(_tabList);
+
+      await renderAndWait(<Popup presenter={presenter} />);
+      const state = presenter.s();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
+
+      fireEvent.keyDown(document, { key: '}', shiftKey: true });
+      await waitFor(() => {
+        expect(chrome.tabs.move).toHaveBeenCalledWith('toTheRight', _tabList[2].id);
+      });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(document, { key: '{', shiftKey: true });
+      await waitFor(() => {
+        expect(chrome.tabs.move).toHaveBeenLastCalledWith('toTheLeft', _tabList[2].id);
+      });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+      expect(chrome.tabs.move).toHaveBeenCalledTimes(2);
+    });
+
+    it('ignores } and { when the selected tab is the active tab', async () => {
+      const currentTab = tabList[1];
+      setup(tabList, currentTab);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'game');
+      fireEvent.keyDown(document, { key: presenter.s().tabKeyMap.get(currentTab.id)! });
+      expect(presenter.s().selectedTabId).toBe(currentTab.id);
+
+      const stayInPopupHelp = screen.getByText(/Move selected tab to the right\/left of current tab \(stay in popup\)/);
+      expect(stayInPopupHelp.closest('li')?.getAttribute('aria-disabled')).toBe('true');
+
+      fireEvent.keyDown(document, { key: '}', shiftKey: true });
+      fireEvent.keyDown(document, { key: '{', shiftKey: true });
+      await waitFor(() => {
+        expect(chrome.tabs.getCurrent).toHaveBeenCalled();
+      });
+      expect(chrome.tabs.move).not.toHaveBeenCalled();
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+    });
+
     it('moves the current active tab left and right with < and > without closing the popup', async () => {
       const currentTab = tabList[1];
       const selectedTab = tabList[0];
