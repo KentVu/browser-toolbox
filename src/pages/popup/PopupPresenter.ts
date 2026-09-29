@@ -174,11 +174,11 @@ export class PopupPresenter {
       return;
     }
 
-    if (key === ',') {
+    if (key === ',' || key === 'arrowleft') {
       this.changePage(-1);
       return;
     }
-    if (key === '.') {
+    if (key === '.' || key === 'arrowright') {
       this.changePage(1);
       return;
     }

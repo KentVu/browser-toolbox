@@ -64,3 +64,5 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 | `!` (Shift-1) | Break the selected tab into a **new window** and close the popup |
 
 Clicking a row selects that tab (does not activate it).
+
+Press `?` for updated instructions.

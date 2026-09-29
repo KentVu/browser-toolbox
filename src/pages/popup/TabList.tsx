@@ -191,7 +191,7 @@ function TabList({ presenter }: TabListProps) {
             )}
             {pageCount > 1 && (
                 <div className="text-[10px] text-gray-500 px-1 py-1">
-                    Page {pageIndex + 1}/{pageCount} · <kbd className={keyLabelClass}>,</kbd> previous · <kbd className={keyLabelClass}>.</kbd> next
+                    Page {pageIndex + 1}/{pageCount} · <kbd className={keyLabelClass}>,</kbd>/<kbd className={keyLabelClass}>←</kbd> previous · <kbd className={keyLabelClass}>.</kbd>/<kbd className={keyLabelClass}>→</kbd> next
                 </div>
             )}
             <div

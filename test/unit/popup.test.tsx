@@ -569,7 +569,7 @@ describe('Popup', () => {
         expect(presenter.s().pageIndex).toBe(0);
       });
 
-      it('uses . and , for next and previous page', async () => {
+      it('uses ., `,`, ArrowRight, and ArrowLeft for next and previous page', async () => {
         const manyTabs = makeTabs(15);
         setup(manyTabs, manyTabs[0]);
 
@@ -582,6 +582,14 @@ describe('Popup', () => {
         expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: ',' });
+        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+
+        fireEvent.keyDown(document, { key: 'ArrowRight' });
+        expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+
+        fireEvent.keyDown(document, { key: 'ArrowLeft' });
         expect(presenter.s().pageIndex).toBe(0);
         expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
       });
