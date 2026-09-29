@@ -2,7 +2,7 @@ import type { BrowserApi } from '@src/lib/Browser';
 import { ChromeApi } from '@src/lib/Chrome';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
-import { tryParseHttpUrl } from '@src/lib/Util';
+import { hostnameOf, tryParseHttpUrl } from '@src/lib/Util';
 import { create, type ExtractState } from 'zustand';
 import { combine } from 'zustand/middleware';
 
@@ -138,7 +138,7 @@ export class PopupPresenter {
           return;
         }
         const searchQuery = s.searchQuery.slice(0, -1);
-        const match = findTitleMatch(s.tabList, searchQuery);
+        const match = findTabMatch(s.tabList, searchQuery);
         this.selectSearchMatch(match, {
           searchQuery,
           highlightQuery: searchQuery || undefined,
@@ -147,7 +147,7 @@ export class PopupPresenter {
       }
       if (key.length === 1) {
         const searchQuery = s.searchQuery + key;
-        const match = findTitleMatch(s.tabList, searchQuery);
+        const match = findTabMatch(s.tabList, searchQuery);
         this.selectSearchMatch(match, {
           searchQuery,
           highlightQuery: searchQuery,
@@ -162,7 +162,7 @@ export class PopupPresenter {
     }
 
     if (key === 'n' && s.lastSearchQuery) {
-      const match = findNextTitleMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
+      const match = findNextTabMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
       if (match) {
         this.selectSearchMatch(match, {
           highlightQuery: s.lastSearchQuery,
@@ -404,15 +404,15 @@ export class PopupPresenter {
   }
 }
 
-export function findTitleMatch(tabList: Tab[], query: string): Tab | undefined {
+export function findTabMatch(tabList: Tab[], query: string): Tab | undefined {
   if (!query) {
     return undefined;
   }
   const needle = query.toLowerCase();
-  return tabList.find(tab => tab.title.toLowerCase().includes(needle));
+  return tabList.find(tab => tabMatchesQuery(tab, needle));
 }
 
-export function findNextTitleMatch(
+export function findNextTabMatch(
   tabList: Tab[],
   query: string,
   afterTabId: number | undefined,
@@ -424,11 +424,18 @@ export function findNextTitleMatch(
   const startIndex = Math.max(0, tabList.findIndex(tab => tab.id === afterTabId));
   for (let offset = 1; offset <= tabList.length; offset++) {
     const tab = tabList[(startIndex + offset) % tabList.length];
-    if (tab.title.toLowerCase().includes(needle)) {
+    if (tabMatchesQuery(tab, needle)) {
       return tab;
     }
   }
   return undefined;
+}
+
+function tabMatchesQuery(tab: Tab, needle: string): boolean {
+  if (tab.title.toLowerCase().includes(needle)) {
+    return true;
+  }
+  return hostnameOf(tab.url).toLowerCase().includes(needle);
 }
 
 export function visibleTabs(tabList: Tab[], pageIndex: number, pageSize = PAGE_SIZE): Tab[] {

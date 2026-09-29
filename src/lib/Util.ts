@@ -34,3 +34,15 @@ export function urlWithoutFragment(url: string): string | undefined {
     return undefined;
   }
 }
+
+/** Returns the hostname for a URL, or an empty string when unavailable/invalid. */
+export function hostnameOf(url: string | undefined): string {
+  if (!url) {
+    return '';
+  }
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+}

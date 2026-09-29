@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
-import { urlWithoutFragment } from '@src/lib/Util';
+import { hostnameOf, urlWithoutFragment } from '@src/lib/Util';
 import { PopupPresenter } from './PopupPresenter';
 
 interface TabListProps {
@@ -97,19 +97,19 @@ function getLegendItems(badgesList: TabBadges[]) {
         .map(({ icon, label }) => ({ icon, label }));
 }
 
-function renderTabTitle(title: string, searchQuery: string | undefined): React.ReactNode {
+function renderHighlightedText(text: string, searchQuery: string | undefined): React.ReactNode {
     if (!searchQuery) {
-        return title;
+        return text;
     }
-    const index = title.toLowerCase().indexOf(searchQuery.toLowerCase());
+    const index = text.toLowerCase().indexOf(searchQuery.toLowerCase());
     if (index === -1) {
-        return title;
+        return text;
     }
     return (
         <>
-            {title.slice(0, index)}
-            <mark>{title.slice(index, index + searchQuery.length)}</mark>
-            {title.slice(index + searchQuery.length)}
+            {text.slice(0, index)}
+            <mark>{text.slice(index, index + searchQuery.length)}</mark>
+            {text.slice(index + searchQuery.length)}
         </>
     );
 }
@@ -167,14 +167,12 @@ function TabList({ presenter }: TabListProps) {
                 className="divide-y divide-gray-700 bg-gray-80/80 rounded-md border border-gray-700 text-left shadow-inner focus:outline-none"
             >
                 {tabList.map((tab: Tab, index: number) => {
-                    let hostname = '';
-                    if (tab.url) {
-                        try { hostname = new URL(tab.url).hostname; } catch {}
-                    }
+                    const hostname = hostnameOf(tab.url);
                     const shortcut = keyMap.get(tab.id) || String((index % 26) + 1);
                     const badges = tabBadges[index];
                     const hasBadges = INDICATOR_LEGEND.some(({ key }) => badges[key] !== undefined);
                     const isSelected = tab.id === selectedTabId;
+                    const activeQuery = isSelected ? (searchQuery ?? highlightQuery) : undefined;
                     return (
                         <li
                             key={tab.id}
@@ -193,9 +191,9 @@ function TabList({ presenter }: TabListProps) {
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-baseline gap-1.5">
                                     <div className="text-xs text-gray-100 truncate flex-1 group-hover:text-blue-300 transition-colors">
-                                        {renderTabTitle(
+                                        {renderHighlightedText(
                                             tab.title || 'Untitled',
-                                            isSelected ? (searchQuery ?? highlightQuery) : undefined,
+                                            activeQuery,
                                         )}
                                     </div>
                                     <kbd className={`${keyLabelClass} text-[9px] tracking-tight shrink-0`}>
@@ -204,7 +202,7 @@ function TabList({ presenter }: TabListProps) {
                                 </div>
                                 {(hostname || hasBadges) && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
-                                        {hostname && <span>{hostname}</span>}
+                                        {hostname && <span>{renderHighlightedText(hostname, activeQuery)}</span>}
                                         {INDICATOR_LEGEND.map(({ key, icon, ariaPrefix }) => {
                                             const value = badges[key];
                                             if (value === undefined) {

@@ -735,7 +735,7 @@ describe('Popup', () => {
         fireEvent.keyDown(document, { key: 'Backspace' });
         expect(screen.getByLabelText('Search').textContent).toBe('/gam');
         expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
-        expect(screen.getByText(isHighlightMark('gam'))).toBeTruthy();
+        expectSelectedHighlight('gam');
 
         fireEvent.keyDown(document, { key: 'Backspace' });
         fireEvent.keyDown(document, { key: 'Backspace' });
@@ -783,7 +783,7 @@ describe('Popup', () => {
 
         fireEvent.keyDown(document, { key: 'n' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
-        expect(screen.getByText(isHighlightMark('react'))).toBeTruthy();
+        expectSelectedHighlight('react');
 
         fireEvent.keyDown(document, { key: 'k' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
@@ -842,6 +842,91 @@ describe('Popup', () => {
         expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
         expect(presenter.s().pageIndex).toBe(0);
         expectSelectedHighlight('react');
+      });
+
+      it('matches hostname text and highlights the hostname', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of 'patterns.example') {
+          fireEvent.keyDown(document, { key });
+        }
+
+        expect(screen.getByLabelText('Search').textContent).toBe('/patterns.example');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+
+        const item = await findHighlightedItem('patterns.example');
+        expect(item.classList.contains('selected')).toBe(true);
+        expect(item.textContent).toContain('react patterns');
+        expect(item.textContent).toContain('patterns.example.com');
+      });
+
+      it('matches hostnames case-insensitively', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const char of 'game.example') {
+          const isLetter = /[a-z]/.test(char);
+          fireEvent.keyDown(document, {
+            key: isLetter ? char.toUpperCase() : char,
+            shiftKey: isLetter,
+          });
+        }
+
+        expect(screen.getByLabelText('Search').textContent).toBe('/GAME.EXAMPLE');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expectSelectedHighlight('GAME.EXAMPLE');
+      });
+
+      it('jumps to the next hostname match with n', async () => {
+        const hostnameTabs: Tab[] = [
+          { id: 1, title: 'Home', url: 'https://docs.example.com', lastAccessed: 3000 },
+          { id: 2, title: 'Blog', url: 'https://blog.example.com', lastAccessed: 2000 },
+          { id: 3, title: 'Shop', url: 'https://shop.example.com', lastAccessed: 1000 },
+        ];
+        setup(hostnameTabs, hostnameTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Home');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of 'example.com') {
+          fireEvent.keyDown(document, { key });
+        }
+        expect(presenter.s().selectedTabId).toBe(hostnameTabs[0].id);
+
+        fireEvent.keyDown(document, { key: 'Enter' });
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(hostnameTabs[1].id);
+        expectSelectedHighlight('example.com');
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(hostnameTabs[2].id);
+        expectSelectedHighlight('example.com');
+
+        fireEvent.keyDown(document, { key: 'n' });
+        expect(presenter.s().selectedTabId).toBe(hostnameTabs[0].id);
+        expectSelectedHighlight('example.com');
+      });
+
+      it('highlights title and hostname when both match', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of 'react') {
+          fireEvent.keyDown(document, { key });
+        }
+
+        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        const marks = screen.getAllByText(isHighlightMark('react'));
+        expect(marks.length).toBeGreaterThanOrEqual(2);
+        expect(marks.every(mark => mark.closest('li')?.classList.contains('selected'))).toBe(true);
       });
     });
 
@@ -913,9 +998,12 @@ function isHighlightMark(query: string) {
 }
 
 function expectSelectedHighlight(query: string) {
-  expect(screen.getByText(isHighlightMark(query)).closest('li')?.classList.contains('selected')).toBe(true);
+  const marks = screen.getAllByText(isHighlightMark(query));
+  expect(marks.length).toBeGreaterThan(0);
+  expect(marks.every(mark => mark.closest('li')?.classList.contains('selected'))).toBe(true);
 }
 
 async function findHighlightedItem(query: string): Promise<HTMLLIElement> {
-  return (await screen.findByText(isHighlightMark(query))).closest('li')!;
+  const marks = await screen.findAllByText(isHighlightMark(query));
+  return marks[0].closest('li')!;
 }
