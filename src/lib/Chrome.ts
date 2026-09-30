@@ -72,8 +72,27 @@ class DefaultTabs extends ChromeTabApi {
             return;
         }
 
-        const targetIndex =
-            direction === 'toTheRight' ? activeTab.index + 1 : Math.max(0, activeTab.index - 1);
+        // Moving the active tab itself is a simple adjacent shift.
+        if (tabId === activeTab.id) {
+            const targetIndex =
+                direction === 'toTheRight' ? activeTab.index + 1 : Math.max(0, activeTab.index - 1);
+            await chrome.tabs.move(tabId, {
+                index: targetIndex,
+                windowId: activeTab.windowId,
+            });
+            return;
+        }
+
+        const tab = await chrome.tabs.get(tabId);
+        // chrome.tabs.move removes the tab first, then inserts at index.
+        // If the tab is currently left of active in the same window, active's
+        // index shifts down by 1 before insertion — adjust the target accordingly.
+        const movingFromLeftInSameWindow =
+            tab.windowId === activeTab.windowId && tab.index < activeTab.index;
+
+        const targetIndex = direction === 'toTheRight'
+            ? (movingFromLeftInSameWindow ? activeTab.index : activeTab.index + 1)
+            : (movingFromLeftInSameWindow ? Math.max(0, activeTab.index - 1) : activeTab.index);
 
         await chrome.tabs.move(tabId, {
             index: targetIndex,

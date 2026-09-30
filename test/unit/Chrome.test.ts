@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chrome } from '@src/lib/Chrome';
 import { createMockChromeApi } from './MockChrome';
 
@@ -119,6 +119,85 @@ describe('ChromeAPI', () => {
         await Chrome.tabs.breakIntoNewWindow(42);
 
         expect(create).toHaveBeenCalledWith({ tabId: 42 });
+      });
+    });
+
+    describe('move', () => {
+      const originalChrome = (globalThis as any).chrome;
+      const activeTab = { id: 2, index: 1, windowId: 10 };
+      let query: ReturnType<typeof vi.fn>;
+      let get: ReturnType<typeof vi.fn>;
+      let move: ReturnType<typeof vi.fn>;
+
+      beforeEach(() => {
+        query = vi.fn().mockResolvedValue([activeTab]);
+        get = vi.fn();
+        move = vi.fn().mockResolvedValue({});
+        (globalThis as any).chrome = {
+          tabs: { query, get, move },
+        };
+      });
+
+      afterEach(() => {
+        (globalThis as any).chrome = originalChrome;
+      });
+
+      it('places a tab from the right immediately left of the active tab', async () => {
+        get.mockResolvedValue({ id: 4, index: 3, windowId: 10 });
+
+        await Chrome.tabs.move('toTheLeft', 4);
+
+        expect(move).toHaveBeenCalledWith(4, { index: 1, windowId: 10 });
+      });
+
+      it('places a tab from the left immediately left of the active tab', async () => {
+        get.mockResolvedValue({ id: 1, index: 0, windowId: 10 });
+
+        await Chrome.tabs.move('toTheLeft', 1);
+
+        expect(move).toHaveBeenCalledWith(1, { index: 0, windowId: 10 });
+      });
+
+      it('places a tab from the right immediately right of the active tab', async () => {
+        get.mockResolvedValue({ id: 4, index: 3, windowId: 10 });
+
+        await Chrome.tabs.move('toTheRight', 4);
+
+        expect(move).toHaveBeenCalledWith(4, { index: 2, windowId: 10 });
+      });
+
+      it('places a tab from the left immediately right of the active tab', async () => {
+        get.mockResolvedValue({ id: 1, index: 0, windowId: 10 });
+
+        await Chrome.tabs.move('toTheRight', 1);
+
+        expect(move).toHaveBeenCalledWith(1, { index: 1, windowId: 10 });
+      });
+
+      it('places a tab from another window immediately left of the active tab', async () => {
+        get.mockResolvedValue({ id: 9, index: 0, windowId: 20 });
+
+        await Chrome.tabs.move('toTheLeft', 9);
+
+        expect(move).toHaveBeenCalledWith(9, { index: 1, windowId: 10 });
+      });
+
+      it('places a tab from another window immediately right of the active tab', async () => {
+        get.mockResolvedValue({ id: 9, index: 0, windowId: 20 });
+
+        await Chrome.tabs.move('toTheRight', 9);
+
+        expect(move).toHaveBeenCalledWith(9, { index: 2, windowId: 10 });
+      });
+
+      it('shifts the active tab itself one position left or right', async () => {
+        get.mockResolvedValue(activeTab);
+
+        await Chrome.tabs.move('toTheLeft', activeTab.id);
+        expect(move).toHaveBeenCalledWith(activeTab.id, { index: 0, windowId: 10 });
+
+        await Chrome.tabs.move('toTheRight', activeTab.id);
+        expect(move).toHaveBeenLastCalledWith(activeTab.id, { index: 2, windowId: 10 });
       });
     });
   });
