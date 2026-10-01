@@ -233,6 +233,11 @@ export class PopupPresenter {
       return;
     }
 
+    if (key === 'escape' && s.showHelp) {
+      this.setState({ showHelp: false });
+      return;
+    }
+
     switch (action) {
       case 'toggleShortcutHelp':
         this.setState({ showHelp: !s.showHelp });

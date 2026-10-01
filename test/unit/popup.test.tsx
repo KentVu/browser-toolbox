@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
@@ -255,6 +255,21 @@ describe('Popup', () => {
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+    });
+
+    it('closes floating help with Escape without dismissing the popup', async () => {
+      setup();
+
+      await renderAndWait(<Popup presenter={presenter} />);
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
+
+      const escapeEvent = createEvent.keyDown(document, { key: 'Escape' });
+      fireEvent(document, escapeEvent);
+
+      expect(escapeEvent.defaultPrevented).toBe(true);
+      expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
     });
 
     it('closes floating help on selection change, page change, or search', async () => {

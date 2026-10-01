@@ -149,6 +149,9 @@ function TabList({ presenter }: TabListProps) {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
             const key = e.ctrlKey ? `ctrl+${pressed}` : e.shiftKey ? e.key : pressed;
+            if (pressed === 'escape' && presenter.s().showHelp) {
+                e.preventDefault();
+            }
             if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v') {
                 e.preventDefault();
             }
