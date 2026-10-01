@@ -8,6 +8,61 @@ import { combine } from 'zustand/middleware';
 
 export const PASTE_URL_ERROR = 'Not a URL to paste!';
 
+export type ShortcutAction =
+  | 'enterSearch'
+  | 'toggleShortcutHelp'
+  | 'nextSearchMatch'
+  | 'previousPage'
+  | 'nextPage'
+  | 'moveCurrentTabRight'
+  | 'moveCurrentTabLeft'
+  | 'moveSelectedTabRightAndActivate'
+  | 'moveSelectedTabLeftAndActivate'
+  | 'moveSelectedTabBesideActiveRight'
+  | 'moveSelectedTabBesideActiveLeft'
+  | 'breakSelectedTabIntoWindow'
+  | 'activateSelectedTab'
+  | 'closeSelectedTab'
+  | 'copySelectedTabUrl'
+  | 'pasteUrlIntoSelectedTab'
+  | 'jumpToLastTab'
+  | 'jumpToFirstTab'
+  | 'moveSelectionDown'
+  | 'moveSelectionUp';
+
+const shortcutActionByKey: Record<string, ShortcutAction> = {
+  '/': 'enterSearch',
+  '?': 'toggleShortcutHelp',
+  n: 'nextSearchMatch',
+  ',': 'previousPage',
+  arrowleft: 'previousPage',
+  '.': 'nextPage',
+  arrowright: 'nextPage',
+  '>': 'moveCurrentTabRight',
+  '<': 'moveCurrentTabLeft',
+  ']': 'moveSelectedTabRightAndActivate',
+  '[': 'moveSelectedTabLeftAndActivate',
+  '}': 'moveSelectedTabBesideActiveRight',
+  '{': 'moveSelectedTabBesideActiveLeft',
+  '!': 'breakSelectedTabIntoWindow',
+  enter: 'activateSelectedTab',
+  'ctrl+w': 'closeSelectedTab',
+  'ctrl+c': 'copySelectedTabUrl',
+  'ctrl+v': 'pasteUrlIntoSelectedTab',
+  J: 'jumpToLastTab',
+  pagedown: 'jumpToLastTab',
+  K: 'jumpToFirstTab',
+  pageup: 'jumpToFirstTab',
+  j: 'moveSelectionDown',
+  arrowdown: 'moveSelectionDown',
+  k: 'moveSelectionUp',
+  arrowup: 'moveSelectionUp',
+};
+
+export function resolveShortcutAction(key: string): ShortcutAction | undefined {
+  return shortcutActionByKey[key];
+}
+
 export class PopupState {
   tabList: Tab[] = [];
   tabKeyMap: Map<number, string> = new Map();
@@ -111,11 +166,12 @@ export class PopupPresenter {
 
   async onKeyPress(key: string): Promise<void> {
     const s = this.s();
+    const action = resolveShortcutAction(key);
     if (s.errorMessage !== undefined) {
       this.setState({ errorMessage: undefined });
     }
 
-    if (key === '/' && s.searchQuery === undefined) {
+    if (action === 'enterSearch' && s.searchQuery === undefined) {
       this.setState({ searchQuery: '', showHelp: false });
       return;
     }
@@ -156,131 +212,118 @@ export class PopupPresenter {
       return;
     }
 
-    if (key === '?') {
-      this.setState({ showHelp: !s.showHelp });
-      return;
-    }
-
-    if (key === 'n' && s.lastSearchQuery) {
-      const match = findNextTabMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
-      if (match) {
-        this.selectSearchMatch(match, {
-          highlightQuery: s.lastSearchQuery,
-        });
-      }
-      return;
-    }
-
-    if (key === ',' || key === 'arrowleft') {
-      this.changePage(-1);
-      return;
-    }
-    if (key === '.' || key === 'arrowright') {
-      this.changePage(1);
-      return;
-    }
-
-    if (key === '>' || key === '<') {
-      const currentTabId = (await this.chrome.tabs.getCurrent())?.id;
-      if (currentTabId === undefined) {
+    switch (action) {
+      case 'toggleShortcutHelp':
+        this.setState({ showHelp: !s.showHelp });
+        return;
+      case 'nextSearchMatch':
+        if (s.lastSearchQuery) {
+          const match = findNextTabMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
+          if (match) {
+            this.selectSearchMatch(match, { highlightQuery: s.lastSearchQuery });
+          }
+          return;
+        }
+        break;
+      case 'previousPage':
+        this.changePage(-1);
+        return;
+      case 'nextPage':
+        this.changePage(1);
+        return;
+      case 'moveCurrentTabRight':
+      case 'moveCurrentTabLeft': {
+        const currentTabId = (await this.chrome.tabs.getCurrent())?.id;
+        if (currentTabId !== undefined) {
+          const direction = action === 'moveCurrentTabRight' ? 'toTheRight' : 'toTheLeft';
+          // Do not activate after move: activate() focuses the browser window and
+          // Chrome auto-closes the popup when focus leaves it.
+          await this.chrome.tabs.move(direction, currentTabId);
+        }
         return;
       }
-      const direction = key === '>' ? 'toTheRight' : 'toTheLeft';
-      // Do not activate after move: activate() focuses the browser window and
-      // Chrome auto-closes the popup when focus leaves it.
-      await this.chrome.tabs.move(direction, currentTabId);
-      return;
-    }
-
-    if (key === ']' && s.selectedTabId !== undefined) {
-      const tabId = s.selectedTabId;
-      await this.chrome.tabs.move('toTheRight', tabId);
-      await this.chrome.tabs.activate(tabId);
-      this.chrome.closePopup();
-      return;
-    }
-
-    if (key === '[' && s.selectedTabId !== undefined) {
-      const tabId = s.selectedTabId;
-      await this.chrome.tabs.move('toTheLeft', tabId);
-      await this.chrome.tabs.activate(tabId);
-      this.chrome.closePopup();
-      return;
-    }
-
-    if ((key === '}' || key === '{') && s.selectedTabId !== undefined) {
-      const currentTabId = (await this.chrome.tabs.getCurrent())?.id ?? s.currentTabId;
-      // Inactive when the selected tab is already the active tab.
-      if (currentTabId !== undefined && s.selectedTabId === currentTabId) {
+      case 'moveSelectedTabRightAndActivate':
+      case 'moveSelectedTabLeftAndActivate':
+        if (s.selectedTabId !== undefined) {
+          const tabId = s.selectedTabId;
+          const direction = action === 'moveSelectedTabRightAndActivate' ? 'toTheRight' : 'toTheLeft';
+          await this.chrome.tabs.move(direction, tabId);
+          await this.chrome.tabs.activate(tabId);
+          this.chrome.closePopup();
+        }
         return;
-      }
-      const direction = key === '}' ? 'toTheRight' : 'toTheLeft';
-      // Do not activate after move: activate() focuses the browser window and
-      // Chrome auto-closes the popup when focus leaves it.
-      await this.chrome.tabs.move(direction, s.selectedTabId);
-      return;
-    }
-
-    if (key === '!' && s.selectedTabId !== undefined) {
-      const tabId = s.selectedTabId;
-      await this.chrome.tabs.breakIntoNewWindow(tabId);
-      this.chrome.closePopup();
-      return;
-    }
-
-    if (key === 'enter' && s.selectedTabId !== undefined) {
-      await this.chrome.tabs.activate(s.selectedTabId);
-      this.chrome.closePopup();
-      return;
-    }
-
-    if (key === 'ctrl+w' && s.selectedTabId !== undefined) {
-      const tabId = s.selectedTabId;
-      await this.chrome.tabs.close(tabId);
-      await this.fetchTabList({ preservePage: true });
-      return;
-    }
-
-    if (key === 'ctrl+c' && s.selectedTabId !== undefined) {
-      const selectedTab = s.tabList.find(tab => tab.id === s.selectedTabId);
-      if (selectedTab?.url) {
-        await this.browser.clipboard.writeText(selectedTab.url);
-      }
-      return;
-    }
-
-    if (key === 'ctrl+v' && s.selectedTabId !== undefined) {
-      const clipboardText = await this.browser.clipboard.readText();
-      const url = tryParseHttpUrl(clipboardText);
-      if (!url) {
-        this.setState({ errorMessage: PASTE_URL_ERROR });
+      case 'moveSelectedTabBesideActiveRight':
+      case 'moveSelectedTabBesideActiveLeft':
+        if (s.selectedTabId !== undefined) {
+          const currentTabId = (await this.chrome.tabs.getCurrent())?.id ?? s.currentTabId;
+          // Inactive when the selected tab is already the active tab.
+          if (currentTabId === undefined || s.selectedTabId !== currentTabId) {
+            const direction = action === 'moveSelectedTabBesideActiveRight' ? 'toTheRight' : 'toTheLeft';
+            // Do not activate after move: activate() focuses the browser window and
+            // Chrome auto-closes the popup when focus leaves it.
+            await this.chrome.tabs.move(direction, s.selectedTabId);
+          }
+        }
         return;
-      }
+      case 'breakSelectedTabIntoWindow':
+        if (s.selectedTabId !== undefined) {
+          await this.chrome.tabs.breakIntoNewWindow(s.selectedTabId);
+          this.chrome.closePopup();
+        }
+        return;
+      case 'activateSelectedTab':
+        if (s.selectedTabId !== undefined) {
+          await this.chrome.tabs.activate(s.selectedTabId);
+          this.chrome.closePopup();
+        }
+        return;
+      case 'closeSelectedTab':
+        if (s.selectedTabId !== undefined) {
+          await this.chrome.tabs.close(s.selectedTabId);
+          await this.fetchTabList({ preservePage: true });
+        }
+        return;
+      case 'copySelectedTabUrl':
+        if (s.selectedTabId !== undefined) {
+          const selectedTab = s.tabList.find(tab => tab.id === s.selectedTabId);
+          if (selectedTab?.url) {
+            await this.browser.clipboard.writeText(selectedTab.url);
+          }
+        }
+        return;
+      case 'pasteUrlIntoSelectedTab':
+        if (s.selectedTabId !== undefined) {
+          const clipboardText = await this.browser.clipboard.readText();
+          const url = tryParseHttpUrl(clipboardText);
+          if (!url) {
+            this.setState({ errorMessage: PASTE_URL_ERROR });
+            return;
+          }
 
-      const tabId = s.selectedTabId;
-      await this.chrome.tabs.updateUrl(tabId, url);
-      this.setState({
-        errorMessage: undefined,
-        tabList: s.tabList.map(tab => (tab.id === tabId ? { ...tab, url } : tab)),
-      });
-      return;
-    }
-
-    if (key === 'J' || key === 'pagedown') {
-      this.jumpToPageEdgeOrChangePage('last');
-      return;
-    }
-    if (key === 'K' || key === 'pageup') {
-      this.jumpToPageEdgeOrChangePage('first');
-      return;
-    }
-    if (key === 'j' || key === 'arrowdown') {
-      this.moveSelection(1);
-      return;
-    }
-    if (key === 'k' || key === 'arrowup') {
-      this.moveSelection(-1);
-      return;
+          const tabId = s.selectedTabId;
+          await this.chrome.tabs.updateUrl(tabId, url);
+          this.setState({
+            errorMessage: undefined,
+            tabList: s.tabList.map(tab => (tab.id === tabId ? { ...tab, url } : tab)),
+          });
+        }
+        return;
+      case 'jumpToLastTab':
+        this.jumpToPageEdgeOrChangePage('last');
+        return;
+      case 'jumpToFirstTab':
+        this.jumpToPageEdgeOrChangePage('first');
+        return;
+      case 'moveSelectionDown':
+        this.moveSelection(1);
+        return;
+      case 'moveSelectionUp':
+        this.moveSelection(-1);
+        return;
+      case 'enterSearch':
+        return;
+      default:
+        break;
     }
 
     const tabId = this.tabIdForKey(key);

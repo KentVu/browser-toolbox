@@ -3,12 +3,34 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
-import { PopupPresenter } from '@src/pages/popup/PopupPresenter';
+import { PopupPresenter, resolveShortcutAction } from '@src/pages/popup/PopupPresenter';
 import { createMockBrowserApi } from './MockBrowser';
 import { createMockChromeApi } from './MockChrome';
 
 afterEach(() => {
   cleanup();
+});
+
+describe('Popup shortcut actions', () => {
+  it('resolves key aliases to the same named action', () => {
+    expect(resolveShortcutAction(',')).toBe('previousPage');
+    expect(resolveShortcutAction('arrowleft')).toBe('previousPage');
+    expect(resolveShortcutAction('j')).toBe('moveSelectionDown');
+    expect(resolveShortcutAction('arrowdown')).toBe('moveSelectionDown');
+  });
+
+  it('allows n to select its assigned tab when there is no saved search', async () => {
+    const tab: Tab = { id: 1, title: 'Docs', url: 'https://docs.example.com', lastAccessed: 1 };
+    const presenter = new PopupPresenter(
+      createMockChromeApi([tab]),
+      createMockBrowserApi(),
+    );
+    presenter.setState({ tabList: [tab], tabKeyMap: new Map([[tab.id, 'n']]) });
+
+    await presenter.onKeyPress('n');
+
+    expect(presenter.s().selectedTabId).toBe(tab.id);
+  });
 });
 
 describe('Popup', () => {
