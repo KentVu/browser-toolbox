@@ -149,7 +149,8 @@ function TabList({ presenter }: TabListProps) {
         function handleKeyDown(e: KeyboardEvent) {
             const pressed = e.key.toLowerCase();
             const key = e.ctrlKey ? `ctrl+${pressed}` : e.shiftKey ? e.key : pressed;
-            if (pressed === 'escape' && presenter.s().showHelp) {
+            const { showHelp, searchQuery } = presenter.s();
+            if (pressed === 'escape' && (showHelp || searchQuery !== undefined)) {
                 e.preventDefault();
             }
             if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v') {
@@ -243,9 +244,17 @@ function TabList({ presenter }: TabListProps) {
                     </div>
                 )}
                 {searchQuery !== undefined && (
-                    <div aria-label="Search" className="mb-1 font-mono text-cyan-200">
-                        /{searchQuery}
-                    </div>
+                    <>
+                        <div aria-label="Search" className="mb-1 font-mono text-cyan-200">
+                            /{searchQuery}
+                        </div>
+                        <div aria-label="Search shortcuts" className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-gray-400">
+                            <span><kbd className={keyLabelClass}>Esc</kbd> exit</span>
+                            <span><kbd className={keyLabelClass}>Enter</kbd> keep</span>
+                            <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Enter</kbd> activate</span>
+                            <span><kbd className={keyLabelClass}>Backspace</kbd> delete</span>
+                        </div>
+                    </>
                 )}
                 {selectedTabId === undefined && (
                     <div className="mb-1">Press a key to select a tab</div>

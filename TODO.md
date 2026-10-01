@@ -51,7 +51,7 @@ When working with several related tabs, he wants to bring them closely together,
 - [x] Legend box (for split-tab, other-window icons etc.).
 - [x] chore: remove legacy code paths.
 - [ ] Support navigating between search match while typing in search (in search mode). (While in search mode, up/down navigating between current matches)
-- [ ] ESC in popup?
+- [x] ESC in popup?
 
 # Bugs
 

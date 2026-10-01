@@ -722,6 +722,21 @@ describe('Popup', () => {
         expect(item.textContent).toContain('Game Hub');
       });
 
+      it('shows the inline search shortcuts while search mode is active', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        fireEvent.keyDown(document, { key: 'g' });
+
+        const shortcuts = screen.getByLabelText('Search shortcuts');
+        expect(shortcuts.textContent).toContain('Esc');
+        expect(shortcuts.textContent).toContain('Enter');
+        expect(shortcuts.textContent).toContain('Ctrl');
+        expect(shortcuts.textContent).toContain('Backspace');
+      });
+
       it('matches tab titles case-insensitively', async () => {
         setup(searchTabs, searchTabs[0]);
 
@@ -754,6 +769,22 @@ describe('Popup', () => {
         expect(screen.queryByLabelText('Search')).toBeNull();
         expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
         expect(chrome.tabs.activate).not.toHaveBeenCalled();
+        expect(chrome.closePopup).not.toHaveBeenCalled();
+      });
+
+      it('prevents the browser default escape action while search mode is active', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        fireEvent.keyDown(document, { key: 'g' });
+
+        const escapeEvent = createEvent.keyDown(document, { key: 'Escape' });
+        fireEvent(document, escapeEvent);
+
+        expect(escapeEvent.defaultPrevented).toBe(true);
+        expect(screen.queryByLabelText('Search')).toBeNull();
         expect(chrome.closePopup).not.toHaveBeenCalled();
       });
 
@@ -800,7 +831,36 @@ describe('Popup', () => {
 
         fireEvent.keyDown(document, { key: 'Backspace' });
         expect(screen.queryByLabelText('Search')).toBeNull();
+        expect(presenter.s().lastSearchQuery).toBeUndefined();
         expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+      });
+
+      it('does not prefill the last search when reopening an empty search with /', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
+          fireEvent.keyDown(document, { key });
+        }
+        fireEvent.keyDown(document, { key: 'Enter' });
+        expect(presenter.s().lastSearchQuery).toBe('react');
+
+        fireEvent.keyDown(document, { key: '/' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/react');
+
+        for (const key of ['Backspace', 'Backspace', 'Backspace', 'Backspace', 'Backspace']) {
+          fireEvent.keyDown(document, { key });
+        }
+        expect(screen.getByLabelText('Search').textContent).toBe('/');
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(screen.queryByLabelText('Search')).toBeNull();
+        expect(presenter.s().lastSearchQuery).toBeUndefined();
+
+        fireEvent.keyDown(document, { key: '/' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/');
       });
 
       it('jumps to the next title match with n, highlights it, and wraps around', async () => {

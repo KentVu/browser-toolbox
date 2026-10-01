@@ -184,8 +184,9 @@ export class PopupPresenter {
         const match = key === 'ctrl+enter'
           ? findTabMatch(s.tabList, s.searchQuery)
           : undefined;
+        const nextLastSearchQuery = s.searchQuery || s.lastSearchQuery;
         this.setState({
-          lastSearchQuery: s.searchQuery,
+          lastSearchQuery: nextLastSearchQuery,
           searchQuery: undefined,
           highlightQuery: undefined,
         });
@@ -196,8 +197,18 @@ export class PopupPresenter {
         return;
       }
       if (key === 'escape') {
+        if (s.searchQuery.length === 0) {
+          this.setState({
+            lastSearchQuery: undefined,
+            searchQuery: undefined,
+            highlightQuery: undefined,
+          });
+          await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
+          return;
+        }
+        const nextLastSearchQuery = s.searchQuery || s.lastSearchQuery;
         this.setState({
-          lastSearchQuery: s.searchQuery,
+          lastSearchQuery: nextLastSearchQuery,
           searchQuery: undefined,
           highlightQuery: undefined,
         });
@@ -206,6 +217,7 @@ export class PopupPresenter {
       if (key === 'backspace') {
         if (s.searchQuery.length === 0) {
           this.setState({
+            lastSearchQuery: undefined,
             searchQuery: undefined,
             highlightQuery: undefined,
           });
