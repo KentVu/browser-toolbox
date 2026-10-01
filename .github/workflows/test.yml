@@ -17,4 +17,4 @@ jobs:
     - name: Install dependencies
       run: npm ci
     - name: Run tests
-      run: npm run test --reporter=github-actions --reporter=verbose
+      run: npx vitest --reporter=github-actions --reporter=verbose

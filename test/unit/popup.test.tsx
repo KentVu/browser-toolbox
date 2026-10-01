@@ -729,17 +729,36 @@ describe('Popup', () => {
         await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
-        for (const key of ['g', 'a', 'm', 'e']) {
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
           fireEvent.keyDown(document, { key });
         }
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
 
         fireEvent.keyDown(document, { key: 'Enter' });
 
         expect(screen.queryByLabelText('Search')).toBeNull();
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
         expect(chrome.tabs.activate).not.toHaveBeenCalled();
         expect(chrome.closePopup).not.toHaveBeenCalled();
+      });
+
+      it('activates the first matching tab on Ctrl+Enter', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
+          fireEvent.keyDown(document, { key });
+        }
+
+        fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
+
+        expect(screen.queryByLabelText('Search')).toBeNull();
+        await waitFor(() => {
+          expect(chrome.tabs.activate).toHaveBeenCalledWith(searchTabs[0].id);
+          expect(chrome.closePopup).toHaveBeenCalled();
+        });
       });
 
       it('deletes the last query character with Backspace and exits when empty', async () => {
@@ -780,8 +799,9 @@ describe('Popup', () => {
         }
         expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
 
-        fireEvent.keyDown(document, { key: 'Enter' });
+        fireEvent.keyDown(document, { key: 'Escape' });
         expect(screen.queryByLabelText('Search')).toBeNull();
+        expect(chrome.tabs.activate).not.toHaveBeenCalled();
 
         fireEvent.keyDown(document, { key: 'n' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
@@ -790,6 +810,27 @@ describe('Popup', () => {
         fireEvent.keyDown(document, { key: 'n' });
         expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
         expectSelectedHighlight('react');
+      });
+
+      it('restores the last search phrase when the popup is reopened', async () => {
+        setup(searchTabs, searchTabs[0]);
+        await presenter.fetchTabList();
+        await presenter.onKeyPress('/');
+        for (const key of 'react') {
+          await presenter.onKeyPress(key);
+        }
+
+        const reopenedPresenter = new PopupPresenter(chrome, browser);
+        await reopenedPresenter.fetchTabList();
+        await reopenedPresenter.onKeyPress('/');
+
+        expect(reopenedPresenter.s().searchQuery).toBe('react');
+
+        await reopenedPresenter.onKeyPress('enter');
+        await reopenedPresenter.onKeyPress('n');
+
+        expect(reopenedPresenter.s().lastSearchQuery).toBe('react');
+        expect(reopenedPresenter.s().selectedTabId).toBe(searchTabs[2].id);
       });
 
       it('clears the highlight when another key changes selection but keeps the last search query', async () => {

@@ -22,7 +22,8 @@
     "activeTab",
     "scripting",
     "tabs",
-    "clipboardRead"
+    "clipboardRead",
+    "storage"
   ],
   "content_scripts": [
     {

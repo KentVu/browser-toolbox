@@ -16,13 +16,17 @@ When working with several related tabs, he wants to bring them closely together,
 
 # Search flow:
 
-1. [x] On tablist page, press `/` key. An indicator showing we're in search mode (Something start with `/` like vim).
-1. [x] Follow input keys are treated as search string until the `Enter` key, the search string is displayed in the indicator, if there's a match: highlight that matched part of the tab item, and jump (select) that item.
-1. [x] `Backspace` deletes the last query character; on an empty query it exits search mode.
-1. [x] The `enter` key ends search mode.
-1. [x] Subsequent `n` key jump to next match item and highlight the matched part.
-1. [x] Highlight clears when another key changes selection; last search query is retained so `n` still works.
-1. [x] Search should be case-insensitive.
+- [x] On tablist page, press `/` key. An indicator showing we're in search mode (Something start with `/` like vim).
+- [x] Follow input keys are treated as search string until the `Enter` key, the search string is displayed in the indicator, if there's a match: highlight that matched part of the tab item, and jump (select) that item.
+- [x] `Backspace` deletes the last query character; on an empty query it exits search mode.
+- [x] The `enter` key ends search mode.
+- [x] Subsequent `n` key jump to next match item and highlight the matched part.
+- [x] Highlight clears when another key changes selection; last search query is retained so `n` still works.
+- [x] Search should be case-insensitive.
+
+## todo-search
+
+- [ ] Search backward with `N` (Shift-n)
 
 # Big refactoring: Move tab management into a mode, give way for next big new feature...
 
@@ -30,22 +34,24 @@ When working with several related tabs, he wants to bring them closely together,
 
 # TODO
 
-1. [ ] Eliminate duplicates in UI Text by introducing i18n.
-1. [x] Tab should be sorted most recent tab first.
-1. [x] Pagination.
-1. [x] j/k for moving up/down the tab list.
-1. [x] Search using `/` key.
-1. [x] Should maintain current page after closing.
-1. [x] Move the behaviour of `,`/`.` to `J`/`K` (Shift-j/k), `,`/`.` remain simply prev/next page.
-1. [x] Move shortcut help into a floating element??
-1. [x] Toggle instructions by `?`.
-1. [x] Also support searching the hostname too.
-1. [x] prev/next page by left/right arrow also.
-1. [x] Move current tab left/right by `<`, `>`.
-1. [x] `{`/`}` move selected tab left/right of active tab without activating or closing the popup.
-1. [x] Indicator for duplicated tab.
-1. [x] Legend box (for split-tab, other-window icons etc.).
-1. [x] chore: remove legacy code paths.
+- [ ] Eliminate duplicates in UI Text by introducing i18n.
+- [x] Tab should be sorted most recent tab first.
+- [x] Pagination.
+- [x] j/k for moving up/down the tab list.
+- [x] Search using `/` key.
+- [x] Should maintain current page after closing.
+- [x] Move the behaviour of `,`/`.` to `J`/`K` (Shift-j/k), `,`/`.` remain simply prev/next page.
+- [x] Move shortcut help into a floating element??
+- [x] Toggle instructions by `?`.
+- [x] Also support searching the hostname too.
+- [x] prev/next page by left/right arrow also.
+- [x] Move current tab left/right by `<`, `>`.
+- [x] `{`/`}` move selected tab left/right of active tab without activating or closing the popup.
+- [x] Indicator for duplicated tab.
+- [x] Legend box (for split-tab, other-window icons etc.).
+- [x] chore: remove legacy code paths.
+- [ ] Support navigating between search match while typing in search (in search mode). (While in search mode, up/down navigating between current matches)
+- [ ] ESC in popup?
 
 # Bugs
 

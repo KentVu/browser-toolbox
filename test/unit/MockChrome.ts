@@ -6,6 +6,7 @@ import { sortByLastAccessed } from '@src/lib/Util';
 
 export function createMockChromeApi(tabs: Tab[] = [], currentTab?: Tab): ChromeApi {
   let openTabs = [...tabs];
+  const localStorage = new Map<string, unknown>();
 
   const mockTabs: ChromeTabApi = {
     get: vi.fn().mockImplementation(async () => openTabs),
@@ -22,6 +23,12 @@ export function createMockChromeApi(tabs: Tab[] = [], currentTab?: Tab): ChromeA
 
   return {
     tabs: mockTabs,
+    storage: {
+      getLocal: async <T>(key: string): Promise<T | undefined> => localStorage.get(key) as T | undefined,
+      setLocal: async (key: string, value: unknown): Promise<void> => {
+        localStorage.set(key, value);
+      },
+    },
     closePopup: vi.fn(),
   };
 }

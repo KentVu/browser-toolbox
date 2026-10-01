@@ -7,6 +7,7 @@ import { create, type ExtractState } from 'zustand';
 import { combine } from 'zustand/middleware';
 
 export const PASTE_URL_ERROR = 'Not a URL to paste!';
+const LAST_SEARCH_QUERY_KEY = 'lastSearchQuery';
 
 export type ShortcutAction =
   | 'enterSearch'
@@ -144,9 +145,10 @@ export class PopupPresenter {
   };
 
   async fetchTabList(options?: { preservePage?: boolean }) {
-    const [_tabs, currentTab] = await Promise.all([
+    const [_tabs, currentTab, savedSearchQuery] = await Promise.all([
       this.chrome.tabs.getByLastAccessed(),
       this.chrome.tabs.getCurrent(),
+      this.chrome.storage.getLocal<string>(LAST_SEARCH_QUERY_KEY),
     ]);
     const maxPage = pageCount(_tabs) - 1;
     const pageIndex = options?.preservePage
@@ -161,6 +163,7 @@ export class PopupPresenter {
       selectedTabId: previousTab?.id,
       currentTabId: currentTab?.id,
       currentWindowId: currentTab?.windowId,
+      lastSearchQuery: savedSearchQuery || undefined,
     });
   }
 
@@ -172,12 +175,27 @@ export class PopupPresenter {
     }
 
     if (action === 'enterSearch' && s.searchQuery === undefined) {
-      this.setState({ searchQuery: '', showHelp: false });
+      this.setState({ searchQuery: s.lastSearchQuery ?? '', showHelp: false });
       return;
     }
 
     if (s.searchQuery !== undefined) {
-      if (key === 'enter') {
+      if (key === 'enter' || key === 'ctrl+enter') {
+        const match = key === 'ctrl+enter'
+          ? findTabMatch(s.tabList, s.searchQuery)
+          : undefined;
+        this.setState({
+          lastSearchQuery: s.searchQuery,
+          searchQuery: undefined,
+          highlightQuery: undefined,
+        });
+        if (match) {
+          await this.chrome.tabs.activate(match.id);
+          this.chrome.closePopup();
+        }
+        return;
+      }
+      if (key === 'escape') {
         this.setState({
           lastSearchQuery: s.searchQuery,
           searchQuery: undefined,
@@ -191,6 +209,7 @@ export class PopupPresenter {
             searchQuery: undefined,
             highlightQuery: undefined,
           });
+          await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
           return;
         }
         const searchQuery = s.searchQuery.slice(0, -1);
@@ -199,6 +218,7 @@ export class PopupPresenter {
           searchQuery,
           highlightQuery: searchQuery || undefined,
         });
+        await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, searchQuery);
         return;
       }
       if (key.length === 1) {
@@ -208,6 +228,7 @@ export class PopupPresenter {
           searchQuery,
           highlightQuery: searchQuery,
         });
+        await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, searchQuery);
       }
       return;
     }

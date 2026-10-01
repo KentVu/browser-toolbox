@@ -22,6 +22,22 @@ export abstract class ChromeTabApi {
     }
 }
 
+export interface ChromeStorageApi {
+    getLocal<T>(key: string): Promise<T | undefined>;
+    setLocal(key: string, value: unknown): Promise<void>;
+}
+
+class DefaultStorage implements ChromeStorageApi {
+    async getLocal<T>(key: string): Promise<T | undefined> {
+        const values = await chrome.storage.local.get(key);
+        return values[key] as T | undefined;
+    }
+
+    async setLocal(key: string, value: unknown): Promise<void> {
+        await chrome.storage.local.set({ [key]: value });
+    }
+}
+
 /**
  * Facade over Chrome extension APIs used by this extension.
  *
@@ -31,6 +47,7 @@ export abstract class ChromeTabApi {
  */
 export interface ChromeApi {
     tabs: ChromeTabApi;
+    storage: ChromeStorageApi;
     closePopup(): void;
 }
 
@@ -115,9 +132,11 @@ class DefaultTabs extends ChromeTabApi {
 
 class DefaultChrome implements ChromeApi {
     tabs: ChromeTabApi;
+    storage: ChromeStorageApi;
 
     constructor() {
         this.tabs = new DefaultTabs();
+        this.storage = new DefaultStorage();
     }
 
     closePopup(): void {
