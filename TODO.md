@@ -19,6 +19,7 @@ When working with several related tabs, he wants to bring them closely together,
 - [x] On tablist page, press `/` key. An indicator showing we're in search mode (Something start with `/` like vim).
 - [x] Follow input keys are treated as search string until the `Enter` key, the search string is displayed in the indicator, if there's a match: highlight that matched part of the tab item, and jump (select) that item.
 - [x] `Backspace` deletes the last query character; on an empty query it exits search mode.
+- [x] `Ctrl-W` / `Ctrl-Backspace` in search mode clears the query.
 - [x] The `enter` key ends search mode.
 - [x] Subsequent `n` key jump to next match item and highlight the matched part.
 - [x] Highlight clears when another key changes selection; last search query is retained so `n` still works.

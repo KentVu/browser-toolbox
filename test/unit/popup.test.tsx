@@ -735,6 +735,7 @@ describe('Popup', () => {
         expect(shortcuts.textContent).toContain('Enter');
         expect(shortcuts.textContent).toContain('Ctrl');
         expect(shortcuts.textContent).toContain('Backspace');
+        expect(shortcuts.textContent).toContain('clear');
       });
 
       it('matches tab titles case-insensitively', async () => {
@@ -805,6 +806,54 @@ describe('Popup', () => {
           expect(chrome.tabs.activate).toHaveBeenCalledWith(searchTabs[0].id);
           expect(chrome.closePopup).toHaveBeenCalled();
         });
+      });
+
+      it.each([
+        { key: 'w', label: 'Ctrl-W' },
+        { key: 'Backspace', label: 'Ctrl-Backspace' },
+      ])('clears the query with $label without closing the selected tab', async ({ key }) => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const typed of ['g', 'a', 'm', 'e']) {
+          fireEvent.keyDown(document, { key: typed });
+        }
+        expect(screen.getByLabelText('Search').textContent).toBe('/game');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+
+        const event = createEvent.keyDown(document, { key, ctrlKey: true });
+        fireEvent(document, event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(screen.getByLabelText('Search').textContent).toBe('/');
+        expect(presenter.s().searchQuery).toBe('');
+        expect(presenter.s().lastSearchQuery).toBeUndefined();
+        expect(presenter.s().highlightQuery).toBeUndefined();
+        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(chrome.tabs.close).not.toHaveBeenCalled();
+        expect(chrome.closePopup).not.toHaveBeenCalled();
+
+        const reopenedPresenter = new PopupPresenter(chrome, browser);
+        await reopenedPresenter.fetchTabList();
+        await reopenedPresenter.onKeyPress('/');
+        expect(reopenedPresenter.s().searchQuery).toBe('');
+      });
+
+      it('does not close a tab when Ctrl-W is pressed on an empty search query', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        expect(presenter.s().searchQuery).toBe('');
+
+        fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
+
+        expect(screen.getByLabelText('Search').textContent).toBe('/');
+        expect(presenter.s().searchQuery).toBe('');
+        expect(chrome.tabs.close).not.toHaveBeenCalled();
       });
 
       it('deletes the last query character with Backspace and exits when empty', async () => {

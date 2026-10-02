@@ -214,6 +214,15 @@ export class PopupPresenter {
         });
         return;
       }
+      if (key === 'ctrl+w' || key === 'ctrl+backspace') {
+        this.setState({
+          lastSearchQuery: undefined,
+          searchQuery: '',
+          highlightQuery: undefined,
+        });
+        await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
+        return;
+      }
       if (key === 'backspace') {
         if (s.searchQuery.length === 0) {
           this.setState({

@@ -153,7 +153,7 @@ function TabList({ presenter }: TabListProps) {
             if (pressed === 'escape' && (showHelp || searchQuery !== undefined)) {
                 e.preventDefault();
             }
-            if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v') {
+            if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v' || key === 'ctrl+backspace') {
                 e.preventDefault();
             }
             void presenter.onKeyPress(key);
@@ -253,6 +253,7 @@ function TabList({ presenter }: TabListProps) {
                             <span><kbd className={keyLabelClass}>Enter</kbd> keep</span>
                             <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Enter</kbd> activate</span>
                             <span><kbd className={keyLabelClass}>Backspace</kbd> delete</span>
+                            <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>W</kbd> / <kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Backspace</kbd> clear</span>
                         </div>
                     </>
                 )}
