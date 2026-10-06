@@ -136,6 +136,7 @@ export class PopupPresenter {
   useCurrentWindowId = () => this.store(state => state.currentWindowId);
   useErrorMessage = () => this.store(state => state.errorMessage);
   useSearchQuery = () => this.store(state => state.searchQuery);
+  useLastSearchQuery = () => this.store(state => state.lastSearchQuery);
   useHighlightQuery = () => this.store(state => state.highlightQuery);
   useShowHelp = () => this.store(state => state.showHelp);
   usePageInfo = (): { pageIndex: number; pageCount: number } => {
@@ -175,12 +176,21 @@ export class PopupPresenter {
     }
 
     if (action === 'enterSearch' && s.searchQuery === undefined) {
-      this.setState({ searchQuery: s.lastSearchQuery ?? '', showHelp: false });
+      this.setState({ searchQuery: '', showHelp: false });
       return;
     }
 
     if (s.searchQuery !== undefined) {
       if (key === 'enter' || key === 'ctrl+enter') {
+        if (key === 'enter' && s.searchQuery.length === 0 && s.lastSearchQuery) {
+          const searchQuery = s.lastSearchQuery;
+          const match = findTabMatch(s.tabList, searchQuery);
+          this.selectSearchMatch(match, {
+            searchQuery,
+            highlightQuery: searchQuery,
+          });
+          return;
+        }
         const match = key === 'ctrl+enter'
           ? findTabMatch(s.tabList, s.searchQuery)
           : undefined;

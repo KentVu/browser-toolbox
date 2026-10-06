@@ -125,6 +125,7 @@ function TabList({ presenter }: TabListProps) {
     const currentWindowId = presenter.useCurrentWindowId();
     const errorMessage = presenter.useErrorMessage();
     const searchQuery = presenter.useSearchQuery();
+    const lastSearchQuery = presenter.useLastSearchQuery();
     const highlightQuery = presenter.useHighlightQuery();
     const showHelp = presenter.useShowHelp();
     const { pageIndex, pageCount } = presenter.usePageInfo();
@@ -250,7 +251,7 @@ function TabList({ presenter }: TabListProps) {
                         </div>
                         <div aria-label="Search shortcuts" className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-gray-400">
                             <span><kbd className={keyLabelClass}>Esc</kbd> exit</span>
-                            <span><kbd className={keyLabelClass}>Enter</kbd> keep</span>
+                            <span><kbd className={keyLabelClass}>Enter</kbd> {searchQuery === '' && lastSearchQuery ? 'last' : 'keep'}</span>
                             <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Enter</kbd> activate</span>
                             <span><kbd className={keyLabelClass}>Backspace</kbd> delete</span>
                             <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>W</kbd> / <kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Backspace</kbd> clear</span>

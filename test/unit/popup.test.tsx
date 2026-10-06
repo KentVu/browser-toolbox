@@ -733,9 +733,27 @@ describe('Popup', () => {
         const shortcuts = screen.getByLabelText('Search shortcuts');
         expect(shortcuts.textContent).toContain('Esc');
         expect(shortcuts.textContent).toContain('Enter');
+        expect(shortcuts.textContent).toContain('keep');
         expect(shortcuts.textContent).toContain('Ctrl');
         expect(shortcuts.textContent).toContain('Backspace');
         expect(shortcuts.textContent).toContain('clear');
+      });
+
+      it('shows Enter last in the footer when the search prompt is empty and a last query exists', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
+          fireEvent.keyDown(document, { key });
+        }
+        fireEvent.keyDown(document, { key: 'Enter' });
+        fireEvent.keyDown(document, { key: '/' });
+
+        const shortcuts = screen.getByLabelText('Search shortcuts');
+        expect(shortcuts.textContent).toContain('last');
+        expect(shortcuts.textContent).not.toContain('keep');
       });
 
       it('matches tab titles case-insensitively', async () => {
@@ -884,7 +902,7 @@ describe('Popup', () => {
         expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
       });
 
-      it('does not prefill the last search when reopening an empty search with /', async () => {
+      it('does not prefill the last search when entering search with /', async () => {
         setup(searchTabs, searchTabs[0]);
 
         await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
@@ -897,19 +915,32 @@ describe('Popup', () => {
         expect(presenter.s().lastSearchQuery).toBe('react');
 
         fireEvent.keyDown(document, { key: '/' });
-        expect(screen.getByLabelText('Search').textContent).toBe('/react');
+        expect(screen.getByLabelText('Search').textContent).toBe('/');
+        expect(presenter.s().searchQuery).toBe('');
+      });
 
-        for (const key of ['Backspace', 'Backspace', 'Backspace', 'Backspace', 'Backspace']) {
+      it('fills the last search query when Enter is pressed on an empty search prompt', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['r', 'e', 'a', 'c', 't']) {
           fireEvent.keyDown(document, { key });
         }
-        expect(screen.getByLabelText('Search').textContent).toBe('/');
-
-        fireEvent.keyDown(document, { key: 'Escape' });
-        expect(screen.queryByLabelText('Search')).toBeNull();
-        expect(presenter.s().lastSearchQuery).toBeUndefined();
+        fireEvent.keyDown(document, { key: 'Enter' });
+        expect(presenter.s().lastSearchQuery).toBe('react');
 
         fireEvent.keyDown(document, { key: '/' });
         expect(screen.getByLabelText('Search').textContent).toBe('/');
+
+        fireEvent.keyDown(document, { key: 'Enter' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/react');
+        expect(presenter.s().searchQuery).toBe('react');
+        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expectSelectedHighlight('react');
+        expect(chrome.tabs.activate).not.toHaveBeenCalled();
+        expect(chrome.closePopup).not.toHaveBeenCalled();
       });
 
       it('jumps to the next title match with n, highlights it, and wraps around', async () => {
@@ -948,6 +979,10 @@ describe('Popup', () => {
         await reopenedPresenter.fetchTabList();
         await reopenedPresenter.onKeyPress('/');
 
+        expect(reopenedPresenter.s().searchQuery).toBe('');
+        expect(reopenedPresenter.s().lastSearchQuery).toBe('react');
+
+        await reopenedPresenter.onKeyPress('enter');
         expect(reopenedPresenter.s().searchQuery).toBe('react');
 
         await reopenedPresenter.onKeyPress('enter');
