@@ -10,12 +10,14 @@ interface TabListProps {
 const keyLabelClass = 'rounded border border-cyan-400/60 bg-cyan-400/10 px-1 font-mono font-semibold text-cyan-200';
 
 type TabBadges = {
+    current?: true;
     windowLabel?: number;
     splitViewLabel?: number;
     duplicateLabel?: number;
 };
 
 const INDICATOR_LEGEND = [
+    { key: 'current', icon: '\u{25CF}', label: 'current', ariaPrefix: 'Current tab' },
     { key: 'windowLabel', icon: '\u{1FA9F}', label: 'other window', ariaPrefix: 'Window' },
     { key: 'splitViewLabel', icon: '\u{1F517}', label: 'split view', ariaPrefix: 'Split view' },
     { key: 'duplicateLabel', icon: '\u{29C9}', label: 'duplicate', ariaPrefix: 'Duplicate' },
@@ -74,6 +76,7 @@ function getDuplicateLabels(tabList: Tab[]): Map<number, number> {
 
 function getTabBadges(
     tab: Tab,
+    currentTabId: number | undefined,
     currentWindowId: number | undefined,
     windowLabels: Map<number, number>,
     splitViewLabels: Map<number, number>,
@@ -83,12 +86,24 @@ function getTabBadges(
         && tab.windowId !== undefined
         && tab.windowId !== currentWindowId;
     return {
+        current: tab.id === currentTabId ? true : undefined,
         windowLabel: differentWindow ? windowLabels.get(tab.windowId!) : undefined,
         splitViewLabel: tab.splitViewId === undefined || tab.splitViewId === -1
             ? undefined
             : splitViewLabels.get(tab.splitViewId),
         duplicateLabel: duplicateLabels.get(tab.id),
     };
+}
+
+function formatIndicator(
+    ariaPrefix: string,
+    icon: string,
+    value: number | true,
+): { label: string; text: string } {
+    if (value === true) {
+        return { label: ariaPrefix, text: icon };
+    }
+    return { label: `${ariaPrefix} ${value}`, text: `${icon}${value}` };
 }
 
 function getLegendItems(badgesList: TabBadges[]) {
@@ -134,6 +149,7 @@ function TabList({ presenter }: TabListProps) {
     const inactiveKeyLabelClass = 'rounded border border-gray-600 bg-gray-800/60 px-1 font-mono font-semibold text-gray-500';
     const tabBadges = tabList.map(tab => getTabBadges(
         tab,
+        currentTabId,
         currentWindowId,
         windowLabels,
         splitViewLabels,
@@ -177,12 +193,14 @@ function TabList({ presenter }: TabListProps) {
                     const badges = tabBadges[index];
                     const hasBadges = INDICATOR_LEGEND.some(({ key }) => badges[key] !== undefined);
                     const isSelected = tab.id === selectedTabId;
+                    const isCurrent = tab.id === currentTabId;
                     const activeQuery = isSelected ? (searchQuery ?? highlightQuery) : undefined;
                     return (
                         <li
                             key={tab.id}
                             onClick={() => presenter.setState({ selectedTabId: tab.id })}
-                            className={`px-2.5 py-1.5 flex items-center gap-2 hover:bg-gray-700/70 cursor-pointer transition-colors group ${isSelected ? 'selected' : ''}`}
+                            aria-current={isCurrent ? 'true' : undefined}
+                            className={`px-2.5 py-1.5 flex items-center gap-2 hover:bg-gray-700/70 cursor-pointer transition-colors group ${isSelected ? 'selected' : ''} ${isCurrent ? 'current' : ''}`}
                         >
                             {tab.icon ? (
                                 <img
@@ -213,9 +231,14 @@ function TabList({ presenter }: TabListProps) {
                                             if (value === undefined) {
                                                 return null;
                                             }
+                                            const indicator = formatIndicator(ariaPrefix, icon, value);
                                             return (
-                                                <span key={key} className="ml-1" aria-label={`${ariaPrefix} ${value}`}>
-                                                    {icon}{value}
+                                                <span
+                                                    key={key}
+                                                    className={`ml-1 ${key === 'current' ? 'text-cyan-300' : ''}`}
+                                                    aria-label={indicator.label}
+                                                >
+                                                    {indicator.text}
                                                 </span>
                                             );
                                         })}

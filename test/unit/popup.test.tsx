@@ -165,6 +165,7 @@ describe('Popup', () => {
       await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Docs copy');
 
       const legend = screen.getByLabelText('Indicator legend');
+      expect(legend.textContent).toContain('● current');
       expect(legend.textContent).toContain('🪟 other window');
       expect(legend.textContent).toContain('🔗 split view');
       expect(legend.textContent).toContain('⧉ duplicate');
@@ -178,7 +179,11 @@ describe('Popup', () => {
 
       await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Unique');
 
-      expect(screen.queryByLabelText('Indicator legend')).toBeNull();
+      const legend = screen.getByLabelText('Indicator legend');
+      expect(legend.textContent).toContain('● current');
+      expect(legend.textContent).not.toContain('other window');
+      expect(legend.textContent).not.toContain('split view');
+      expect(legend.textContent).not.toContain('duplicate');
     });
 
     it('selects the correct tab when a key is pressed', async () => {
@@ -223,6 +228,55 @@ describe('Popup', () => {
       await renderAndWait(<Popup presenter={presenter} />);
 
       expect(presenter.s().selectedTabId).toBe(previousTab.id);
+    });
+
+    it('emphasizes the current tab without selecting it by default', async () => {
+      const currentTab = tabList[1];
+      const previousTab = tabList[0];
+      setup(tabList, currentTab);
+
+      await renderAndWait(<Popup presenter={presenter} />);
+
+      const currentItem = (await screen.findByText(currentTab.title)).closest('li')!;
+      const previousItem = (await screen.findByText(previousTab.title)).closest('li')!;
+
+      expect(currentItem.getAttribute('aria-current')).toBe('true');
+      expect(currentItem.classList.contains('current')).toBe(true);
+      expect(currentItem.classList.contains('selected')).toBe(false);
+      expect(within(currentItem).getByLabelText('Current tab').textContent).toBe('●');
+
+      expect(previousItem.getAttribute('aria-current')).toBeNull();
+      expect(previousItem.classList.contains('current')).toBe(false);
+      expect(previousItem.classList.contains('selected')).toBe(true);
+      expect(within(previousItem).queryByLabelText('Current tab')).toBeNull();
+    });
+
+    it('keeps current emphasis when that tab is also selected', async () => {
+      setup(tabList, tabList[1]);
+
+      await renderAndWait(<Popup presenter={presenter} />);
+      fireEvent.keyDown(document, { key: presenter.s().tabKeyMap.get(tabList[1].id) });
+
+      const currentItem = (await screen.findByText(tabList[1].title)).closest('li')!;
+      expect(currentItem.classList.contains('current')).toBe(true);
+      expect(currentItem.classList.contains('selected')).toBe(true);
+    });
+
+    it('hides the current indicator when that tab is on another page', async () => {
+      const currentTab = { id: 99, title: 'Current far away', url: 'https://current.example.com/', lastAccessed: 1 };
+      setup([...makeTabs(PAGE_SIZE), currentTab], currentTab);
+
+      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+
+      expect(screen.queryByLabelText('Current tab')).toBeNull();
+      expect(screen.queryByLabelText('Indicator legend')).toBeNull();
+
+      fireEvent.keyDown(document, { key: '.' });
+
+      const currentItem = (await screen.findByText(currentTab.title)).closest('li')!;
+      expect(currentItem.classList.contains('current')).toBe(true);
+      expect(within(currentItem).getByLabelText('Current tab').textContent).toBe('●');
+      expect(screen.getByLabelText('Indicator legend').textContent).toContain('● current');
     });
 
     it('shows a compact ? help hint and keeps full instructions hidden by default', async () => {

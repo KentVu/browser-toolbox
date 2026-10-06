@@ -52,6 +52,7 @@ When working with several related tabs, he wants to bring them closely together,
 - [x] `{`/`}` move selected tab left/right of active tab without activating or closing the popup.
 - [x] Indicator for duplicated tab.
 - [x] Legend box (for split-tab, other-window icons etc.).
+- [x] Emphasize the current tab in the list.
 - [x] chore: remove legacy code paths.
 - [ ] Support navigating between search match while typing in search (in search mode). (While in search mode, up/down navigating between current matches)
 - [x] ESC in popup?
