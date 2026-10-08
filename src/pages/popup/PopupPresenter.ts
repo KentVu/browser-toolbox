@@ -6,7 +6,14 @@ import { hostnameOf, tryParseHttpUrl } from '@src/lib/Util';
 import { useEffect, useState } from 'preact/hooks';
 
 export const PASTE_URL_ERROR = 'Not a URL to paste!';
+export const LAST_TAB_LIST_KEY = 'lastTabList';
 const LAST_SEARCH_QUERY_KEY = 'lastSearchQuery';
+
+export type CachedTabList = {
+  tabList: Tab[];
+  currentTabId?: number;
+  currentWindowId?: number;
+};
 
 export type ShortcutAction =
   | 'enterSearch'
@@ -95,6 +102,7 @@ export class PopupPresenter {
   private state: PopupState = new PopupState();
   private readonly listeners = new Set<() => void>();
   private initialLoad?: Promise<void>;
+  private liveTabListLoaded = false;
 
   constructor(
     private readonly chrome: ChromeApi,
@@ -132,6 +140,7 @@ export class PopupPresenter {
   ensureTabListLoaded = (): Promise<void> => {
     if (!this.initialLoad) {
       this.initialLoad = this.fetchTabList();
+      void this.hydrateCachedTabList();
     }
     return this.initialLoad;
   };
@@ -142,21 +151,63 @@ export class PopupPresenter {
       this.chrome.tabs.getCurrent(),
       this.chrome.storage.getLocal<string>(LAST_SEARCH_QUERY_KEY),
     ]);
-    const maxPage = pageCount(_tabs) - 1;
+    this.liveTabListLoaded = true;
+    this.applyTabList(_tabs, currentTab, {
+      preservePage: options?.preservePage,
+      lastSearchQuery: savedSearchQuery || undefined,
+    });
+    void this.chrome.storage.setLocal(LAST_TAB_LIST_KEY, {
+      tabList: _tabs,
+      currentTabId: currentTab?.id,
+      currentWindowId: currentTab?.windowId,
+    } satisfies CachedTabList);
+  }
+
+  private async hydrateCachedTabList(): Promise<void> {
+    if (this.liveTabListLoaded) {
+      return;
+    }
+    const snapshot = await this.chrome.storage.getLocal<CachedTabList>(LAST_TAB_LIST_KEY);
+    if (this.liveTabListLoaded || !snapshot?.tabList.length) {
+      return;
+    }
+    const currentTab = snapshot.currentTabId === undefined
+      ? undefined
+      : snapshot.tabList.find(tab => tab.id === snapshot.currentTabId)
+        ?? {
+          id: snapshot.currentTabId,
+          title: '',
+          windowId: snapshot.currentWindowId,
+        };
+    this.applyTabList(snapshot.tabList, currentTab);
+  }
+
+  /**
+   * Apply a tab list to popup state. Used for both the live Chrome fetch and
+   * the cached snapshot shown while that fetch is in flight.
+   */
+  private applyTabList(
+    tabs: Tab[],
+    currentTab: Tab | undefined,
+    options?: { preservePage?: boolean; lastSearchQuery?: string },
+  ): void {
+    const maxPage = pageCount(tabs) - 1;
     const pageIndex = options?.preservePage
       ? Math.min(this.s().pageIndex, maxPage)
       : 0;
     // Prefer the tab visited before the current one (second most recently accessed).
-    const previousTab = _tabs.find(tab => tab.id !== currentTab?.id) ?? currentTab;
+    const previousTab = tabs.find(tab => tab.id !== currentTab?.id) ?? currentTab;
     this.setState({
-      tabList: _tabs,
+      tabList: tabs,
       pageIndex,
-      tabKeyMap: genTabKeyMap(visibleTabs(_tabs, pageIndex).map(tab => tab.id)),
+      tabKeyMap: genTabKeyMap(visibleTabs(tabs, pageIndex).map(tab => tab.id)),
       selectedTabId: previousTab?.id,
       currentTabId: currentTab?.id,
       currentWindowId: currentTab?.windowId,
-      lastSearchQuery: savedSearchQuery || undefined,
       tabListLoaded: true,
+      ...(options && 'lastSearchQuery' in options
+        ? { lastSearchQuery: options.lastSearchQuery }
+        : {}),
     });
   }
 

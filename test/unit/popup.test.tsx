@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
-import { PopupPresenter, resolveShortcutAction } from '@src/pages/popup/PopupPresenter';
+import { LAST_TAB_LIST_KEY, PopupPresenter, resolveShortcutAction } from '@src/pages/popup/PopupPresenter';
 import { createMockBrowserApi } from './MockBrowser';
 import { createMockChromeApi } from './MockChrome';
 
@@ -70,6 +70,71 @@ describe('Popup shortcut actions', () => {
     render(<Popup presenter={presenter} />);
 
     expect(await screen.findByText('No open tabs')).toBeTruthy();
+  });
+
+  it('persists the last tab list after a live fetch', async () => {
+    const tab: Tab = { id: 1, title: 'Docs', url: 'https://docs.example.com', lastAccessed: 1, windowId: 10 };
+    const chrome = createMockChromeApi([tab], tab);
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    await presenter.ensureTabListLoaded();
+
+    expect(await chrome.storage.getLocal(LAST_TAB_LIST_KEY)).toEqual({
+      tabList: [tab],
+      currentTabId: tab.id,
+      currentWindowId: tab.windowId,
+    });
+  });
+
+  it('shows cached tabs while the live fetch is pending', async () => {
+    const cachedTab: Tab = { id: 1, title: 'Cached', url: 'https://cached.example.com', lastAccessed: 1 };
+    const liveTab: Tab = { id: 2, title: 'Live', url: 'https://live.example.com', lastAccessed: 2 };
+    const chrome = createMockChromeApi([liveTab]);
+    await chrome.storage.setLocal(LAST_TAB_LIST_KEY, {
+      tabList: [cachedTab],
+      currentTabId: cachedTab.id,
+    });
+    let resolveLive!: (tabs: Tab[]) => void;
+    vi.mocked(chrome.tabs.getByLastAccessed).mockReturnValue(new Promise(resolve => {
+      resolveLive = resolve;
+    }));
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    void presenter.ensureTabListLoaded();
+    render(<Popup presenter={presenter} />);
+
+    expect(await screen.findByText('Cached')).toBeTruthy();
+    expect(screen.queryByText('Live')).toBeNull();
+
+    resolveLive([liveTab]);
+    expect(await screen.findByText('Live')).toBeTruthy();
+    expect(screen.queryByText('Cached')).toBeNull();
+  });
+
+  it('does not let a stale cache overwrite a live tab list', async () => {
+    const liveTab: Tab = { id: 2, title: 'Live', url: 'https://live.example.com', lastAccessed: 2 };
+    const staleTab: Tab = { id: 1, title: 'Stale', url: 'https://stale.example.com', lastAccessed: 1 };
+    const chrome = createMockChromeApi([liveTab]);
+    const originalGetLocal = chrome.storage.getLocal.bind(chrome.storage);
+    let resolveCache!: (value: unknown) => void;
+    const cachePromise = new Promise(resolve => {
+      resolveCache = resolve;
+    });
+    chrome.storage.getLocal = (async (key: string) => {
+      if (key === LAST_TAB_LIST_KEY) {
+        return cachePromise;
+      }
+      return originalGetLocal(key);
+    }) as typeof chrome.storage.getLocal;
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    await presenter.ensureTabListLoaded();
+    expect(presenter.s().tabList).toEqual([liveTab]);
+
+    resolveCache({ tabList: [staleTab], currentTabId: staleTab.id });
+    await cachePromise;
+    await Promise.resolve();
+    expect(presenter.s().tabList).toEqual([liveTab]);
   });
 });
 
