@@ -11,11 +11,11 @@ export default function Newtab() {
         </p>
         <a
           className="App-link"
-          href="https://reactjs.org"
+          href="https://preactjs.com"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Learn React!
+          Learn Preact!
         </a>
       </header>
     </div>

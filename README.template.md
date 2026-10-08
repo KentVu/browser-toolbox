@@ -2,7 +2,7 @@
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
-<h1> Minimalist Chrome/Firefox Extension Boilerplate with<br/>React + Vite + TypeScript + TailwindCSS</h1>
+<h1> Minimalist Chrome/Firefox Extension Boilerplate with<br/>Preact + Vite + TypeScript + TailwindCSS</h1>
 
 <h5>
 This template repository is a side product of my Chrome Extension <a target="_blank" rel="noopener noreferrer" href="https://chrome.google.com/webstore/detail/supatabs/icbcnjlaegndjabnjbaeihnnmidbfigk">Supatabs</a>.
@@ -28,18 +28,18 @@ If you tend to have tons of tabs open, or are a OneTab user, make sure to check 
 
 
 ## Intro <a name="intro"></a>
-This boilerplate is meant to be a minimal quick start for creating chrome/firefox extensions using React, Typescript and Tailwind CSS.
+This boilerplate is meant to be a minimal quick start for creating chrome/firefox extensions using Preact, Typescript and Tailwind CSS.
 
 It includes all possible pages such as **new tab**, **dev panel**, **pop up**, etc., as well as corresponding manifest settings by default.
 You will likely have to customize/delete some of the pages (see docs below).
 
 You can build dist files for both Chrome and Firefox with manifest v3.
 
-If you are looking for a React focused way to access the local storage, I also implemented a chrome local/sync storage hook. The hook works
+If you are looking for a hook-based way to access the local storage, I also implemented a chrome local/sync storage hook. The hook works
 well with this template. [Check it out here](https://gist.github.com/JohnBra/c81451ea7bc9e77f8021beb4f198ab96).
 
 ## Features <a name="features"></a>
-- [React 19](https://reactjs.org/)
+- [Preact](https://preactjs.com/)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS 4](https://tailwindcss.com/)
 - [i18n (optional)](https://developer.chrome.com/docs/extensions/reference/api/i18n)

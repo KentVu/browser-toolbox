@@ -1,5 +1,7 @@
 # Plan
 
+Popup latency / Preact conversion: [PREACT-PLAN.md](PREACT-PLAN.md)
+
 Ken is a productive person, he always wants to boost his productivity.
 He's a heavy keyboard user, he rarely touches his mouse, so he wants
 to work with his browser (Chrome) entirely on keyboard.

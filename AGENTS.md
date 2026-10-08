@@ -1,16 +1,18 @@
 # AGENTS
 
 ## Purpose
-This repository is a browser extension template using React + TypeScript + Vite for Chrome and Firefox.
+This repository is a browser extension template using Preact + TypeScript + Vite for Chrome and Firefox.
 Use this file as the fast-start operating guide for coding agents.
 
 ## Start Here
 - Project overview and setup flow: [README.template.md](README.template.md)
 - Pending TODO: [TODO.md](TODO.md)
+- Preact conversion plan: [PREACT-PLAN.md](PREACT-PLAN.md)
 
 ## Preferred Stack and Active Tooling
 - Language: TypeScript for new application code.
-- UI: React function components under `src/pages`.
+- UI: Preact function components under `src/pages` (`jsxImportSource`: `preact`).
+- Popup state: presenter-owned snapshot + `useSyncExternalStore` in [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts). Do not add Zustand or `preact/compat`.
 - Build: Vite configs (`vite.config.chrome.ts`, `vite.config.firefox.ts`, shared `vite.config.base.ts`).
 - Test runner: Vitest (`vitest.config.ts`).
 
@@ -45,7 +47,7 @@ Use this file as the fast-start operating guide for coding agents.
 ## Testing Conventions
 - Use Vitest for tests run in this repo (`npm run test`).
 - Write or update tests in `test/**` with `*.test.ts` or `*.test.tsx` naming.
-- For React UI tests, use Testing Library patterns already present in `test/popup.test.tsx`.
+- For Preact UI tests, use Testing Library patterns already present in `test/unit/popup.test.tsx` (`@testing-library/preact`).
 - Obey TDD rules, write tests first, minimal production code later, refactor when green.
 
 ## Multi-Browser Notes
