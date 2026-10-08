@@ -58,6 +58,7 @@ When working with several related tabs, he wants to bring them closely together,
 - [x] chore: remove legacy code paths.
 - [ ] Support navigating between search match while typing in search (in search mode). (While in search mode, up/down navigating between current matches)
 - [x] ESC in popup?
+- [ ] `(`, `)` move **current tab** next to left/right of selected tab.
 
 # Bugs
 

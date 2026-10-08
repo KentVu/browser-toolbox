@@ -1,5 +1,4 @@
 import { cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/preact';
-import type { ComponentChildren } from 'preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
@@ -43,6 +42,35 @@ describe('Popup shortcut actions', () => {
     expect(chrome.tabs.getByLastAccessed).toHaveBeenCalledTimes(1);
     expect(presenter.s().tabList).toEqual([tab]);
   });
+
+  it('paints the popup shell before the tab list resolves', async () => {
+    let resolveTabs!: (tabs: Tab[]) => void;
+    const tabsPromise = new Promise<Tab[]>(resolve => {
+      resolveTabs = resolve;
+    });
+    const chrome = createMockChromeApi();
+    vi.mocked(chrome.tabs.getByLastAccessed).mockReturnValue(tabsPromise);
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    void presenter.ensureTabListLoaded();
+    render(<Popup presenter={presenter} />);
+
+    expect(screen.getByText('Welcome')).toBeTruthy();
+    expect(screen.queryByText('No open tabs')).toBeNull();
+    expect(screen.queryByText('Docs')).toBeNull();
+
+    resolveTabs([{ id: 1, title: 'Docs', url: 'https://docs.example.com', lastAccessed: 1 }]);
+    expect(await screen.findByText('Docs')).toBeTruthy();
+  });
+
+  it('shows no open tabs after an empty list loads', async () => {
+    const presenter = new PopupPresenter(createMockChromeApi([]), createMockBrowserApi());
+
+    void presenter.ensureTabListLoaded();
+    render(<Popup presenter={presenter} />);
+
+    expect(await screen.findByText('No open tabs')).toBeTruthy();
+  });
 });
 
 describe('Popup', () => {
@@ -65,7 +93,7 @@ describe('Popup', () => {
     it('lists all tabs in all windows sorted by last accessed', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
 
       // Most recent tab (higher lastAccessed) should be listed first
       const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
@@ -77,7 +105,7 @@ describe('Popup', () => {
     it('displays a link icon and split view ID next to the hostname', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
 
       const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
       expect(within(items[0]).getByLabelText('Split view 2').textContent).toBe('🔗2');
@@ -88,7 +116,7 @@ describe('Popup', () => {
       const tabs = [{ ...tabList[0], splitViewId: -1 }];
       setup(tabs);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Docs');
+      await renderAndWaitForTitle(presenter, 'Docs');
 
       const item = (await screen.findByText('Docs')).closest('li')!;
       expect(within(item).queryByLabelText('Split view -1')).toBeNull();
@@ -98,7 +126,7 @@ describe('Popup', () => {
     it('displays each tab icon when available', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
 
       const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
       expect((items[0].querySelector('img') as HTMLImageElement).src).toBe(tabList[1].icon);
@@ -112,7 +140,7 @@ describe('Popup', () => {
       ];
       setup(tabs, tabs[1]);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'game');
+      await renderAndWaitForTitle(presenter, 'game');
 
       expect(screen.getByLabelText('Window 1').textContent).toBe('🪟1');
       expect(screen.queryByLabelText('Window 2')).toBeNull();
@@ -126,7 +154,7 @@ describe('Popup', () => {
       ];
       setup(tabs);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'New copy');
+      await renderAndWaitForTitle(presenter, 'New copy');
 
       const oldCopy = (await screen.findByText('Old copy')).closest('li')!;
       const newCopy = (await screen.findByText('New copy')).closest('li')!;
@@ -144,7 +172,7 @@ describe('Popup', () => {
       ];
       setup(tabs);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'With fragment');
+      await renderAndWaitForTitle(presenter, 'With fragment');
 
       expect(screen.getByLabelText('Duplicate 1').textContent).toBe('⧉1');
       expect(screen.getByLabelText('Duplicate 2').textContent).toBe('⧉2');
@@ -159,7 +187,7 @@ describe('Popup', () => {
       ];
       setup(tabs);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Dup A');
+      await renderAndWaitForTitle(presenter, 'Dup A');
       expect(within((await screen.findByText('Dup A')).closest('li')!).getByLabelText('Duplicate 1').textContent).toBe('⧉1');
 
       fireEvent.keyDown(document, { key: '.' });
@@ -174,7 +202,7 @@ describe('Popup', () => {
       ];
       setup(tabs, tabs[0]);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Docs copy');
+      await renderAndWaitForTitle(presenter, 'Docs copy');
 
       const legend = screen.getByLabelText('Indicator legend');
       expect(legend.textContent).toContain('● current');
@@ -189,7 +217,7 @@ describe('Popup', () => {
       ];
       setup(tabs, tabs[0]);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Unique');
+      await renderAndWaitForTitle(presenter, 'Unique');
 
       const legend = screen.getByLabelText('Indicator legend');
       expect(legend.textContent).toContain('● current');
@@ -201,7 +229,7 @@ describe('Popup', () => {
     it('selects the correct tab when a key is pressed', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
       const secondTabKey = presenter.s().tabKeyMap.get(tabList[1].id);
       fireEvent.keyDown(document, { key: secondTabKey });
       const item = (await screen.findByText(tabList[1].title)).closest('li')!;
@@ -211,7 +239,7 @@ describe('Popup', () => {
     it('moves selection with the up and down arrow keys', async () => {
       setup();
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'game');
+      await renderAndWaitForTitle(presenter, 'game');
 
       fireEvent.keyDown(document, { key: 'ArrowDown' });
       expect(presenter.s().selectedTabId).toBe(tabList[0].id);
@@ -223,7 +251,7 @@ describe('Popup', () => {
     it('selects a tab when its row is clicked', async () => {
       setup();
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'game');
+      await renderAndWaitForTitle(presenter, 'game');
 
       const docsItem = (await screen.findByText(tabList[0].title)).closest('li')!;
       fireEvent.click(docsItem);
@@ -237,7 +265,7 @@ describe('Popup', () => {
       const previousTab = tabList[0]; // visited before current
       setup(tabList, currentTab);
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
 
       expect(presenter.s().selectedTabId).toBe(previousTab.id);
     });
@@ -247,7 +275,7 @@ describe('Popup', () => {
       const previousTab = tabList[0];
       setup(tabList, currentTab);
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
 
       const currentItem = (await screen.findByText(currentTab.title)).closest('li')!;
       const previousItem = (await screen.findByText(previousTab.title)).closest('li')!;
@@ -266,7 +294,7 @@ describe('Popup', () => {
     it('keeps current emphasis when that tab is also selected', async () => {
       setup(tabList, tabList[1]);
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
       fireEvent.keyDown(document, { key: presenter.s().tabKeyMap.get(tabList[1].id) });
 
       const currentItem = (await screen.findByText(tabList[1].title)).closest('li')!;
@@ -278,7 +306,7 @@ describe('Popup', () => {
       const currentTab = { id: 99, title: 'Current far away', url: 'https://current.example.com/', lastAccessed: 1 };
       setup([...makeTabs(PAGE_SIZE), currentTab], currentTab);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
 
       expect(screen.queryByLabelText('Current tab')).toBeNull();
       expect(screen.queryByLabelText('Indicator legend')).toBeNull();
@@ -294,7 +322,7 @@ describe('Popup', () => {
     it('shows a compact ? help hint and keeps full instructions hidden by default', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
 
       expect(screen.getByLabelText('Toggle shortcut help')).toBeTruthy();
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
@@ -304,7 +332,7 @@ describe('Popup', () => {
     it('toggles floating shortcut help with ?', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
 
@@ -326,7 +354,7 @@ describe('Popup', () => {
     it('closes floating help with Escape without dismissing the popup', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
@@ -342,7 +370,7 @@ describe('Popup', () => {
       const manyTabs = makeTabs(15);
       setup(manyTabs, manyTabs[0]);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
       // Current is Tab 1 → previous (pre-selected) is Tab 2
       expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
 
@@ -386,7 +414,7 @@ describe('Popup', () => {
     it('activates the selected tab when Enter is pressed', async () => {
       setup();
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
       const state = presenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[1].id)! });
       fireEvent.keyDown(document, { key: 'Enter' });
@@ -400,7 +428,7 @@ describe('Popup', () => {
       setup(tabs, tabs[0]);
       const closedTab = tabs[1]; // pre-selected: previously visited
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
       expect(presenter.s().selectedTabId).toBe(closedTab.id);
 
       fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
@@ -416,7 +444,7 @@ describe('Popup', () => {
       const manyTabs = makeTabs(15);
       setup(manyTabs, manyTabs[0]);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
 
       fireEvent.keyDown(document, { key: '.' });
       expect(presenter.s().pageIndex).toBe(1);
@@ -441,7 +469,7 @@ describe('Popup', () => {
       const tabs = makeTabs(3);
       setup(tabs, tabs[0]);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
       expect(presenter.s().selectedTabId).toBe(tabs[1].id);
 
       fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
@@ -455,7 +483,7 @@ describe('Popup', () => {
       setup(tabs, tabs[0]);
       vi.mocked(browser.clipboard.readText).mockResolvedValue('https://pasted.example.com/page');
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
       expect(presenter.s().selectedTabId).toBe(tabs[1].id);
 
       fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
@@ -475,7 +503,7 @@ describe('Popup', () => {
       setup(tabs, tabs[0]);
       vi.mocked(browser.clipboard.readText).mockResolvedValue('not a url');
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
 
       fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
 
@@ -489,7 +517,7 @@ describe('Popup', () => {
       setup(tabs, tabs[0]);
       vi.mocked(browser.clipboard.readText).mockResolvedValue('   ');
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+      await renderAndWaitForTitle(presenter, 'Tab 1');
 
       fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
 
@@ -511,7 +539,7 @@ describe('Popup', () => {
       ];
       setup(_tabList);
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
       const state = presenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
 
@@ -535,7 +563,7 @@ describe('Popup', () => {
       const currentTab = tabList[1];
       setup(tabList, currentTab);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'game');
+      await renderAndWaitForTitle(presenter, 'game');
       fireEvent.keyDown(document, { key: presenter.s().tabKeyMap.get(currentTab.id)! });
       expect(presenter.s().selectedTabId).toBe(currentTab.id);
 
@@ -559,7 +587,7 @@ describe('Popup', () => {
       const selectedTab = tabList[0];
       setup(tabList, currentTab);
 
-      await renderAndWaitForTitle(<Popup presenter={presenter} />, 'game');
+      await renderAndWaitForTitle(presenter, 'game');
       expect(presenter.s().selectedTabId).toBe(selectedTab.id);
 
       fireEvent.keyDown(document, { key: '>' });
@@ -584,7 +612,7 @@ describe('Popup', () => {
       ];
       setup(_tabList);
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
       const state = presenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
       fireEvent.keyDown(document, { key: '!', shiftKey: true });
@@ -600,7 +628,7 @@ describe('Popup', () => {
         const tabs = makeTabs(3);
         setup(tabs, tabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
 
         // Current is Tab 1 → previous (pre-selected) is Tab 2
         expect(presenter.s().selectedTabId).toBe(tabs[1].id);
@@ -619,7 +647,7 @@ describe('Popup', () => {
         const tabs = makeTabs(3);
         setup(tabs, tabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
 
         fireEvent.keyDown(document, { key: 'k' }); // Tab 2 → Tab 1
         fireEvent.keyDown(document, { key: 'k' }); // already first page/item
@@ -637,7 +665,7 @@ describe('Popup', () => {
         const manyTabs = makeTabs(15);
         setup(manyTabs, manyTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
         // Current is Tab 1 → previous (pre-selected) is Tab 2
         expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
 
@@ -664,7 +692,7 @@ describe('Popup', () => {
         const manyTabs = makeTabs(11);
         setup(manyTabs, manyTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
 
         fireEvent.keyDown(document, { key: '.' }); // move to next page
         expect(presenter.s().pageIndex).toBe(1);
@@ -690,8 +718,7 @@ describe('Popup', () => {
         const manyTabs = makeTabs(11);
         setup(manyTabs);
 
-        render(<Popup presenter={presenter} />);
-        await screen.findByText('Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
 
         expect(screen.getByText('Tab 1')).toBeTruthy();
         expect(screen.getByText('Tab 10')).toBeTruthy();
@@ -703,7 +730,7 @@ describe('Popup', () => {
         const manyTabs = makeTabs(15);
         setup(manyTabs, manyTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
         // Current is Tab 1 → previous (pre-selected) is Tab 2
         expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
 
@@ -728,8 +755,7 @@ describe('Popup', () => {
         const manyTabs = makeTabs(11);
         setup(manyTabs);
 
-        render(<Popup presenter={presenter} />);
-        await screen.findByText('Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
 
         const firstPageFirstKey = presenter.s().tabKeyMap.get(manyTabs[0].id);
         expect(firstPageFirstKey).toBeTruthy();
@@ -761,7 +787,7 @@ describe('Popup', () => {
       it('enters search mode with / and shows a vim-style indicator', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
 
@@ -772,7 +798,7 @@ describe('Popup', () => {
       it('updates the indicator while typing, selects the first match, and highlights it', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         fireEvent.keyDown(document, { key: 'g' });
@@ -791,7 +817,7 @@ describe('Popup', () => {
       it('shows the inline search shortcuts while search mode is active', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         fireEvent.keyDown(document, { key: 'g' });
@@ -808,7 +834,7 @@ describe('Popup', () => {
       it('shows Enter last in the footer when the search prompt is empty and a last query exists', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -825,7 +851,7 @@ describe('Popup', () => {
       it('matches tab titles case-insensitively', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -841,7 +867,7 @@ describe('Popup', () => {
       it('ends search mode on Enter without activating the selected tab', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -860,7 +886,7 @@ describe('Popup', () => {
       it('prevents the browser default escape action while search mode is active', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         fireEvent.keyDown(document, { key: 'g' });
@@ -876,7 +902,7 @@ describe('Popup', () => {
       it('activates the first matching tab on Ctrl+Enter', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -898,7 +924,7 @@ describe('Popup', () => {
       ])('clears the query with $label without closing the selected tab', async ({ key }) => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const typed of ['g', 'a', 'm', 'e']) {
@@ -928,7 +954,7 @@ describe('Popup', () => {
       it('does not close a tab when Ctrl-W is pressed on an empty search query', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         expect(presenter.s().searchQuery).toBe('');
@@ -943,7 +969,7 @@ describe('Popup', () => {
       it('deletes the last query character with Backspace and exits when empty', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['g', 'a', 'm', 'e']) {
@@ -971,7 +997,7 @@ describe('Popup', () => {
       it('does not prefill the last search when entering search with /', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -988,7 +1014,7 @@ describe('Popup', () => {
       it('fills the last search query when Enter is pressed on an empty search prompt', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -1012,7 +1038,7 @@ describe('Popup', () => {
       it('jumps to the next title match with n, highlights it, and wraps around', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -1061,7 +1087,7 @@ describe('Popup', () => {
       it('clears the highlight when another key changes selection but keeps the last search query', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of ['r', 'e', 'a', 'c', 't']) {
@@ -1087,7 +1113,7 @@ describe('Popup', () => {
         manyTabs[PAGE_SIZE].title = 'Unique Match Tab';
         setup(manyTabs, manyTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Tab 1');
+        await renderAndWaitForTitle(presenter, 'Tab 1');
         expect(presenter.s().pageIndex).toBe(0);
         expect(screen.queryByText('Unique Match Tab')).toBeNull();
 
@@ -1109,7 +1135,7 @@ describe('Popup', () => {
         manyTabs[PAGE_SIZE].title = 'react patterns';
         setup(manyTabs, manyTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
         expect(presenter.s().pageIndex).toBe(0);
 
         fireEvent.keyDown(document, { key: '/' });
@@ -1135,7 +1161,7 @@ describe('Popup', () => {
       it('matches hostname text and highlights the hostname', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of 'patterns.example') {
@@ -1154,7 +1180,7 @@ describe('Popup', () => {
       it('matches hostnames case-insensitively', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const char of 'game.example') {
@@ -1178,7 +1204,7 @@ describe('Popup', () => {
         ];
         setup(hostnameTabs, hostnameTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'Home');
+        await renderAndWaitForTitle(presenter, 'Home');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of 'example.com') {
@@ -1204,7 +1230,7 @@ describe('Popup', () => {
       it('highlights title and hostname when both match', async () => {
         setup(searchTabs, searchTabs[0]);
 
-        await renderAndWaitForTitle(<Popup presenter={presenter} />, 'React Docs');
+        await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of 'react') {
@@ -1227,7 +1253,7 @@ describe('Popup', () => {
       ];
       setup(_tabList);
 
-      await renderAndWait(<Popup presenter={presenter} />);
+      await renderAndWait(presenter);
       const state = presenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
       fireEvent.keyDown(document, { key: actionKey });
@@ -1244,17 +1270,17 @@ describe('Popup', () => {
 });
 
 async function renderAndWait(
-  ui: ComponentChildren,
+  presenter: PopupPresenter,
 ) {
-  await renderAndWaitForTitle(ui, 'game');
+  await renderAndWaitForTitle(presenter, 'game');
 }
 
 async function renderAndWaitForTitle(
-  ui: ComponentChildren,
+  presenter: PopupPresenter,
   title: string,
 ) {
-  render(ui);
-  // Wait for async tab load so key handlers see the populated list.
+  void presenter.ensureTabListLoaded();
+  render(<Popup presenter={presenter} />);
   await screen.findByText(title);
 }
 

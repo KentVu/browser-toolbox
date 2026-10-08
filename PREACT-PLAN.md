@@ -75,12 +75,12 @@ Verify: `npm run test`, `npm run build`. Popup chunks must not contain
 
 ## Step 4 — Start `fetchTabList()` at popup boot
 
-- Kick off `presenter.fetchTabList()` in
+- Kick off `presenter.ensureTabListLoaded()` in
   [src/pages/popup/index.tsx](src/pages/popup/index.tsx) **without awaiting**
-  it before `render()`.
-- Coalesce in-flight fetches so TabList/tests can still call `fetchTabList()`
-  without a duplicate Chrome round-trip.
-- Keep the TabList `useEffect` fetch (tests render `Popup`, not `index.tsx`).
+  it before `render()`. This is the only production call site.
+- Coalesce in-flight fetches so a second `ensureTabListLoaded()` is a no-op.
+- Tests render `Popup`, not `index.tsx`, so they call `ensureTabListLoaded()`
+  from the test helper.
 
 Verify: `npm run test`. Manual: popup still lists tabs, search, and shortcuts.
 

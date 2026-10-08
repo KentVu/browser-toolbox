@@ -3,7 +3,7 @@ import { ChromeApi } from '@src/lib/Chrome';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { hostnameOf, tryParseHttpUrl } from '@src/lib/Util';
-import { useLayoutEffect, useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 
 export const PASTE_URL_ERROR = 'Not a URL to paste!';
 const LAST_SEARCH_QUERY_KEY = 'lastSearchQuery';
@@ -79,6 +79,8 @@ export class PopupState {
   highlightQuery: string | undefined;
   /** Whether the floating shortcut help overlay is visible. */
   showHelp = false;
+  /** False until the first tab-list fetch finishes, so the empty state does not flash. */
+  tabListLoaded = false;
 }
 
 /**
@@ -154,6 +156,7 @@ export class PopupPresenter {
       currentTabId: currentTab?.id,
       currentWindowId: currentTab?.windowId,
       lastSearchQuery: savedSearchQuery || undefined,
+      tabListLoaded: true,
     });
   }
 
@@ -532,7 +535,7 @@ function useSyncExternalStore<T>(
   getSnapshot: () => T,
 ): T {
   const [snapshot, setSnapshot] = useState(getSnapshot);
-  useLayoutEffect(() => {
+  useEffect(() => {
     setSnapshot(getSnapshot());
     return subscribe(() => setSnapshot(getSnapshot()));
   }, [subscribe, getSnapshot]);

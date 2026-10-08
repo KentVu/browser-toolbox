@@ -142,6 +142,7 @@ function TabList({ presenter }: TabListProps) {
         highlightQuery,
         showHelp,
         pageIndex,
+        tabListLoaded,
     } = presenter.usePopupState();
     const tabList = visibleTabs(allTabs, pageIndex);
     const pageCount = countPages(allTabs);
@@ -160,11 +161,6 @@ function TabList({ presenter }: TabListProps) {
         duplicateLabels,
     ));
     const legendItems = getLegendItems(tabBadges);
-
-    useEffect(() => {
-        //listRef.current?.focus();
-        void presenter.ensureTabListLoaded();
-    }, [presenter]);
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
@@ -253,7 +249,7 @@ function TabList({ presenter }: TabListProps) {
                     );
                 })}
             </ul>
-            {tabList.length === 0 && (
+            {tabListLoaded && tabList.length === 0 && (
                 <div className="text-[10px] text-gray-500 px-1 py-1">No open tabs</div>
             )}
             {pageCount > 1 && (
