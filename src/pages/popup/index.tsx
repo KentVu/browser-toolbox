@@ -10,6 +10,7 @@ function init() {
   const rootContainer = document.querySelector("#__root");
   if (!rootContainer) throw new Error("Can't find Popup root element");
   const presenter = new PopupPresenter(Chrome, Browser);
+  void presenter.ensureTabListLoaded();
 
   render(<Popup presenter={presenter} />, rootContainer);
 }

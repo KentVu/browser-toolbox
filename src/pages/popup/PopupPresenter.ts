@@ -92,6 +92,7 @@ export class PopupState {
 export class PopupPresenter {
   private state: PopupState = new PopupState();
   private readonly listeners = new Set<() => void>();
+  private initialLoad?: Promise<void>;
 
   constructor(
     private readonly chrome: ChromeApi,
@@ -125,6 +126,13 @@ export class PopupPresenter {
 
   usePopupState = (): PopupState =>
     useSyncExternalStore(this.subscribe, this.s);
+
+  ensureTabListLoaded = (): Promise<void> => {
+    if (!this.initialLoad) {
+      this.initialLoad = this.fetchTabList();
+    }
+    return this.initialLoad;
+  };
 
   async fetchTabList(options?: { preservePage?: boolean }) {
     const [_tabs, currentTab, savedSearchQuery] = await Promise.all([

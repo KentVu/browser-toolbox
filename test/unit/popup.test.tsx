@@ -32,6 +32,17 @@ describe('Popup shortcut actions', () => {
 
     expect(presenter.s().selectedTabId).toBe(tab.id);
   });
+
+  it('loads the tab list once when ensureTabListLoaded is called twice', async () => {
+    const tab: Tab = { id: 1, title: 'Docs', url: 'https://docs.example.com', lastAccessed: 1 };
+    const chrome = createMockChromeApi([tab]);
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    await Promise.all([presenter.ensureTabListLoaded(), presenter.ensureTabListLoaded()]);
+
+    expect(chrome.tabs.getByLastAccessed).toHaveBeenCalledTimes(1);
+    expect(presenter.s().tabList).toEqual([tab]);
+  });
 });
 
 describe('Popup', () => {

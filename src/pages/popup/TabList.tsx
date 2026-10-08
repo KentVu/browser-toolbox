@@ -163,7 +163,7 @@ function TabList({ presenter }: TabListProps) {
 
     useEffect(() => {
         //listRef.current?.focus();
-        void presenter.fetchTabList();
+        void presenter.ensureTabListLoaded();
     }, [presenter]);
 
     useEffect(() => {
