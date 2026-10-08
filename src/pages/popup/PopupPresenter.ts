@@ -3,8 +3,7 @@ import { ChromeApi } from '@src/lib/Chrome';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { hostnameOf, tryParseHttpUrl } from '@src/lib/Util';
-import { create, type ExtractState } from 'zustand';
-import { combine } from 'zustand/middleware';
+import { useSyncExternalStore } from 'react';
 
 export const PASTE_URL_ERROR = 'Not a URL to paste!';
 const LAST_SEARCH_QUERY_KEY = 'lastSearchQuery';
@@ -88,22 +87,11 @@ export class PopupState {
  * Mediates between React views and ChromeApi/BrowserApi: owns popup state
  * (tab list, selection, pagination, shortcut map), loads tabs, and handles
  * keyboard navigation, activation, clipboard, and tab moves. Views subscribe
- * via hooks and stay presentational.
+ * via usePopupState and stay presentational.
  */
 export class PopupPresenter {
-  private readonly store = create(() => ({
-    tabList: [] as Tab[],
-    tabKeyMap: new Map<number, string>(),
-    selectedTabId: undefined as number | undefined,
-    currentTabId: undefined as number | undefined,
-    currentWindowId: undefined as number | undefined,
-    pageIndex: 0,
-    errorMessage: undefined as string | undefined,
-    searchQuery: undefined as string | undefined,
-    lastSearchQuery: undefined as string | undefined,
-    highlightQuery: undefined as string | undefined,
-    showHelp: false,
-  }));
+  private state: PopupState = new PopupState();
+  private readonly listeners = new Set<() => void>();
 
   constructor(
     private readonly chrome: ChromeApi,
@@ -111,39 +99,32 @@ export class PopupPresenter {
   ) {
   }
 
-  s = (): PopupState => this.store.getState();
+  s = (): PopupState => this.state;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+
   setState = (state: Partial<PopupState>) => {
-    // Close floating help whenever the selected tab actually changes.
-    if (
+    const selectedChanged =
       'selectedTabId' in state
-      && state.selectedTabId !== this.s().selectedTabId
-      && state.showHelp === undefined
-    ) {
-      this.store.setState({ ...state, showHelp: false });
-      return;
+      && state.selectedTabId !== this.state.selectedTabId;
+    const next = Object.assign(new PopupState(), this.state, state);
+    // Close floating help whenever the selected tab actually changes.
+    if (selectedChanged && state.showHelp === undefined) {
+      next.showHelp = false;
     }
-    this.store.setState(state);
+    this.state = next;
+    for (const listener of this.listeners) {
+      listener();
+    }
   };
-  useVisibleTabList = (): [Tab[], Map<number, string>] => {
-    const tabList = this.store(state => state.tabList);
-    const pageIndex = this.store(state => state.pageIndex);
-    const tabKeyMap = this.store(state => state.tabKeyMap);
-    return [visibleTabs(tabList, pageIndex), tabKeyMap];
-  };
-  useTabList = (): Tab[] => this.store(state => state.tabList);
-  useSelectedTabId = () => this.store(state => state.selectedTabId);
-  useCurrentTabId = () => this.store(state => state.currentTabId);
-  useCurrentWindowId = () => this.store(state => state.currentWindowId);
-  useErrorMessage = () => this.store(state => state.errorMessage);
-  useSearchQuery = () => this.store(state => state.searchQuery);
-  useLastSearchQuery = () => this.store(state => state.lastSearchQuery);
-  useHighlightQuery = () => this.store(state => state.highlightQuery);
-  useShowHelp = () => this.store(state => state.showHelp);
-  usePageInfo = (): { pageIndex: number; pageCount: number } => {
-    const pageIndex = this.store(state => state.pageIndex);
-    const tabCount = this.store(state => state.tabList.length);
-    return { pageIndex, pageCount: Math.max(1, Math.ceil(tabCount / PAGE_SIZE)) };
-  };
+
+  usePopupState = (): PopupState =>
+    useSyncExternalStore(this.subscribe, this.s, this.s);
 
   async fetchTabList(options?: { preservePage?: boolean }) {
     const [_tabs, currentTab, savedSearchQuery] = await Promise.all([
@@ -565,47 +546,3 @@ export function genTabKeyMap(tabList: number[], keys = shortcutKeys): Map<number
 
   return keyMap;
 }
-
-export function usePopupStore(chrome: ChromeApi) {
-  const store = create(
-    combine({
-      tabList: [] as Tab[],
-      tabKeyMap: new Map<number, string>(),
-      selectedTabId: undefined as number | undefined,
-    }, (set) => ({
-      fetchTabList: async () => {
-        const [tabList, currentTab] = await Promise.all([
-          chrome.tabs.getByLastAccessed(),
-          chrome.tabs.getCurrent(),
-        ]);
-        const tabKeyMap = genTabKeyMap(tabList.map(tab => tab.id));
-        set({ tabList, tabKeyMap, selectedTabId: currentTab?.id });
-      },
-      selectTab: (tabId: number | undefined) => {
-        set({ selectedTabId: tabId });
-      },
-      onKeyPress: (key: string) => {
-        set((state) => {
-          const tabKeyMap = genTabKeyMap(state.tabList.map(tab => tab.id));
-          if (key === ']' && state.selectedTabId !== undefined) {
-            void chrome.tabs.move('toTheRight', state.selectedTabId);
-            chrome.closePopup();
-            return {};
-          }
-          if (key === '[' && state.selectedTabId !== undefined) {
-            void chrome.tabs.move('toTheLeft', state.selectedTabId);
-            chrome.closePopup();
-            return {};
-          }
-
-          const tabId = [...tabKeyMap.entries()].find(([, mappedKey]) => mappedKey === key)?.[0];
-          return { selectedTabId: tabId };
-        });
-      },
-    })
-  ));
-  //store(s => s.fetchTabList)();
-  return store;
-}
-
-export type PopupStoreState = ExtractState<ReturnType<typeof usePopupStore>>;

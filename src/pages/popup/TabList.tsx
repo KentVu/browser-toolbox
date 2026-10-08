@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Tab } from '@src/lib/Tab';
 import { hostnameOf, urlWithoutFragment } from '@src/lib/Util';
-import { PopupPresenter } from './PopupPresenter';
+import { pageCount as countPages, PopupPresenter, visibleTabs } from './PopupPresenter';
 
 interface TabListProps {
     presenter: PopupPresenter;
@@ -130,20 +130,24 @@ function renderHighlightedText(text: string, searchQuery: string | undefined): R
 }
 
 function TabList({ presenter }: TabListProps) {
-    const [tabList, keyMap] = presenter.useVisibleTabList();
-    const allTabs = presenter.useTabList();
+    const {
+        tabList: allTabs,
+        tabKeyMap: keyMap,
+        selectedTabId,
+        currentTabId,
+        currentWindowId,
+        errorMessage,
+        searchQuery,
+        lastSearchQuery,
+        highlightQuery,
+        showHelp,
+        pageIndex,
+    } = presenter.usePopupState();
+    const tabList = visibleTabs(allTabs, pageIndex);
+    const pageCount = countPages(allTabs);
     const splitViewLabels = getSplitViewLabels(tabList);
     const windowLabels = getWindowLabels(tabList);
     const duplicateLabels = getDuplicateLabels(allTabs);
-    const selectedTabId = presenter.useSelectedTabId();
-    const currentTabId = presenter.useCurrentTabId();
-    const currentWindowId = presenter.useCurrentWindowId();
-    const errorMessage = presenter.useErrorMessage();
-    const searchQuery = presenter.useSearchQuery();
-    const lastSearchQuery = presenter.useLastSearchQuery();
-    const highlightQuery = presenter.useHighlightQuery();
-    const showHelp = presenter.useShowHelp();
-    const { pageIndex, pageCount } = presenter.usePageInfo();
     const listRef = useRef<HTMLUListElement>(null);
     const moveBesideActiveDisabled = selectedTabId !== undefined && selectedTabId === currentTabId;
     const inactiveKeyLabelClass = 'rounded border border-gray-600 bg-gray-800/60 px-1 font-mono font-semibold text-gray-500';
