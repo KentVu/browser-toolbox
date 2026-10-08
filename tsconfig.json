@@ -22,6 +22,7 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"],

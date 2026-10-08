@@ -1,4 +1,3 @@
-import React from 'react';
 import { TabList } from './TabList';
 import { PopupPresenter } from './PopupPresenter';
 

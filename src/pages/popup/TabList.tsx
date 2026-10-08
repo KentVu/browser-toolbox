@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'preact/hooks';
 import { Tab } from '@src/lib/Tab';
 import { hostnameOf, urlWithoutFragment } from '@src/lib/Util';
 import { pageCount as countPages, PopupPresenter, visibleTabs } from './PopupPresenter';

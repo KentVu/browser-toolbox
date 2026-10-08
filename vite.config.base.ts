@@ -1,4 +1,4 @@
-import react from '@vitejs/plugin-react';
+import preact from '@preact/preset-vite';
 import { resolve } from 'path';
 import { ManifestV3Export } from '@crxjs/vite-plugin';
 import tailwindcss from "@tailwindcss/vite";
@@ -34,7 +34,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     tsconfigPaths(),
-    react(),
+    preact({ reactAliasesEnabled: false }),
     stripDevIcons(isDev),
     crxI18n({ localize, src: './src/locales' }),
   ],

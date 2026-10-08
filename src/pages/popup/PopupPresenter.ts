@@ -3,7 +3,7 @@ import { ChromeApi } from '@src/lib/Chrome';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { hostnameOf, tryParseHttpUrl } from '@src/lib/Util';
-import { useSyncExternalStore } from 'react';
+import { useLayoutEffect, useState } from 'preact/hooks';
 
 export const PASTE_URL_ERROR = 'Not a URL to paste!';
 const LAST_SEARCH_QUERY_KEY = 'lastSearchQuery';
@@ -84,7 +84,7 @@ export class PopupState {
 /**
  * Business logic layer for the popup UI.
  *
- * Mediates between React views and ChromeApi/BrowserApi: owns popup state
+ * Mediates between Preact views and ChromeApi/BrowserApi: owns popup state
  * (tab list, selection, pagination, shortcut map), loads tabs, and handles
  * keyboard navigation, activation, clipboard, and tab moves. Views subscribe
  * via usePopupState and stay presentational.
@@ -124,7 +124,7 @@ export class PopupPresenter {
   };
 
   usePopupState = (): PopupState =>
-    useSyncExternalStore(this.subscribe, this.s, this.s);
+    useSyncExternalStore(this.subscribe, this.s);
 
   async fetchTabList(options?: { preservePage?: boolean }) {
     const [_tabs, currentTab, savedSearchQuery] = await Promise.all([
@@ -517,6 +517,18 @@ function tabMatchesQuery(tab: Tab, needle: string): boolean {
     return true;
   }
   return hostnameOf(tab.url).toLowerCase().includes(needle);
+}
+
+function useSyncExternalStore<T>(
+  subscribe: (onStoreChange: () => void) => () => void,
+  getSnapshot: () => T,
+): T {
+  const [snapshot, setSnapshot] = useState(getSnapshot);
+  useLayoutEffect(() => {
+    setSnapshot(getSnapshot());
+    return subscribe(() => setSnapshot(getSnapshot()));
+  }, [subscribe, getSnapshot]);
+  return snapshot;
 }
 
 export function visibleTabs(tabList: Tab[], pageIndex: number, pageSize = PAGE_SIZE): Tab[] {

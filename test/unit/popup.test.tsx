@@ -1,4 +1,5 @@
-import { cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/preact';
+import type { ComponentChildren } from 'preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
@@ -1232,13 +1233,13 @@ describe('Popup', () => {
 });
 
 async function renderAndWait(
-  ui: React.ReactNode,
+  ui: ComponentChildren,
 ) {
   await renderAndWaitForTitle(ui, 'game');
 }
 
 async function renderAndWaitForTitle(
-  ui: React.ReactNode,
+  ui: ComponentChildren,
   title: string,
 ) {
   render(ui);
