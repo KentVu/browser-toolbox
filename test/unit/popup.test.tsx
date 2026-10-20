@@ -55,7 +55,7 @@ describe('Popup shortcut actions', () => {
     void presenter.ensureTabListLoaded();
     render(<Popup presenter={presenter} />);
 
-    expect(screen.getByText('Welcome')).toBeTruthy();
+    expect(screen.getByText('Tab management')).toBeTruthy();
     expect(screen.queryByText('No open tabs')).toBeNull();
     expect(screen.queryByText('Docs')).toBeNull();
 
