@@ -17,6 +17,9 @@ describe('Popup shortcut actions', () => {
     expect(resolveShortcutAction('arrowleft')).toBe('previousPage');
     expect(resolveShortcutAction('j')).toBe('moveSelectionDown');
     expect(resolveShortcutAction('arrowdown')).toBe('moveSelectionDown');
+    expect(resolveShortcutAction('x')).toBe('closeSelectedTab');
+    expect(resolveShortcutAction('ctrl+w')).toBe('closeSelectedTab');
+    expect(resolveShortcutAction('v')).toBe('toggleVimMode');
   });
 
   it('allows n to select its assigned tab when there is no saved search', async () => {
@@ -30,6 +33,42 @@ describe('Popup shortcut actions', () => {
     await presenter.onKeyPress('n');
 
     expect(presenter.s().selectedTabId).toBe(tab.id);
+  });
+
+  it('enables Vim mode on the active page and closes the popup', async () => {
+    const chrome = createMockChromeApi();
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    await presenter.onKeyPress('v');
+
+    expect(chrome.tabs.toggleVimMode).toHaveBeenCalledOnce();
+    expect(chrome.closePopup).toHaveBeenCalledOnce();
+    expect(presenter.s().errorMessage).toBeUndefined();
+  });
+
+  it('shows an error and keeps the popup open when Vim mode cannot be enabled', async () => {
+    const chrome = createMockChromeApi();
+    vi.mocked(chrome.tabs.toggleVimMode).mockRejectedValue(new Error('Restricted page'));
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    await presenter.onKeyPress('v');
+
+    expect(presenter.s().errorMessage).toContain('Restricted page');
+    expect(chrome.closePopup).not.toHaveBeenCalled();
+  });
+
+  it('shows the next Vim mode operation based on the active page state', async () => {
+    const chrome = createMockChromeApi();
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+    render(<Popup presenter={presenter} />);
+
+    expect(screen.getByLabelText('Vim mode state unavailable')).toBeTruthy();
+    await presenter.refreshVimModeState();
+    expect(screen.getByLabelText('Turn Vim mode on').textContent).toContain('turn Vim mode on');
+
+    vi.mocked(chrome.tabs.getVimModeEnabled).mockResolvedValue(true);
+    await presenter.refreshVimModeState();
+    expect(screen.getByLabelText('Turn Vim mode off').textContent).toContain('turn Vim mode off');
   });
 
   it('loads the tab list once when ensureTabListLoaded is called twice', async () => {
@@ -505,6 +544,28 @@ describe('Popup', () => {
       expect(presenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
     });
 
+    it('closes the selected tab when x is pressed, same as Ctrl-W', async () => {
+      const tabs = makeTabs(3);
+      setup(tabs, tabs[0]);
+      const closedTab = tabs[1];
+
+      await renderAndWaitForTitle(presenter, 'Tab 1');
+      expect(presenter.s().selectedTabId).toBe(closedTab.id);
+
+      fireEvent.keyDown(document, { key: 'x' });
+
+      expect(chrome.tabs.close).toHaveBeenCalledWith(closedTab.id);
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+      await screen.findByText('Tab 3');
+      expect(screen.queryByText(closedTab.title)).toBeNull();
+      expect(presenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      const help = await screen.findByRole('dialog', { name: 'Shortcut help' });
+      expect(within(help).getByText(/Close selected tab/)).toBeTruthy();
+      expect(within(help).getByText('x')).toBeTruthy();
+    });
+
     it('retains the current page after closing a tab with Ctrl-W', async () => {
       const manyTabs = makeTabs(15);
       setup(manyTabs, manyTabs[0]);
@@ -773,9 +834,10 @@ describe('Popup', () => {
     });
 
     describe('pagination', () => {
-      it('reserves j and k for item navigation', () => {
+      it('reserves j, k, and x for navigation and close', () => {
         expect(shortcutKeys).not.toContain('j');
         expect(shortcutKeys).not.toContain('k');
+        expect(shortcutKeys).not.toContain('x');
         expect(shortcutKeys.length).toBeGreaterThan(PAGE_SIZE);
       });
 
@@ -1014,6 +1076,19 @@ describe('Popup', () => {
         await reopenedPresenter.fetchTabList();
         await reopenedPresenter.onKeyPress('/');
         expect(reopenedPresenter.s().searchQuery).toBe('');
+      });
+
+      it('types x into the search query instead of closing a tab', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(presenter, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        fireEvent.keyDown(document, { key: 'x' });
+
+        expect(screen.getByLabelText('Search').textContent).toBe('/x');
+        expect(presenter.s().searchQuery).toBe('x');
+        expect(chrome.tabs.close).not.toHaveBeenCalled();
       });
 
       it('does not close a tab when Ctrl-W is pressed on an empty search query', async () => {

@@ -1,20 +1,18 @@
-/* import { render } from 'preact';
-import './style.css'
-const div = document.createElement('div');
-div.id = '__root';
-document.body.appendChild(div);
+import { GET_VIM_MODE_STATE_MESSAGE, TOGGLE_VIM_MODE_MESSAGE } from '@src/lib/VimMode';
+import { VimMode } from './VimMode';
 
-const rootContainer = document.querySelector('#__root');
-if (!rootContainer) throw new Error("Can't find Content root element");
-render(
-  <div className='absolute bottom-0 left-0 text-lg text-black bg-amber-400 z-50'  >
-    content script <span className='your-class'>loaded</span>
-  </div>,
-  rootContainer
-); */
+const vimMode = new VimMode(document);
 
-try {
-  console.log('content script loaded');
-} catch (e) {
-  console.error(e);
-}
+chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+  if (
+    typeof message === 'object'
+    && message !== null
+    && 'type' in message
+  ) {
+    if (message.type === TOGGLE_VIM_MODE_MESSAGE) {
+      sendResponse(vimMode.toggle());
+    } else if (message.type === GET_VIM_MODE_STATE_MESSAGE) {
+      sendResponse(vimMode.isActive());
+    }
+  }
+});

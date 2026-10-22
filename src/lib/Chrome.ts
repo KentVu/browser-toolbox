@@ -1,5 +1,6 @@
 import { Tab } from '@src/lib/Tab';
 import { sortByLastAccessed } from '@src/lib/Util';
+import { GET_VIM_MODE_STATE_MESSAGE, TOGGLE_VIM_MODE_MESSAGE } from '@src/lib/VimMode';
 
 export type MoveTabDirection = 'toTheRight' | 'toTheLeft';
 
@@ -15,6 +16,8 @@ export abstract class ChromeTabApi {
     abstract breakIntoNewWindow(tabId: number): Promise<void>;
     abstract close(tabId: number): Promise<void>;
     abstract updateUrl(tabId: number, url: string): Promise<void>;
+    abstract toggleVimMode(): Promise<boolean>;
+    abstract getVimModeEnabled(): Promise<boolean>;
 
     async getByLastAccessed(): Promise<Tab[]> {
         const chromeTabs = await this.get();
@@ -127,6 +130,22 @@ class DefaultTabs extends ChromeTabApi {
 
     async updateUrl(tabId: number, url: string): Promise<void> {
         await chrome.tabs.update(tabId, { url });
+    }
+
+    async toggleVimMode(): Promise<boolean> {
+        const currentTab = await this.getCurrent();
+        if (!currentTab) {
+            throw new Error('No active tab is available.');
+        }
+        return chrome.tabs.sendMessage(currentTab.id, { type: TOGGLE_VIM_MODE_MESSAGE });
+    }
+
+    async getVimModeEnabled(): Promise<boolean> {
+        const currentTab = await this.getCurrent();
+        if (!currentTab) {
+            throw new Error('No active tab is available.');
+        }
+        return chrome.tabs.sendMessage(currentTab.id, { type: GET_VIM_MODE_STATE_MESSAGE });
     }
 };
 

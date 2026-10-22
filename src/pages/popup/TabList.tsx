@@ -141,6 +141,7 @@ function TabList({ presenter }: TabListProps) {
         lastSearchQuery,
         highlightQuery,
         showHelp,
+        vimModeEnabled,
         pageIndex,
         tabListLoaded,
     } = presenter.usePopupState();
@@ -293,8 +294,18 @@ function TabList({ presenter }: TabListProps) {
                         ))}
                     </div>
                 )}
-                <div aria-label="Toggle shortcut help">
-                    <kbd className={keyLabelClass}>?</kbd> shortcuts
+                <div className="flex items-center gap-3">
+                    <div aria-label="Toggle shortcut help">
+                        <kbd className={keyLabelClass}>?</kbd> shortcuts
+                    </div>
+                    <div aria-label={vimModeEnabled === undefined
+                        ? 'Vim mode state unavailable'
+                        : vimModeEnabled ? 'Turn Vim mode off' : 'Turn Vim mode on'}>
+                        <kbd className={keyLabelClass}>v</kbd>{' '}
+                        {vimModeEnabled === undefined
+                            ? 'check Vim mode'
+                            : vimModeEnabled ? 'turn Vim mode off' : 'turn Vim mode on'}
+                    </div>
                 </div>
             </div>
             {showHelp && (
@@ -328,7 +339,8 @@ function TabList({ presenter }: TabListProps) {
                             <li><kbd className={keyLabelClass}>&lt;</kbd>/<kbd className={keyLabelClass}>&gt;</kbd>: Move the active tab left/right</li>
                             <li><kbd className={keyLabelClass}>!</kbd>: Break selected tab into a new window</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
-                            <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>w</kbd>: Close selected tab</li>
+                            <li><kbd className={keyLabelClass}>v</kbd>: Enable Vim mode on the current page</li>
+                            <li><kbd className={keyLabelClass}>x</kbd> / <kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>w</kbd>: Close selected tab</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>c</kbd>: Copy selected tab URL</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>v</kbd>: Paste URL into selected tab</li>
                         </ul>

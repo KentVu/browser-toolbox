@@ -1,5 +1,5 @@
 import type { BrowserApi } from '@src/lib/Browser';
-import { ChromeApi } from '@src/lib/Chrome';
+import { ChromeApi, type MoveTabDirection } from '@src/lib/Chrome';
 import { PAGE_SIZE, shortcutKeys } from '@src/lib/constants';
 import type { Tab } from '@src/lib/Tab';
 import { hostnameOf, tryParseHttpUrl } from '@src/lib/Util';
@@ -34,6 +34,7 @@ export type ShortcutAction =
   | 'pasteUrlIntoSelectedTab'
   | 'jumpToLastTab'
   | 'jumpToFirstTab'
+  | 'toggleVimMode'
   | 'moveSelectionDown'
   | 'moveSelectionUp';
 
@@ -53,9 +54,11 @@ const shortcutActionByKey: Record<string, ShortcutAction> = {
   '{': 'moveSelectedTabBesideActiveLeft',
   '!': 'breakSelectedTabIntoWindow',
   enter: 'activateSelectedTab',
+  x: 'closeSelectedTab',
   'ctrl+w': 'closeSelectedTab',
   'ctrl+c': 'copySelectedTabUrl',
   'ctrl+v': 'pasteUrlIntoSelectedTab',
+  v: 'toggleVimMode',
   J: 'jumpToLastTab',
   pagedown: 'jumpToLastTab',
   K: 'jumpToFirstTab',
@@ -86,28 +89,376 @@ export class PopupState {
   highlightQuery: string | undefined;
   /** Whether the floating shortcut help overlay is visible. */
   showHelp = false;
+  /** Current page's Vim mode; undefined while checking or when unavailable. */
+  vimModeEnabled: boolean | undefined;
   /** False until the first tab-list fetch finishes, so the empty state does not flash. */
   tabListLoaded = false;
+}
+
+type KeyResult = 'handled' | 'fallthrough';
+
+interface PopupKeyMode {
+  /** Plain results stay synchronous so tab selection is not deferred a microtask. */
+  handle(key: string): KeyResult | Promise<KeyResult>;
+}
+
+/** Presenter operations shared by keyboard modes. ChromeApi stays private. */
+interface PopupKeyHost {
+  s(): PopupState;
+  setState(state: Partial<PopupState>): void;
+  selectSearchMatch(match: Tab | undefined, extra?: Partial<PopupState>): void;
+  fetchTabList(options?: { preservePage?: boolean }): Promise<void>;
+  changePage(delta: number): void;
+  moveSelection(delta: number): void;
+  jumpToPageEdgeOrChangePage(edge: 'first' | 'last'): void;
+  readonly chrome: ChromeApi;
+  readonly browser: BrowserApi;
+}
+
+/**
+ * Search mode: raw keys edit the query. `ctrl+w` clears it; letters (including `x`) are typed.
+ * Every key is consumed so browse shortcuts and tab selection do not run.
+ */
+class SearchKeyMode implements PopupKeyMode {
+  private readonly handlers: Record<string, (key: string) => Promise<void>>;
+
+  constructor(private readonly host: PopupKeyHost) {
+    this.handlers = {
+      enter: key => this.commitSearch(key),
+      'ctrl+enter': key => this.commitSearch(key),
+      escape: () => this.exitSearch(),
+      'ctrl+w': () => this.clearSearchQuery(),
+      'ctrl+backspace': () => this.clearSearchQuery(),
+      backspace: () => this.deleteSearchChar(),
+    };
+  }
+
+  handle(key: string): KeyResult | Promise<KeyResult> {
+    const append = key.length === 1 ? (typed: string) => this.appendSearchChar(typed) : undefined;
+    const handler = this.handlers[key] ?? append;
+    if (!handler) {
+      return 'handled';
+    }
+    return Promise.resolve(handler(key)).then(() => 'handled' as const);
+  }
+
+  private async commitSearch(key: string): Promise<void> {
+    const s = this.host.s();
+    const query = s.searchQuery;
+    if (query === undefined) {
+      return;
+    }
+    if (key === 'enter' && query.length === 0 && s.lastSearchQuery) {
+      const searchQuery = s.lastSearchQuery;
+      const match = findTabMatch(s.tabList, searchQuery);
+      this.host.selectSearchMatch(match, {
+        searchQuery,
+        highlightQuery: searchQuery,
+      });
+      return;
+    }
+    const match = key === 'ctrl+enter' ? findTabMatch(s.tabList, query) : undefined;
+    const nextLastSearchQuery = query || s.lastSearchQuery;
+    this.host.setState({
+      lastSearchQuery: nextLastSearchQuery,
+      searchQuery: undefined,
+      highlightQuery: undefined,
+    });
+    if (match) {
+      await this.host.chrome.tabs.activate(match.id);
+      this.host.chrome.closePopup();
+    }
+  }
+
+  private async exitSearch(): Promise<void> {
+    const s = this.host.s();
+    if (s.searchQuery === undefined) {
+      return;
+    }
+    if (s.searchQuery.length === 0) {
+      this.host.setState({
+        lastSearchQuery: undefined,
+        searchQuery: undefined,
+        highlightQuery: undefined,
+      });
+      await this.host.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
+      return;
+    }
+    const nextLastSearchQuery = s.searchQuery || s.lastSearchQuery;
+    this.host.setState({
+      lastSearchQuery: nextLastSearchQuery,
+      searchQuery: undefined,
+      highlightQuery: undefined,
+    });
+  }
+
+  private async clearSearchQuery(): Promise<void> {
+    this.host.setState({
+      lastSearchQuery: undefined,
+      searchQuery: '',
+      highlightQuery: undefined,
+    });
+    await this.host.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
+  }
+
+  private async deleteSearchChar(): Promise<void> {
+    const s = this.host.s();
+    const query = s.searchQuery ?? '';
+    if (query.length === 0) {
+      this.host.setState({
+        lastSearchQuery: undefined,
+        searchQuery: undefined,
+        highlightQuery: undefined,
+      });
+      await this.host.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
+      return;
+    }
+    const searchQuery = query.slice(0, -1);
+    const match = findTabMatch(s.tabList, searchQuery);
+    this.host.selectSearchMatch(match, {
+      searchQuery,
+      highlightQuery: searchQuery || undefined,
+    });
+    await this.host.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, searchQuery);
+  }
+
+  private async appendSearchChar(key: string): Promise<void> {
+    const s = this.host.s();
+    const searchQuery = (s.searchQuery ?? '') + key;
+    const match = findTabMatch(s.tabList, searchQuery);
+    this.host.selectSearchMatch(match, {
+      searchQuery,
+      highlightQuery: searchQuery,
+    });
+    await this.host.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, searchQuery);
+  }
+}
+
+/**
+ * Browse mode: shortcut actions, then fall through to tab selection.
+ * `n` falls through when there is no saved search so it can still select a tab.
+ */
+class BrowseKeyMode implements PopupKeyMode {
+  private readonly actions: Record<ShortcutAction, () => KeyResult | Promise<KeyResult>>;
+
+  constructor(private readonly host: PopupKeyHost) {
+    this.actions = {
+      enterSearch: () => this.enterSearch(),
+      toggleShortcutHelp: () => this.toggleShortcutHelp(),
+      nextSearchMatch: () => this.nextSearchMatch(),
+      previousPage: () => this.previousPage(),
+      nextPage: () => this.nextPage(),
+      moveCurrentTabRight: () => this.moveCurrentTab('toTheRight'),
+      moveCurrentTabLeft: () => this.moveCurrentTab('toTheLeft'),
+      moveSelectedTabRightAndActivate: () => this.moveSelectedAndActivate('toTheRight'),
+      moveSelectedTabLeftAndActivate: () => this.moveSelectedAndActivate('toTheLeft'),
+      moveSelectedTabBesideActiveRight: () => this.moveSelectedBesideActive('toTheRight'),
+      moveSelectedTabBesideActiveLeft: () => this.moveSelectedBesideActive('toTheLeft'),
+      breakSelectedTabIntoWindow: () => this.breakSelectedTabIntoWindow(),
+      activateSelectedTab: () => this.activateSelectedTab(),
+      closeSelectedTab: () => this.closeSelectedTab(),
+      copySelectedTabUrl: () => this.copySelectedTabUrl(),
+      pasteUrlIntoSelectedTab: () => this.pasteUrlIntoSelectedTab(),
+      jumpToLastTab: () => this.jumpToEdge('last'),
+      jumpToFirstTab: () => this.jumpToEdge('first'),
+      toggleVimMode: () => this.toggleVimMode(),
+      moveSelectionDown: () => this.moveSelection(1),
+      moveSelectionUp: () => this.moveSelection(-1),
+    };
+  }
+
+  handle(key: string): KeyResult | Promise<KeyResult> {
+    if (key === 'escape' && this.host.s().showHelp) {
+      this.host.setState({ showHelp: false });
+      return 'handled';
+    }
+    const action = resolveShortcutAction(key);
+    if (!action) {
+      return 'fallthrough';
+    }
+    return this.actions[action]();
+  }
+
+  private async enterSearch(): Promise<KeyResult> {
+    this.host.setState({ searchQuery: '', showHelp: false });
+    return 'handled';
+  }
+
+  private async toggleShortcutHelp(): Promise<KeyResult> {
+    this.host.setState({ showHelp: !this.host.s().showHelp });
+    return 'handled';
+  }
+
+  private nextSearchMatch(): KeyResult {
+    const s = this.host.s();
+    if (!s.lastSearchQuery) {
+      return 'fallthrough';
+    }
+    const match = findNextTabMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
+    if (match) {
+      this.host.selectSearchMatch(match, { highlightQuery: s.lastSearchQuery });
+    }
+    return 'handled';
+  }
+
+  private async previousPage(): Promise<KeyResult> {
+    this.host.changePage(-1);
+    return 'handled';
+  }
+
+  private async nextPage(): Promise<KeyResult> {
+    this.host.changePage(1);
+    return 'handled';
+  }
+
+  private async moveCurrentTab(direction: MoveTabDirection): Promise<KeyResult> {
+    const currentTabId = (await this.host.chrome.tabs.getCurrent())?.id;
+    if (currentTabId !== undefined) {
+      // Do not activate after move: activate() focuses the browser window and
+      // Chrome auto-closes the popup when focus leaves it.
+      await this.host.chrome.tabs.move(direction, currentTabId);
+    }
+    return 'handled';
+  }
+
+  private async moveSelectedAndActivate(direction: MoveTabDirection): Promise<KeyResult> {
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      await this.host.chrome.tabs.move(direction, selectedTabId);
+      await this.host.chrome.tabs.activate(selectedTabId);
+      this.host.chrome.closePopup();
+    }
+    return 'handled';
+  }
+
+  private async moveSelectedBesideActive(direction: MoveTabDirection): Promise<KeyResult> {
+    const s = this.host.s();
+    if (s.selectedTabId !== undefined) {
+      const currentTabId = (await this.host.chrome.tabs.getCurrent())?.id ?? s.currentTabId;
+      // Inactive when the selected tab is already the active tab.
+      if (currentTabId === undefined || s.selectedTabId !== currentTabId) {
+        // Do not activate after move: activate() focuses the browser window and
+        // Chrome auto-closes the popup when focus leaves it.
+        await this.host.chrome.tabs.move(direction, s.selectedTabId);
+      }
+    }
+    return 'handled';
+  }
+
+  private async breakSelectedTabIntoWindow(): Promise<KeyResult> {
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      await this.host.chrome.tabs.breakIntoNewWindow(selectedTabId);
+      this.host.chrome.closePopup();
+    }
+    return 'handled';
+  }
+
+  private async activateSelectedTab(): Promise<KeyResult> {
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      await this.host.chrome.tabs.activate(selectedTabId);
+      this.host.chrome.closePopup();
+    }
+    return 'handled';
+  }
+
+  private async closeSelectedTab(): Promise<KeyResult> {
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      await this.host.chrome.tabs.close(selectedTabId);
+      await this.host.fetchTabList({ preservePage: true });
+    }
+    return 'handled';
+  }
+
+  private async copySelectedTabUrl(): Promise<KeyResult> {
+    const s = this.host.s();
+    if (s.selectedTabId !== undefined) {
+      const selectedTab = s.tabList.find(tab => tab.id === s.selectedTabId);
+      if (selectedTab?.url) {
+        await this.host.browser.clipboard.writeText(selectedTab.url);
+      }
+    }
+    return 'handled';
+  }
+
+  private async pasteUrlIntoSelectedTab(): Promise<KeyResult> {
+    const s = this.host.s();
+    if (s.selectedTabId !== undefined) {
+      const clipboardText = await this.host.browser.clipboard.readText();
+      const url = tryParseHttpUrl(clipboardText);
+      if (!url) {
+        this.host.setState({ errorMessage: PASTE_URL_ERROR });
+        return 'handled';
+      }
+
+      const tabId = s.selectedTabId;
+      await this.host.chrome.tabs.updateUrl(tabId, url);
+      this.host.setState({
+        errorMessage: undefined,
+        tabList: s.tabList.map(tab => (tab.id === tabId ? { ...tab, url } : tab)),
+      });
+    }
+    return 'handled';
+  }
+
+  private async jumpToEdge(edge: 'first' | 'last'): Promise<KeyResult> {
+    this.host.jumpToPageEdgeOrChangePage(edge);
+    return 'handled';
+  }
+
+  private async toggleVimMode(): Promise<KeyResult> {
+    try {
+      const vimModeEnabled = await this.host.chrome.tabs.toggleVimMode();
+      this.host.setState({ vimModeEnabled });
+      this.host.chrome.closePopup();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.host.setState({ errorMessage: `Unable to toggle page navigation: ${detail}` });
+    }
+    return 'handled';
+  }
+
+  private async moveSelection(delta: number): Promise<KeyResult> {
+    this.host.moveSelection(delta);
+    return 'handled';
+  }
 }
 
 /**
  * Business logic layer for the popup UI.
  *
  * Mediates between Preact views and ChromeApi/BrowserApi: owns popup state
- * (tab list, selection, pagination, shortcut map), loads tabs, and handles
- * keyboard navigation, activation, clipboard, and tab moves. Views subscribe
- * via usePopupState and stay presentational.
+ * (tab list, selection, pagination, shortcut map), loads tabs, and delegates
+ * keys to SearchKeyMode or BrowseKeyMode. Views subscribe via usePopupState
+ * and stay presentational.
  */
 export class PopupPresenter {
   private state: PopupState = new PopupState();
   private readonly listeners = new Set<() => void>();
   private initialLoad?: Promise<void>;
   private liveTabListLoaded = false;
+  private readonly searchMode: PopupKeyMode;
+  private readonly browseMode: PopupKeyMode;
 
   constructor(
     private readonly chrome: ChromeApi,
     private readonly browser: BrowserApi,
   ) {
+    const host: PopupKeyHost = {
+      s: () => this.s(),
+      setState: state => this.setState(state),
+      selectSearchMatch: (match, extra) => this.selectSearchMatch(match, extra),
+      fetchTabList: options => this.fetchTabList(options),
+      changePage: delta => this.changePage(delta),
+      moveSelection: delta => this.moveSelection(delta),
+      jumpToPageEdgeOrChangePage: edge => this.jumpToPageEdgeOrChangePage(edge),
+      chrome: this.chrome,
+      browser: this.browser,
+    };
+    this.searchMode = new SearchKeyMode(host);
+    this.browseMode = new BrowseKeyMode(host);
   }
 
   s = (): PopupState => this.state;
@@ -141,9 +492,22 @@ export class PopupPresenter {
     if (!this.initialLoad) {
       this.initialLoad = this.fetchTabList();
       void this.hydrateCachedTabList();
+      void this.refreshVimModeState();
     }
     return this.initialLoad;
   };
+
+  async refreshVimModeState(): Promise<void> {
+    try {
+      this.setState({ vimModeEnabled: await this.chrome.tabs.getVimModeEnabled() });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.setState({
+        vimModeEnabled: undefined,
+        errorMessage: `Unable to read page navigation mode: ${detail}`,
+      });
+    }
+  }
 
   async fetchTabList(options?: { preservePage?: boolean }) {
     const [_tabs, currentTab, savedSearchQuery] = await Promise.all([
@@ -212,220 +576,14 @@ export class PopupPresenter {
   }
 
   async onKeyPress(key: string): Promise<void> {
-    const s = this.s();
-    const action = resolveShortcutAction(key);
-    if (s.errorMessage !== undefined) {
+    if (this.s().errorMessage !== undefined) {
       this.setState({ errorMessage: undefined });
     }
-
-    if (action === 'enterSearch' && s.searchQuery === undefined) {
-      this.setState({ searchQuery: '', showHelp: false });
+    const mode = this.s().searchQuery !== undefined ? this.searchMode : this.browseMode;
+    const result = mode.handle(key);
+    if ((result instanceof Promise ? await result : result) === 'handled') {
       return;
     }
-
-    if (s.searchQuery !== undefined) {
-      if (key === 'enter' || key === 'ctrl+enter') {
-        if (key === 'enter' && s.searchQuery.length === 0 && s.lastSearchQuery) {
-          const searchQuery = s.lastSearchQuery;
-          const match = findTabMatch(s.tabList, searchQuery);
-          this.selectSearchMatch(match, {
-            searchQuery,
-            highlightQuery: searchQuery,
-          });
-          return;
-        }
-        const match = key === 'ctrl+enter'
-          ? findTabMatch(s.tabList, s.searchQuery)
-          : undefined;
-        const nextLastSearchQuery = s.searchQuery || s.lastSearchQuery;
-        this.setState({
-          lastSearchQuery: nextLastSearchQuery,
-          searchQuery: undefined,
-          highlightQuery: undefined,
-        });
-        if (match) {
-          await this.chrome.tabs.activate(match.id);
-          this.chrome.closePopup();
-        }
-        return;
-      }
-      if (key === 'escape') {
-        if (s.searchQuery.length === 0) {
-          this.setState({
-            lastSearchQuery: undefined,
-            searchQuery: undefined,
-            highlightQuery: undefined,
-          });
-          await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
-          return;
-        }
-        const nextLastSearchQuery = s.searchQuery || s.lastSearchQuery;
-        this.setState({
-          lastSearchQuery: nextLastSearchQuery,
-          searchQuery: undefined,
-          highlightQuery: undefined,
-        });
-        return;
-      }
-      if (key === 'ctrl+w' || key === 'ctrl+backspace') {
-        this.setState({
-          lastSearchQuery: undefined,
-          searchQuery: '',
-          highlightQuery: undefined,
-        });
-        await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
-        return;
-      }
-      if (key === 'backspace') {
-        if (s.searchQuery.length === 0) {
-          this.setState({
-            lastSearchQuery: undefined,
-            searchQuery: undefined,
-            highlightQuery: undefined,
-          });
-          await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, '');
-          return;
-        }
-        const searchQuery = s.searchQuery.slice(0, -1);
-        const match = findTabMatch(s.tabList, searchQuery);
-        this.selectSearchMatch(match, {
-          searchQuery,
-          highlightQuery: searchQuery || undefined,
-        });
-        await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, searchQuery);
-        return;
-      }
-      if (key.length === 1) {
-        const searchQuery = s.searchQuery + key;
-        const match = findTabMatch(s.tabList, searchQuery);
-        this.selectSearchMatch(match, {
-          searchQuery,
-          highlightQuery: searchQuery,
-        });
-        await this.chrome.storage.setLocal(LAST_SEARCH_QUERY_KEY, searchQuery);
-      }
-      return;
-    }
-
-    if (key === 'escape' && s.showHelp) {
-      this.setState({ showHelp: false });
-      return;
-    }
-
-    switch (action) {
-      case 'toggleShortcutHelp':
-        this.setState({ showHelp: !s.showHelp });
-        return;
-      case 'nextSearchMatch':
-        if (s.lastSearchQuery) {
-          const match = findNextTabMatch(s.tabList, s.lastSearchQuery, s.selectedTabId);
-          if (match) {
-            this.selectSearchMatch(match, { highlightQuery: s.lastSearchQuery });
-          }
-          return;
-        }
-        break;
-      case 'previousPage':
-        this.changePage(-1);
-        return;
-      case 'nextPage':
-        this.changePage(1);
-        return;
-      case 'moveCurrentTabRight':
-      case 'moveCurrentTabLeft': {
-        const currentTabId = (await this.chrome.tabs.getCurrent())?.id;
-        if (currentTabId !== undefined) {
-          const direction = action === 'moveCurrentTabRight' ? 'toTheRight' : 'toTheLeft';
-          // Do not activate after move: activate() focuses the browser window and
-          // Chrome auto-closes the popup when focus leaves it.
-          await this.chrome.tabs.move(direction, currentTabId);
-        }
-        return;
-      }
-      case 'moveSelectedTabRightAndActivate':
-      case 'moveSelectedTabLeftAndActivate':
-        if (s.selectedTabId !== undefined) {
-          const tabId = s.selectedTabId;
-          const direction = action === 'moveSelectedTabRightAndActivate' ? 'toTheRight' : 'toTheLeft';
-          await this.chrome.tabs.move(direction, tabId);
-          await this.chrome.tabs.activate(tabId);
-          this.chrome.closePopup();
-        }
-        return;
-      case 'moveSelectedTabBesideActiveRight':
-      case 'moveSelectedTabBesideActiveLeft':
-        if (s.selectedTabId !== undefined) {
-          const currentTabId = (await this.chrome.tabs.getCurrent())?.id ?? s.currentTabId;
-          // Inactive when the selected tab is already the active tab.
-          if (currentTabId === undefined || s.selectedTabId !== currentTabId) {
-            const direction = action === 'moveSelectedTabBesideActiveRight' ? 'toTheRight' : 'toTheLeft';
-            // Do not activate after move: activate() focuses the browser window and
-            // Chrome auto-closes the popup when focus leaves it.
-            await this.chrome.tabs.move(direction, s.selectedTabId);
-          }
-        }
-        return;
-      case 'breakSelectedTabIntoWindow':
-        if (s.selectedTabId !== undefined) {
-          await this.chrome.tabs.breakIntoNewWindow(s.selectedTabId);
-          this.chrome.closePopup();
-        }
-        return;
-      case 'activateSelectedTab':
-        if (s.selectedTabId !== undefined) {
-          await this.chrome.tabs.activate(s.selectedTabId);
-          this.chrome.closePopup();
-        }
-        return;
-      case 'closeSelectedTab':
-        if (s.selectedTabId !== undefined) {
-          await this.chrome.tabs.close(s.selectedTabId);
-          await this.fetchTabList({ preservePage: true });
-        }
-        return;
-      case 'copySelectedTabUrl':
-        if (s.selectedTabId !== undefined) {
-          const selectedTab = s.tabList.find(tab => tab.id === s.selectedTabId);
-          if (selectedTab?.url) {
-            await this.browser.clipboard.writeText(selectedTab.url);
-          }
-        }
-        return;
-      case 'pasteUrlIntoSelectedTab':
-        if (s.selectedTabId !== undefined) {
-          const clipboardText = await this.browser.clipboard.readText();
-          const url = tryParseHttpUrl(clipboardText);
-          if (!url) {
-            this.setState({ errorMessage: PASTE_URL_ERROR });
-            return;
-          }
-
-          const tabId = s.selectedTabId;
-          await this.chrome.tabs.updateUrl(tabId, url);
-          this.setState({
-            errorMessage: undefined,
-            tabList: s.tabList.map(tab => (tab.id === tabId ? { ...tab, url } : tab)),
-          });
-        }
-        return;
-      case 'jumpToLastTab':
-        this.jumpToPageEdgeOrChangePage('last');
-        return;
-      case 'jumpToFirstTab':
-        this.jumpToPageEdgeOrChangePage('first');
-        return;
-      case 'moveSelectionDown':
-        this.moveSelection(1);
-        return;
-      case 'moveSelectionUp':
-        this.moveSelection(-1);
-        return;
-      case 'enterSearch':
-        return;
-      default:
-        break;
-    }
-
     const tabId = this.tabIdForKey(key);
     if (tabId === undefined) {
       return;
