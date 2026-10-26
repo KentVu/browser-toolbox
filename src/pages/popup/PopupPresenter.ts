@@ -332,15 +332,11 @@ class BrowseKeyMode implements PopupKeyMode {
   }
 
   private async moveSelectedBesideActive(direction: MoveTabDirection): Promise<KeyResult> {
-    const s = this.host.s();
-    if (s.selectedTabId !== undefined) {
-      const currentTabId = (await this.host.chrome.tabs.getCurrent())?.id ?? s.currentTabId;
-      // Inactive when the selected tab is already the active tab.
-      if (currentTabId === undefined || s.selectedTabId !== currentTabId) {
-        // Do not activate after move: activate() focuses the browser window and
-        // Chrome auto-closes the popup when focus leaves it.
-        await this.host.chrome.tabs.move(direction, s.selectedTabId);
-      }
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      // Do not activate after the shift: activate() focuses the browser window
+      // and Chrome auto-closes the popup when focus leaves it.
+      await this.host.chrome.tabs.shift(direction, selectedTabId);
     }
     return 'handled';
   }

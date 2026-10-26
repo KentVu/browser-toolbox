@@ -13,6 +13,8 @@ export abstract class ChromeTabApi {
     abstract getCurrent(): Promise<Tab | undefined>;
     abstract activate(tabId: number): Promise<void>;
     abstract move(direction: MoveTabDirection, tabId: number): Promise<void>;
+    /** Move `tabId` one index left or right inside its own window. */
+    abstract shift(direction: MoveTabDirection, tabId: number): Promise<void>;
     abstract breakIntoNewWindow(tabId: number): Promise<void>;
     abstract close(tabId: number): Promise<void>;
     abstract updateUrl(tabId: number, url: string): Promise<void>;
@@ -117,6 +119,20 @@ class DefaultTabs extends ChromeTabApi {
         await chrome.tabs.move(tabId, {
             index: targetIndex,
             windowId: activeTab.windowId,
+        });
+    }
+
+    async shift(direction: MoveTabDirection, tabId: number): Promise<void> {
+        const tab = await chrome.tabs.get(tabId);
+        if (tab.index === undefined || tab.windowId === undefined) {
+            return;
+        }
+        const targetIndex = direction === 'toTheRight'
+            ? tab.index + 1
+            : Math.max(0, tab.index - 1);
+        await chrome.tabs.move(tabId, {
+            index: targetIndex,
+            windowId: tab.windowId,
         });
     }
 
