@@ -25,8 +25,8 @@ export type ShortcutAction =
   | 'moveCurrentTabLeft'
   | 'moveSelectedTabRightAndActivate'
   | 'moveSelectedTabLeftAndActivate'
-  | 'moveSelectedTabBesideActiveRight'
-  | 'moveSelectedTabBesideActiveLeft'
+  | 'moveSelectedTabRight'
+  | 'moveSelectedTabLeft'
   | 'breakSelectedTabIntoWindow'
   | 'activateSelectedTab'
   | 'closeSelectedTab'
@@ -50,8 +50,8 @@ const shortcutActionByKey: Record<string, ShortcutAction> = {
   '<': 'moveCurrentTabLeft',
   ']': 'moveSelectedTabRightAndActivate',
   '[': 'moveSelectedTabLeftAndActivate',
-  '}': 'moveSelectedTabBesideActiveRight',
-  '{': 'moveSelectedTabBesideActiveLeft',
+  '}': 'moveSelectedTabRight',
+  '{': 'moveSelectedTabLeft',
   '!': 'breakSelectedTabIntoWindow',
   enter: 'activateSelectedTab',
   x: 'closeSelectedTab',
@@ -252,8 +252,8 @@ class BrowseKeyMode implements PopupKeyMode {
       moveCurrentTabLeft: () => this.moveCurrentTab('toTheLeft'),
       moveSelectedTabRightAndActivate: () => this.moveSelectedAndActivate('toTheRight'),
       moveSelectedTabLeftAndActivate: () => this.moveSelectedAndActivate('toTheLeft'),
-      moveSelectedTabBesideActiveRight: () => this.moveSelectedBesideActive('toTheRight'),
-      moveSelectedTabBesideActiveLeft: () => this.moveSelectedBesideActive('toTheLeft'),
+      moveSelectedTabRight: () => this.moveSelectedTab('toTheRight'),
+      moveSelectedTabLeft: () => this.moveSelectedTab('toTheLeft'),
       breakSelectedTabIntoWindow: () => this.breakSelectedTabIntoWindow(),
       activateSelectedTab: () => this.activateSelectedTab(),
       closeSelectedTab: () => this.closeSelectedTab(),
@@ -331,7 +331,7 @@ class BrowseKeyMode implements PopupKeyMode {
     return 'handled';
   }
 
-  private async moveSelectedBesideActive(direction: MoveTabDirection): Promise<KeyResult> {
+  private async moveSelectedTab(direction: MoveTabDirection): Promise<KeyResult> {
     const selectedTabId = this.host.s().selectedTabId;
     if (selectedTabId !== undefined) {
       // Do not activate after the shift: activate() focuses the browser window

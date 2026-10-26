@@ -96,12 +96,7 @@ class DefaultTabs extends ChromeTabApi {
 
         // Moving the active tab itself is a simple adjacent shift.
         if (tabId === activeTab.id) {
-            const targetIndex =
-                direction === 'toTheRight' ? activeTab.index + 1 : Math.max(0, activeTab.index - 1);
-            await chrome.tabs.move(tabId, {
-                index: targetIndex,
-                windowId: activeTab.windowId,
-            });
+            await this.shift(direction, tabId);
             return;
         }
 

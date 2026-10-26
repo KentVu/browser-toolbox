@@ -51,7 +51,7 @@ When working with several related tabs, he wants to bring them closely together,
 - [x] Also support searching the hostname too.
 - [x] prev/next page by left/right arrow also.
 - [x] Move current tab left/right by `<`, `>`.
-- [x] `{`/`}` move selected tab left/right of active tab without activating or closing the popup.
+- [x] `{`/`}` move the selected tab left/right without closing the popup.
 - [x] Indicator for duplicated tab.
 - [x] Legend box (for split-tab, other-window icons etc.).
 - [x] Emphasize the current tab in the list.
