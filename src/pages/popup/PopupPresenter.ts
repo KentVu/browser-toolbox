@@ -25,8 +25,8 @@ export type ShortcutAction =
   | 'moveCurrentTabLeft'
   | 'moveSelectedTabRightAndActivate'
   | 'moveSelectedTabLeftAndActivate'
-  | 'moveSelectedTabBesideActiveRight'
-  | 'moveSelectedTabBesideActiveLeft'
+  | 'moveSelectedTabRight'
+  | 'moveSelectedTabLeft'
   | 'breakSelectedTabIntoWindow'
   | 'activateSelectedTab'
   | 'closeSelectedTab'
@@ -50,8 +50,8 @@ const shortcutActionByKey: Record<string, ShortcutAction> = {
   '<': 'moveCurrentTabLeft',
   ']': 'moveSelectedTabRightAndActivate',
   '[': 'moveSelectedTabLeftAndActivate',
-  '}': 'moveSelectedTabBesideActiveRight',
-  '{': 'moveSelectedTabBesideActiveLeft',
+  '}': 'moveSelectedTabRight',
+  '{': 'moveSelectedTabLeft',
   '!': 'breakSelectedTabIntoWindow',
   enter: 'activateSelectedTab',
   x: 'closeSelectedTab',
@@ -252,8 +252,8 @@ class BrowseKeyMode implements PopupKeyMode {
       moveCurrentTabLeft: () => this.moveCurrentTab('toTheLeft'),
       moveSelectedTabRightAndActivate: () => this.moveSelectedAndActivate('toTheRight'),
       moveSelectedTabLeftAndActivate: () => this.moveSelectedAndActivate('toTheLeft'),
-      moveSelectedTabBesideActiveRight: () => this.moveSelectedBesideActive('toTheRight'),
-      moveSelectedTabBesideActiveLeft: () => this.moveSelectedBesideActive('toTheLeft'),
+      moveSelectedTabRight: () => this.moveSelectedTab('toTheRight'),
+      moveSelectedTabLeft: () => this.moveSelectedTab('toTheLeft'),
       breakSelectedTabIntoWindow: () => this.breakSelectedTabIntoWindow(),
       activateSelectedTab: () => this.activateSelectedTab(),
       closeSelectedTab: () => this.closeSelectedTab(),
@@ -331,16 +331,12 @@ class BrowseKeyMode implements PopupKeyMode {
     return 'handled';
   }
 
-  private async moveSelectedBesideActive(direction: MoveTabDirection): Promise<KeyResult> {
-    const s = this.host.s();
-    if (s.selectedTabId !== undefined) {
-      const currentTabId = (await this.host.chrome.tabs.getCurrent())?.id ?? s.currentTabId;
-      // Inactive when the selected tab is already the active tab.
-      if (currentTabId === undefined || s.selectedTabId !== currentTabId) {
-        // Do not activate after move: activate() focuses the browser window and
-        // Chrome auto-closes the popup when focus leaves it.
-        await this.host.chrome.tabs.move(direction, s.selectedTabId);
-      }
+  private async moveSelectedTab(direction: MoveTabDirection): Promise<KeyResult> {
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      // Do not activate after the shift: activate() focuses the browser window
+      // and Chrome auto-closes the popup when focus leaves it.
+      await this.host.chrome.tabs.shift(direction, selectedTabId);
     }
     return 'handled';
   }

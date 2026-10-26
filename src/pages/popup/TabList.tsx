@@ -151,8 +151,6 @@ function TabList({ presenter }: TabListProps) {
     const windowLabels = getWindowLabels(tabList);
     const duplicateLabels = getDuplicateLabels(allTabs);
     const listRef = useRef<HTMLUListElement>(null);
-    const moveBesideActiveDisabled = selectedTabId !== undefined && selectedTabId === currentTabId;
-    const inactiveKeyLabelClass = 'rounded border border-gray-600 bg-gray-800/60 px-1 font-mono font-semibold text-gray-500';
     const tabBadges = tabList.map(tab => getTabBadges(
         tab,
         currentTabId,
@@ -328,13 +326,10 @@ function TabList({ presenter }: TabListProps) {
                             <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↓</kbd>/<kbd className={keyLabelClass}>↑</kbd>: Move selection down/up (pages at edges)</li>
                             <li><kbd className={keyLabelClass}>J</kbd>/<kbd className={keyLabelClass}>PageDown</kbd> / <kbd className={keyLabelClass}>K</kbd>/<kbd className={keyLabelClass}>PageUp</kbd>: Jump to last/first item (change page at edge)</li>
                             <li><kbd className={keyLabelClass}>]</kbd>/<kbd className={keyLabelClass}>[</kbd>: Move selected tab to the right/left of current tab (and go there)</li>
-                            <li
-                                aria-disabled={moveBesideActiveDisabled ? 'true' : undefined}
-                                className={moveBesideActiveDisabled ? 'opacity-40' : undefined}
-                            >
-                                <kbd className={moveBesideActiveDisabled ? inactiveKeyLabelClass : keyLabelClass}>{`}`}</kbd>/
-                                <kbd className={moveBesideActiveDisabled ? inactiveKeyLabelClass : keyLabelClass}>{`{`}</kbd>
-                                : Move selected tab to the right/left of current tab (stay in popup)
+                            <li>
+                                <kbd className={keyLabelClass}>{`}`}</kbd>/
+                                <kbd className={keyLabelClass}>{`{`}</kbd>
+                                : Move the selected tab right/left without closing the popup
                             </li>
                             <li><kbd className={keyLabelClass}>&lt;</kbd>/<kbd className={keyLabelClass}>&gt;</kbd>: Move the active tab left/right</li>
                             <li><kbd className={keyLabelClass}>!</kbd>: Break selected tab into a new window</li>
