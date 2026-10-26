@@ -200,6 +200,48 @@ describe('ChromeAPI', () => {
         expect(move).toHaveBeenLastCalledWith(activeTab.id, { index: 2, windowId: 10 });
       });
     });
+
+    describe('shift', () => {
+      const originalChrome = (globalThis as any).chrome;
+      let get: ReturnType<typeof vi.fn>;
+      let move: ReturnType<typeof vi.fn>;
+
+      beforeEach(() => {
+        get = vi.fn();
+        move = vi.fn().mockResolvedValue({});
+        (globalThis as any).chrome = {
+          tabs: { get, move },
+        };
+      });
+
+      afterEach(() => {
+        (globalThis as any).chrome = originalChrome;
+      });
+
+      it('moves a tab one position left within its own window', async () => {
+        get.mockResolvedValue({ id: 4, index: 3, windowId: 20 });
+
+        await Chrome.tabs.shift('toTheLeft', 4);
+
+        expect(move).toHaveBeenCalledWith(4, { index: 2, windowId: 20 });
+      });
+
+      it('moves a tab one position right within its own window', async () => {
+        get.mockResolvedValue({ id: 4, index: 3, windowId: 20 });
+
+        await Chrome.tabs.shift('toTheRight', 4);
+
+        expect(move).toHaveBeenCalledWith(4, { index: 4, windowId: 20 });
+      });
+
+      it('does not move a tab left of index 0', async () => {
+        get.mockResolvedValue({ id: 1, index: 0, windowId: 10 });
+
+        await Chrome.tabs.shift('toTheLeft', 1);
+
+        expect(move).toHaveBeenCalledWith(1, { index: 0, windowId: 10 });
+      });
+    });
   });
 
   describe('closePopup', () => {

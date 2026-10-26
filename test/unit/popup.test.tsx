@@ -659,7 +659,7 @@ describe('Popup', () => {
       await expectMoveSelectedTab('[', 'toTheLeft');
     });
 
-    it('moves selected tab next to the active tab with } and { without activating or closing', async () => {
+    it('moves the selected tab left and right with } and { without closing the popup', async () => {
       const _tabList: Tab[] = [...tabList,
         { id: 4, title: 'Music', url: 'https://music.example.com', lastAccessed: 1500 }
       ];
@@ -671,21 +671,22 @@ describe('Popup', () => {
 
       fireEvent.keyDown(document, { key: '}', shiftKey: true });
       await waitFor(() => {
-        expect(chrome.tabs.move).toHaveBeenCalledWith('toTheRight', _tabList[2].id);
+        expect(chrome.tabs.shift).toHaveBeenCalledWith('toTheRight', _tabList[2].id);
       });
+      expect(chrome.tabs.move).not.toHaveBeenCalled();
       expect(chrome.tabs.activate).not.toHaveBeenCalled();
       expect(chrome.closePopup).not.toHaveBeenCalled();
 
       fireEvent.keyDown(document, { key: '{', shiftKey: true });
       await waitFor(() => {
-        expect(chrome.tabs.move).toHaveBeenLastCalledWith('toTheLeft', _tabList[2].id);
+        expect(chrome.tabs.shift).toHaveBeenLastCalledWith('toTheLeft', _tabList[2].id);
       });
       expect(chrome.tabs.activate).not.toHaveBeenCalled();
       expect(chrome.closePopup).not.toHaveBeenCalled();
-      expect(chrome.tabs.move).toHaveBeenCalledTimes(2);
+      expect(chrome.tabs.shift).toHaveBeenCalledTimes(2);
     });
 
-    it('ignores } and { when the selected tab is the active tab', async () => {
+    it('moves the selected tab with } and { when it is already the active tab', async () => {
       const currentTab = tabList[1];
       setup(tabList, currentTab);
 
@@ -694,14 +695,17 @@ describe('Popup', () => {
       expect(presenter.s().selectedTabId).toBe(currentTab.id);
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
-      const stayInPopupHelp = within(await screen.findByRole('dialog', { name: 'Shortcut help' }))
-        .getByText(/Move selected tab to the right\/left of current tab \(stay in popup\)/);
-      expect(stayInPopupHelp.closest('li')?.getAttribute('aria-disabled')).toBe('true');
+      const moveHelp = within(await screen.findByRole('dialog', { name: 'Shortcut help' }))
+        .getByText(/Move the selected tab right\/left without closing the popup/);
+      expect(moveHelp.closest('li')?.getAttribute('aria-disabled')).not.toBe('true');
 
       fireEvent.keyDown(document, { key: '}', shiftKey: true });
+      await waitFor(() => {
+        expect(chrome.tabs.shift).toHaveBeenCalledWith('toTheRight', currentTab.id);
+      });
       fireEvent.keyDown(document, { key: '{', shiftKey: true });
       await waitFor(() => {
-        expect(chrome.tabs.getCurrent).toHaveBeenCalled();
+        expect(chrome.tabs.shift).toHaveBeenLastCalledWith('toTheLeft', currentTab.id);
       });
       expect(chrome.tabs.move).not.toHaveBeenCalled();
       expect(chrome.tabs.activate).not.toHaveBeenCalled();
