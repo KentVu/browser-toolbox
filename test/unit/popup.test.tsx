@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
@@ -430,7 +431,7 @@ describe('Popup', () => {
 
       expect(screen.getByLabelText('Indicator legend').textContent).toContain('● active elsewhere');
 
-      const popupCss = readFileSync(new URL('../../src/pages/popup/index.css', import.meta.url), 'utf8');
+      const popupCss = readFileSync(resolve('src/pages/popup/index.css'), 'utf8');
       expect(popupCss).toMatch(/\.current\s*\{[^}]*box-shadow:\s*inset 3px 0 0 0 rgb\(34 211 238\);/);
       expect(popupCss).toMatch(/\.active-elsewhere\s*\{[^}]*box-shadow:\s*inset 3px 0 0 0 rgb\(34 211 238 \/ 0\.4\);/);
     });

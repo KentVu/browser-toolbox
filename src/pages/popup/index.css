@@ -21,3 +21,7 @@ body {
   box-shadow: inset 3px 0 0 0 rgb(34 211 238);
 }
 
+.active-elsewhere {
+  box-shadow: inset 3px 0 0 0 rgb(34 211 238 / 0.4);
+}
+

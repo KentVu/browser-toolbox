@@ -196,13 +196,14 @@ function TabList({ presenter }: TabListProps) {
                     const hasBadges = INDICATOR_LEGEND.some(({ key }) => badges[key] !== undefined);
                     const isSelected = tab.id === selectedTabId;
                     const isCurrent = tab.id === currentTabId;
+                    const isActiveElsewhere = badges.activeElsewhere === true;
                     const activeQuery = isSelected ? (searchQuery ?? highlightQuery) : undefined;
                     return (
                         <li
                             key={tab.id}
                             onClick={() => presenter.setState({ selectedTabId: tab.id })}
                             aria-current={isCurrent ? 'true' : undefined}
-                            className={`px-2.5 py-1.5 flex items-center gap-2 hover:bg-gray-700/70 cursor-pointer transition-colors group ${isSelected ? 'selected' : ''} ${isCurrent ? 'current' : ''}`}
+                            className={`px-2.5 py-1.5 flex items-center gap-2 hover:bg-gray-700/70 cursor-pointer transition-colors group ${isSelected ? 'selected' : ''} ${isCurrent ? 'current' : ''} ${isActiveElsewhere ? 'active-elsewhere' : ''}`}
                         >
                             {tab.icon ? (
                                 <img
