@@ -38,20 +38,9 @@ describe('VimMode', () => {
   });
 
   it('keeps hints and its mode indicator alive until page-side dismissal', () => {
-    const link = document.createElement('a');
+    const link = visibleElement('a');
     link.href = '#destination';
     link.textContent = 'Destination';
-    link.getBoundingClientRect = () => ({
-      width: 80,
-      height: 20,
-      top: 10,
-      left: 10,
-      right: 90,
-      bottom: 30,
-      x: 10,
-      y: 10,
-      toJSON: () => ({}),
-    });
     document.body.appendChild(link);
     const clicked = vi.spyOn(link, 'click');
     const mode = new VimMode(document);
