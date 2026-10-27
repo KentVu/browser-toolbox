@@ -11,16 +11,18 @@ const keyLabelClass = 'rounded border border-cyan-400/60 bg-cyan-400/10 px-1 fon
 
 type TabBadges = {
     current?: true;
+    activeElsewhere?: true;
     windowLabel?: number;
     splitViewLabel?: number;
     duplicateLabel?: number;
 };
 
 const INDICATOR_LEGEND = [
-    { key: 'current', icon: '\u{25CF}', label: 'current', ariaPrefix: 'Current tab' },
-    { key: 'windowLabel', icon: '\u{1FA9F}', label: 'other window', ariaPrefix: 'Window' },
-    { key: 'splitViewLabel', icon: '\u{1F517}', label: 'split view', ariaPrefix: 'Split view' },
-    { key: 'duplicateLabel', icon: '\u{29C9}', label: 'duplicate', ariaPrefix: 'Duplicate' },
+    { key: 'current', icon: '\u{25CF}', label: 'current', ariaPrefix: 'Current tab', className: 'text-cyan-300' },
+    { key: 'activeElsewhere', icon: '\u{25CF}', label: 'active elsewhere', ariaPrefix: 'Active in other window', className: 'text-cyan-300/40' },
+    { key: 'windowLabel', icon: '\u{1FA9F}', label: 'other window', ariaPrefix: 'Window', className: '' },
+    { key: 'splitViewLabel', icon: '\u{1F517}', label: 'split view', ariaPrefix: 'Split view', className: '' },
+    { key: 'duplicateLabel', icon: '\u{29C9}', label: 'duplicate', ariaPrefix: 'Duplicate', className: '' },
 ] as const;
 
 function getSplitViewLabels(tabList: Tab[]): Map<number, number> {
@@ -87,6 +89,7 @@ function getTabBadges(
         && tab.windowId !== currentWindowId;
     return {
         current: tab.id === currentTabId ? true : undefined,
+        activeElsewhere: tab.active && differentWindow ? true : undefined,
         windowLabel: differentWindow ? windowLabels.get(tab.windowId!) : undefined,
         splitViewLabel: tab.splitViewId === undefined || tab.splitViewId === -1
             ? undefined
@@ -225,7 +228,7 @@ function TabList({ presenter }: TabListProps) {
                                 {(hostname || hasBadges) && (
                                     <div className="text-[9px] text-gray-500 truncate leading-none mt-px">
                                         {hostname && <span>{renderHighlightedText(hostname, activeQuery)}</span>}
-                                        {INDICATOR_LEGEND.map(({ key, icon, ariaPrefix }) => {
+                                        {INDICATOR_LEGEND.map(({ key, icon, ariaPrefix, className }) => {
                                             const value = badges[key];
                                             if (value === undefined) {
                                                 return null;
@@ -234,7 +237,7 @@ function TabList({ presenter }: TabListProps) {
                                             return (
                                                 <span
                                                     key={key}
-                                                    className={`ml-1 ${key === 'current' ? 'text-cyan-300' : ''}`}
+                                                    className={`ml-1 ${className}`}
                                                     aria-label={indicator.label}
                                                 >
                                                     {indicator.text}
