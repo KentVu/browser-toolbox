@@ -49,6 +49,19 @@ Use this file as the fast-start operating guide for coding agents.
 - Write or update tests in `test/**` with `*.test.ts` or `*.test.tsx` naming.
 - For Preact UI tests, use Testing Library patterns already present in `test/unit/popup.test.tsx` (`@testing-library/preact`).
 - Obey TDD rules, write tests first, minimal production code later, refactor when green.
+- Commit behavior changes with the git scheme below. Full steps: [.github/instructions/tdd-git.instructions.md](.github/instructions/tdd-git.instructions.md).
+
+## Git scheme
+
+For a behavior change:
+
+1. Branch from the default branch. Do not commit the work directly on it.
+2. `[red]` failing tests. Push that commit and open a pull request into the default branch so GitHub Actions runs. Wait until the failing result is recorded on the pull request before continuing. That failure is expected.
+3. `[green]` the code that makes the tests pass, then `[refactor]` cleanup while they stay green. Push each commit to the same pull request.
+4. Merge back with `git merge --no-ff` so the default branch gets a merge commit that lists those steps.
+5. Push the feature branch and the default branch without rewriting history.
+
+Do not squash, rebase, or force-push this history away. Leave the pull request and its red check on GitHub.
 
 ## Multi-Browser Notes
 - Chrome and Firefox builds use separate Vite configs and manifests.
