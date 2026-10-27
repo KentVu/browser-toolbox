@@ -1,3 +1,6 @@
+import type { BrowserApi } from '@src/lib/Browser';
+import { Browser } from '@src/lib/Browser';
+
 const HINT_KEYS = 'asdfghjklqwertyuiopzxcvbnm';
 const CLICKABLE_SELECTOR = [
   'a[href]',
@@ -26,7 +29,10 @@ export class VimMode {
   private statusButton: HTMLButtonElement | undefined;
   private hints: Hint[] = [];
 
-  constructor(private readonly page: Document) {}
+  constructor(
+    private readonly page: Document,
+    private readonly browser: BrowserApi = Browser,
+  ) {}
 
   enable(): void {
     if (!this.active) {
@@ -138,7 +144,7 @@ export class VimMode {
       return;
     }
     this.statusButton.textContent = this.hintsVisible
-      ? 'Vim mode · type a hint + Enter · Esc to hide'
+      ? 'Vim mode · type a hint + Enter or Ctrl-C · Esc to hide'
       : 'Vim mode ON · f for links · click to turn off';
   }
 
@@ -180,8 +186,21 @@ export class VimMode {
     if (event.key === 'Enter') {
       event.preventDefault();
       event.stopPropagation();
-      this.hints.find(hint => hint.label === this.typedLabel)?.element.click();
+      this.selectedHint()?.element.click();
       this.hideHints();
+      return;
+    }
+    if (this.isCopyShortcut(event)) {
+      const selected = this.selectedHint();
+      if (!selected) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const text = this.textToCopy(selected.element);
+      if (text) {
+        void this.browser.clipboard.writeText(text).catch(() => undefined);
+      }
       return;
     }
     if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) {
@@ -199,6 +218,25 @@ export class VimMode {
       hint.badge.style.opacity = hint.label.startsWith(this.typedLabel) ? '1' : '0.35';
     }
   };
+
+  private selectedHint(): Hint | undefined {
+    if (!this.typedLabel) {
+      return undefined;
+    }
+    return this.hints.find(hint => hint.label === this.typedLabel);
+  }
+
+  private isCopyShortcut(event: KeyboardEvent): boolean {
+    return event.key.toLowerCase() === 'c' && event.ctrlKey && !event.metaKey && !event.altKey;
+  }
+
+  private textToCopy(element: HTMLElement): string {
+    const view = this.page.defaultView;
+    if (view && element instanceof view.HTMLAnchorElement) {
+      return element.href;
+    }
+    return (element.textContent ?? '').trim();
+  }
 
   private isEditable(target: EventTarget | null): boolean {
     if (!(target instanceof this.page.defaultView!.HTMLElement)) {
