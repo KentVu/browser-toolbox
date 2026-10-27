@@ -185,8 +185,7 @@ export class VimMode {
       if (this.isPlainKey(event, 'u') || this.isPlainKey(event, 'd')) {
         event.preventDefault();
         event.stopPropagation();
-        const distance = (this.page.defaultView?.innerHeight ?? 0) / 2;
-        this.page.defaultView?.scrollBy(0, event.key.toLowerCase() === 'd' ? distance : -distance);
+        this.scrollHalfPage(event.key.toLowerCase() === 'd');
       }
       return;
     }
@@ -231,6 +230,15 @@ export class VimMode {
       return undefined;
     }
     return this.hints.find(hint => hint.label === this.typedLabel);
+  }
+
+  private scrollHalfPage(down: boolean): void {
+    const view = this.page.defaultView;
+    if (!view) {
+      return;
+    }
+    const distance = view.innerHeight / 2;
+    view.scrollBy(0, down ? distance : -distance);
   }
 
   private isPlainKey(event: KeyboardEvent, key: string): boolean {
