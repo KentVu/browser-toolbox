@@ -39,8 +39,8 @@ export class VimMode {
       this.active = true;
       this.createOverlay();
       this.page.addEventListener('keydown', this.onKeyDown, true);
+      this.updateStatus();
     }
-    this.showHints();
   }
 
   toggle(): boolean {
@@ -145,7 +145,7 @@ export class VimMode {
     }
     this.statusButton.textContent = this.hintsVisible
       ? 'Vim mode · type a hint + Enter or Ctrl-C · Esc to hide'
-      : 'Vim mode ON · f for links · click to turn off';
+      : 'Vim mode ON · u/d half a page · f for links · click to turn off';
   }
 
   private updateHintPositions = (): void => {
@@ -177,9 +177,16 @@ export class VimMode {
       return;
     }
     if (!this.hintsVisible) {
-      if (event.key.toLowerCase() === 'f' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (this.isPlainKey(event, 'f')) {
         event.preventDefault();
         this.showHints();
+        return;
+      }
+      if (this.isPlainKey(event, 'u') || this.isPlainKey(event, 'd')) {
+        event.preventDefault();
+        event.stopPropagation();
+        const distance = (this.page.defaultView?.innerHeight ?? 0) / 2;
+        this.page.defaultView?.scrollBy(0, event.key.toLowerCase() === 'd' ? distance : -distance);
       }
       return;
     }
@@ -224,6 +231,10 @@ export class VimMode {
       return undefined;
     }
     return this.hints.find(hint => hint.label === this.typedLabel);
+  }
+
+  private isPlainKey(event: KeyboardEvent, key: string): boolean {
+    return event.key.toLowerCase() === key && !event.ctrlKey && !event.metaKey && !event.altKey;
   }
 
   private isCopyShortcut(event: KeyboardEvent): boolean {

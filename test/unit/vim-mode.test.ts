@@ -3,6 +3,7 @@ import { VimMode } from '@pages/content/VimMode';
 import { createMockBrowserApi } from './MockBrowser';
 
 afterEach(() => {
+  vi.restoreAllMocks();
   document.body.replaceChildren();
   document.querySelectorAll('html > div').forEach(element => {
     if (element.shadowRoot) {
