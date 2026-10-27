@@ -16,6 +16,30 @@ describe('ChromeAPI', () => {
       ]);
     });
 
+    describe('get', () => {
+      const originalChrome = (globalThis as any).chrome;
+
+      afterEach(() => {
+        (globalThis as any).chrome = originalChrome;
+      });
+
+      it('copies whether each tab is active in its window', async () => {
+        const query = vi.fn().mockResolvedValue([
+          { id: 1, windowId: 10, title: 'Here', url: 'https://here.example/', active: true, lastAccessed: 2, favIconUrl: 'https://here.example/favicon.ico' },
+          { id: 2, windowId: 20, title: 'There', url: 'https://there.example/', active: false },
+        ]);
+        (globalThis as any).chrome = { tabs: { query } };
+
+        const tabs = await Chrome.tabs.get();
+
+        expect(query).toHaveBeenCalledWith({});
+        expect(tabs).toEqual([
+          expect.objectContaining({ id: 1, windowId: 10, title: 'Here', active: true, icon: 'https://here.example/favicon.ico' }),
+          expect.objectContaining({ id: 2, windowId: 20, title: 'There', active: false }),
+        ]);
+      });
+    });
+
     describe('activate', () => {
       const originalChrome = (globalThis as any).chrome;
 
