@@ -118,4 +118,58 @@ describe('VimMode', () => {
     expect(host.shadowRoot?.querySelector('#status')?.textContent).toContain('Vim mode ON');
     expect(host.shadowRoot?.querySelector('.hint')).toBeNull();
   });
+
+  it('scrolls down half a page when d is pressed with hints hidden', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(0, 400);
+    const host = document.querySelector('html > div') as HTMLDivElement;
+    expect(host.shadowRoot?.querySelector('#status')?.textContent).toContain('half a page');
+  });
+
+  it('scrolls up half a page when u is pressed with hints hidden', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'u', bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(0, -400);
+  });
+
+  it('does not scroll when d types a hint', () => {
+    const link = visibleElement('a');
+    link.href = '#destination';
+    document.body.appendChild(link);
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true }));
+
+    expect(scrollBy).not.toHaveBeenCalled();
+    const host = document.querySelector('html > div') as HTMLDivElement;
+    expect(host.shadowRoot?.querySelector('.hint')?.textContent).toBe('a');
+  });
+
+  it('does not scroll when d is pressed in an editable field', () => {
+    const input = visibleElement('input');
+    document.body.appendChild(input);
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true }));
+
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
 });

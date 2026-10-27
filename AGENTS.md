@@ -74,3 +74,8 @@ Do not squash, rebase, or force-push this history away. Leave the pull request a
 - Keep changes minimal and focused; avoid repo-wide churn.
 - If you touch behavior, add or update tests in `test/**` when practical.
 - Prefer updating source files under `src/**`; avoid editing generated assets.
+
+<!-- mermaid-ai-skills:start -->
+## Mermaid Diagrams
+When the user asks to create, edit, or visualize a diagram, follow the instructions in [.github/instructions/mermaid.instructions.md](.github/instructions/mermaid.instructions.md).
+<!-- mermaid-ai-skills:end -->
