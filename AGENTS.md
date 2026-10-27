@@ -69,6 +69,14 @@ Do not squash, rebase, or force-push this history away. Leave the pull request a
 - Chrome and Firefox builds use separate Vite configs and manifests.
 - Keep browser-specific behavior isolated and avoid assumptions that Chrome-only APIs behave identically in Firefox.
 
+## Popup tab indicators
+
+The tab list lives in [src/pages/popup/TabList.tsx](src/pages/popup/TabList.tsx). Badges come from `getTabBadges` and the footer legend from `INDICATOR_LEGEND` (only entries visible on the current page).
+
+- **Current tab** (focused window): `ChromeTabApi.getCurrent()` in [src/lib/Chrome.ts](src/lib/Chrome.ts) queries `{ active: true, lastFocusedWindow: true }`. [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts) stores that tab’s `id` as `currentTabId` and its `windowId` as `currentWindowId`. The matching row gets a bright cyan `●` (`text-cyan-300`, aria-label `Current tab`), `aria-current="true"`, and the `.current` inset bar in [src/pages/popup/index.css](src/pages/popup/index.css). Legend: `● current`. It is emphasized, not selected, by default.
+- **Other windows:** every tab whose `windowId` differs from `currentWindowId` gets `🪟N` (`Window N`), numbered from sorted window ids on the visible page. That marks the whole window, not its active tab. Legend: `🪟 other window`.
+- **Active in another window:** Chrome’s `tab.active` means “active in its own window” (one per window). [src/lib/Tab.ts](src/lib/Tab.ts) stores it, and `DefaultTabs.toTab()` copies it. When `tab.active` is set and `tab.windowId !== currentWindowId`, the row shows the same `●` dimmed (`text-cyan-300/40`, aria-label `Active in other window`). Legend: `● active elsewhere`. Inactive tabs in that window stay unmarked. The bright `●` stays exclusive to `currentTabId`. Popup tests pass `Tab` objects through `createMockChromeApi` and do not hit `toTab`; the mapping is covered in [test/unit/Chrome.test.ts](test/unit/Chrome.test.ts).
+
 ## Known Pitfalls
 - i18n support exists but is currently disabled by default (`localize = false` in `vite.config.base.ts`).
 
