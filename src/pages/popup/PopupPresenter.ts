@@ -129,6 +129,7 @@ class SearchKeyMode implements PopupKeyMode {
       escape: () => this.exitSearch(),
       'ctrl+w': () => this.clearSearchQuery(),
       'ctrl+backspace': () => this.clearSearchQuery(),
+      'ctrl+v': () => this.pasteSearchQuery(),
       backspace: () => this.deleteSearchChar(),
     };
   }
@@ -223,8 +224,27 @@ class SearchKeyMode implements PopupKeyMode {
   }
 
   private async appendSearchChar(key: string): Promise<void> {
+    await this.appendSearchText(key);
+  }
+
+  private async pasteSearchQuery(): Promise<void> {
+    let pastedText: string;
+    try {
+      pastedText = await this.host.browser.clipboard.readText();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.host.setState({ errorMessage: `Unable to paste search query: ${detail}` });
+      return;
+    }
+
+    if (pastedText.length > 0) {
+      await this.appendSearchText(pastedText);
+    }
+  }
+
+  private async appendSearchText(text: string): Promise<void> {
     const s = this.host.s();
-    const searchQuery = (s.searchQuery ?? '') + key;
+    const searchQuery = (s.searchQuery ?? '') + text;
     const match = findTabMatch(s.tabList, searchQuery);
     this.host.selectSearchMatch(match, {
       searchQuery,
