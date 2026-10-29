@@ -3,6 +3,7 @@ import { useRef } from 'preact/hooks';
 import { Tab } from '@src/lib/Tab';
 import { hostnameOf, urlWithoutFragment } from '@src/lib/Util';
 import {
+    findTabMatch,
     pageCount as countPages,
     TabManagementPresenter,
     visibleTabs,
@@ -158,6 +159,7 @@ function TabList({ presenter }: TabListProps) {
     const splitViewLabels = getSplitViewLabels(tabList);
     const windowLabels = getWindowLabels(tabList);
     const duplicateLabels = getDuplicateLabels(allTabs);
+    const searchHasNoMatches = Boolean(searchQuery) && findTabMatch(allTabs, searchQuery) === undefined;
     const listRef = useRef<HTMLUListElement>(null);
     const tabBadges = tabList.map(tab => getTabBadges(
         tab,
@@ -260,9 +262,14 @@ function TabList({ presenter }: TabListProps) {
                 )}
                 {searchQuery !== undefined && (
                     <>
-                        <div aria-label="Search" className="mb-1 font-mono text-cyan-200">
+                        <div aria-label="Search" className={`mb-1 font-mono ${searchHasNoMatches ? 'text-amber-300' : 'text-cyan-200'}`}>
                             /{searchQuery}
                         </div>
+                        {searchHasNoMatches && (
+                            <div role="status" aria-label="No search matches" className="mb-1 font-mono text-amber-300">
+                                no matches
+                            </div>
+                        )}
                         <div aria-label="Search shortcuts" className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-gray-400">
                             <span><kbd className={keyLabelClass}>Esc</kbd> exit</span>
                             <span><kbd className={keyLabelClass}>Enter</kbd> {searchQuery === '' && lastSearchQuery ? 'last' : 'keep'}</span>
