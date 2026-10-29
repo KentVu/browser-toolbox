@@ -1136,6 +1136,41 @@ describe('Popup', () => {
         expect(chrome.tabs.close).not.toHaveBeenCalled();
       });
 
+      it('pastes clipboard text into the search query with Ctrl-V', async () => {
+        setup(searchTabs, searchTabs[0]);
+        vi.mocked(browser.clipboard.readText).mockResolvedValue('game');
+
+        await renderAndWaitForTitle(presenter, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        const pasteEvent = createEvent.keyDown(document, { key: 'v', ctrlKey: true });
+        fireEvent(document, pasteEvent);
+
+        await waitFor(() => {
+          expect(screen.getByLabelText('Search').textContent).toBe('/game');
+          expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        });
+        expect(pasteEvent.defaultPrevented).toBe(true);
+        expect(browser.clipboard.readText).toHaveBeenCalledOnce();
+        expect(chrome.tabs.updateUrl).not.toHaveBeenCalled();
+      });
+
+      it('shows an error when clipboard text cannot be read in search mode', async () => {
+        setup(searchTabs, searchTabs[0]);
+        vi.mocked(browser.clipboard.readText).mockRejectedValue(new Error('Clipboard unavailable'));
+
+        await renderAndWaitForTitle(presenter, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
+
+        expect(await screen.findByRole('alert')).toHaveProperty(
+          'textContent',
+          'Unable to paste search query: Clipboard unavailable',
+        );
+        expect(presenter.s().searchQuery).toBe('');
+      });
+
       it('does not close a tab when Ctrl-W is pressed on an empty search query', async () => {
         setup(searchTabs, searchTabs[0]);
 
