@@ -279,6 +279,7 @@ function TabList({ presenter }: TabListProps) {
                             <span><kbd className={keyLabelClass}>Esc</kbd> exit</span>
                             <span><kbd className={keyLabelClass}>Enter</kbd> {searchQuery === '' && lastSearchQuery ? 'last' : 'keep'}</span>
                             <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Enter</kbd> activate</span>
+                            <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>V</kbd> paste</span>
                             <span><kbd className={keyLabelClass}>Backspace</kbd> delete</span>
                             <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>W</kbd> / <kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Backspace</kbd> clear</span>
                         </div>
