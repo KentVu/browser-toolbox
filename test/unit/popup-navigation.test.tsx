@@ -114,4 +114,36 @@ describe('Popup navigation', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('Storage unavailable');
   });
+
+  it('does not override Home navigation when the default mode loads late', async () => {
+    let resolveDefaultMode!: (mode: string) => void;
+    const defaultMode = new Promise<string>(resolve => {
+      resolveDefaultMode = resolve;
+    });
+    const chrome = createMockChromeApi([{
+      id: 1,
+      title: 'Docs',
+      url: 'https://docs.example.com',
+      lastAccessed: 1000,
+    }]);
+    const originalGetLocal = chrome.storage.getLocal.bind(chrome.storage);
+    chrome.storage.getLocal = async <T,>(key: string): Promise<T | undefined> => {
+      if (key === 'defaultMode') {
+        return await defaultMode as T;
+      }
+      return originalGetLocal<T>(key);
+    };
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    const initialLoad = presenter.ensureTabListLoaded();
+    render(<Popup presenter={presenter} />);
+    fireEvent.keyDown(document, { key: 'u' });
+    await screen.findByRole('button', { name: /Tab Management/ });
+
+    resolveDefaultMode('tabManagement');
+    await initialLoad;
+
+    expect(presenter.navigation().page).toBe('home');
+    expect(screen.getByRole('button', { name: /Settings/ })).toBeTruthy();
+  });
 });
