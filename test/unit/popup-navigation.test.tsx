@@ -18,13 +18,18 @@ describe('Popup navigation', () => {
       url: `https://example.com/${index + 1}`,
       lastAccessed: 1000 - index,
     }));
-    const presenter = new PopupPresenter(createMockChromeApi(tabs), createMockBrowserApi());
+    const chrome = createMockChromeApi(tabs);
+    await chrome.storage.setLocal('defaultMode', 'tabManagement');
+    const getLocal = vi.spyOn(chrome.storage, 'getLocal');
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
 
     await presenter.ensureTabListLoaded();
     render(<Popup presenter={presenter} />);
     await screen.findByText('TAB LIST');
 
     expect(screen.getByText('Tab management')).toBeTruthy();
+    expect(presenter.navigation().page).toBe('tabManagement');
+    expect(getLocal).toHaveBeenCalledWith('defaultMode');
     expect(shortcutKeys).not.toContain('u');
     expect([...presenter.s().tabKeyMap.values()]).not.toContain('u');
   });
@@ -44,7 +49,7 @@ describe('Popup navigation', () => {
 
     fireEvent.keyDown(document, { key: 'u' });
 
-    await screen.findByRole('button', { name: '1 Tab Management' });
+    await screen.findByRole('button', { name: /Tab Management/ });
     expect(screen.getByRole('button', { name: '2 Settings' })).toBeTruthy();
 
     fireEvent.keyDown(document, { key: '1' });
@@ -55,7 +60,12 @@ describe('Popup navigation', () => {
     fireEvent.keyDown(document, { key: '2' });
 
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeTruthy();
-    expect(screen.getByRole('combobox', { name: 'Default mode' })).toBeTruthy();
+    const defaultMode = screen.getByRole('combobox', { name: 'Default mode' });
+
+    fireEvent.keyDown(defaultMode, { key: 'u', bubbles: true });
+    const settingsButton = await screen.findByRole('button', { name: /Settings/ });
+    fireEvent.click(settingsButton);
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeTruthy();
   });
 
   it('loads the default mode preference and persists a Settings change', async () => {
@@ -80,5 +90,28 @@ describe('Popup navigation', () => {
     fireEvent.change(defaultMode, { target: { value: 'tabManagement' } });
 
     expect(setLocal).toHaveBeenCalledWith('defaultMode', 'tabManagement');
+  });
+
+  it('reports a failed default mode save in Settings', async () => {
+    const chrome = createMockChromeApi([{
+      id: 1,
+      title: 'Docs',
+      url: 'https://docs.example.com',
+      lastAccessed: 1000,
+    }]);
+    vi.spyOn(chrome.storage, 'setLocal').mockRejectedValue(new Error('Storage unavailable'));
+    const presenter = new PopupPresenter(chrome, createMockBrowserApi());
+
+    await presenter.ensureTabListLoaded();
+    render(<Popup presenter={presenter} />);
+    await screen.findByText('TAB LIST');
+    fireEvent.keyDown(document, { key: 'u' });
+    await screen.findByRole('button', { name: /Settings/ });
+    fireEvent.keyDown(document, { key: '2' });
+
+    const defaultMode = await screen.findByRole('combobox', { name: 'Default mode' }) as HTMLSelectElement;
+    fireEvent.change(defaultMode, { target: { value: 'tabManagement' } });
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Storage unavailable');
   });
 });
