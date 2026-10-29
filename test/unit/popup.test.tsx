@@ -999,6 +999,7 @@ describe('Popup', () => {
         expect(shortcuts.textContent).toContain('Enter');
         expect(shortcuts.textContent).toContain('keep');
         expect(shortcuts.textContent).toContain('Ctrl');
+        expect(shortcuts.textContent).toContain('paste');
         expect(shortcuts.textContent).toContain('Backspace');
         expect(shortcuts.textContent).toContain('clear');
       });
