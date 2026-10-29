@@ -1,10 +1,15 @@
-import { useEffect, useRef } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
+import { useRef } from 'preact/hooks';
 import { Tab } from '@src/lib/Tab';
 import { hostnameOf, urlWithoutFragment } from '@src/lib/Util';
-import { pageCount as countPages, PopupPresenter, visibleTabs } from './PopupPresenter';
+import {
+    pageCount as countPages,
+    TabManagementPresenter,
+    visibleTabs,
+} from './TabManagementPresenter';
 
 interface TabListProps {
-    presenter: PopupPresenter;
+    presenter: TabManagementPresenter;
 }
 
 const keyLabelClass = 'rounded border border-cyan-400/60 bg-cyan-400/10 px-1 font-mono font-semibold text-cyan-200';
@@ -115,7 +120,7 @@ function getLegendItems(badgesList: TabBadges[]) {
         .map(({ icon, label }) => ({ icon, label }));
 }
 
-function renderHighlightedText(text: string, searchQuery: string | undefined): React.ReactNode {
+function renderHighlightedText(text: string, searchQuery: string | undefined): ComponentChildren {
     if (!searchQuery) {
         return text;
     }
@@ -163,23 +168,6 @@ function TabList({ presenter }: TabListProps) {
         duplicateLabels,
     ));
     const legendItems = getLegendItems(tabBadges);
-
-    useEffect(() => {
-        function handleKeyDown(e: KeyboardEvent) {
-            const pressed = e.key.toLowerCase();
-            const key = e.ctrlKey ? `ctrl+${pressed}` : e.shiftKey ? e.key : pressed;
-            const { showHelp, searchQuery } = presenter.s();
-            if (pressed === 'escape' && (showHelp || searchQuery !== undefined)) {
-                e.preventDefault();
-            }
-            if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v' || key === 'ctrl+backspace') {
-                e.preventDefault();
-            }
-            void presenter.onKeyPress(key);
-        }
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [presenter]);
 
     return (
         <div className="w-full mt-2">
@@ -299,6 +287,9 @@ function TabList({ presenter }: TabListProps) {
                     </div>
                 )}
                 <div className="flex items-center gap-3">
+                    <div aria-label="Up one level">
+                        <kbd className={keyLabelClass}>u</kbd> Up 1 level
+                    </div>
                     <div aria-label="Toggle shortcut help">
                         <kbd className={keyLabelClass}>?</kbd> shortcuts
                     </div>
@@ -327,6 +318,7 @@ function TabList({ presenter }: TabListProps) {
                             </div>
                         </div>
                         <ul className="list-disc list-inside space-y-1 text-[9px] text-gray-400">
+                            <li><kbd className={keyLabelClass}>u</kbd>: Up 1 level to Home</li>
                             <li><kbd className={keyLabelClass}>/</kbd>: Enter search mode</li>
                             <li><kbd className={keyLabelClass}>n</kbd>: Jump to next search match</li>
                             <li><kbd className={keyLabelClass}>j</kbd>/<kbd className={keyLabelClass}>k</kbd> or <kbd className={keyLabelClass}>↓</kbd>/<kbd className={keyLabelClass}>↑</kbd>: Move selection down/up (pages at edges)</li>

@@ -18,9 +18,11 @@ Chrome `tabs` / `storage` latency is separate; step 4 overlaps that with paint.
 
 ## Constraints
 
-- [PopupPresenter](src/pages/popup/PopupPresenter.ts) owns popup state.
-  Tests call `s()` / `setState()` / `onKeyPress()` without mounting UI.
-  Do **not** move source of truth into view `useState`.
+- [PopupPresenter](src/pages/popup/PopupPresenter.ts) owns popup routing.
+  [TabManagementPresenter](src/pages/popup/TabManagementPresenter.ts) owns
+  tab-list state and actions; [SettingsPresenter](src/pages/popup/SettingsPresenter.ts)
+  owns the persisted default-mode preference. Keep source of truth in
+  presenters, not view `useState`.
 - Zustand is only a subscription bus (`getState` / `setState` / selector
   hooks). `combine` / `ExtractState` / `usePopupStore` are unused leftovers.
 - Zustand imports `react`, so keeping it would force `preact/compat`.

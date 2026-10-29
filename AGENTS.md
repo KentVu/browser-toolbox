@@ -12,7 +12,7 @@ Use this file as the fast-start operating guide for coding agents.
 ## Preferred Stack and Active Tooling
 - Language: TypeScript for new application code.
 - UI: Preact function components under `src/pages` (`jsxImportSource`: `preact`).
-- Popup state: presenter-owned snapshot + `useSyncExternalStore` in [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts). Do not add Zustand or `preact/compat`.
+- Popup navigation: [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts) routes Home, Tab Management, and Settings. Mode state belongs to [src/pages/popup/TabManagementPresenter.ts](src/pages/popup/TabManagementPresenter.ts) and [src/pages/popup/SettingsPresenter.ts](src/pages/popup/SettingsPresenter.ts), using presenter-owned snapshots and subscriptions. Do not add Zustand or `preact/compat`.
 - Build: Vite configs (`vite.config.chrome.ts`, `vite.config.firefox.ts`, shared `vite.config.base.ts`).
 - Test runner: Vitest (`vitest.config.ts`).
 
@@ -76,6 +76,12 @@ The tab list lives in [src/pages/popup/TabList.tsx](src/pages/popup/TabList.tsx)
 - **Current tab** (focused window): `ChromeTabApi.getCurrent()` in [src/lib/Chrome.ts](src/lib/Chrome.ts) queries `{ active: true, lastFocusedWindow: true }`. [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts) stores that tab’s `id` as `currentTabId` and its `windowId` as `currentWindowId`. The matching row gets a bright cyan `●` (`text-cyan-300`, aria-label `Current tab`), `aria-current="true"`, and the `.current` inset bar in [src/pages/popup/index.css](src/pages/popup/index.css). Legend: `● current`. It is emphasized, not selected, by default.
 - **Other windows:** every tab whose `windowId` differs from `currentWindowId` gets `🪟N` (`Window N`), numbered from sorted window ids on the visible page. That marks the whole window, not its active tab. Legend: `🪟 other window`.
 - **Active in another window:** Chrome’s `tab.active` means “active in its own window” (one per window). [src/lib/Tab.ts](src/lib/Tab.ts) stores it, and `DefaultTabs.toTab()` copies it. When `tab.active` is set and `tab.windowId !== currentWindowId`, the row shows the same `●` dimmed (`text-cyan-300/40`, aria-label `Active in other window`) and an `active-elsewhere` inset bar at 40% of the current tab’s cyan (`rgb(34 211 238 / 0.4)` in [src/pages/popup/index.css](src/pages/popup/index.css)). Legend: `● active elsewhere`. Inactive tabs in that window stay unmarked. The bright `●` stays exclusive to `currentTabId`. Popup tests pass `Tab` objects through `createMockChromeApi` and do not hit `toTab`; the mapping is covered in [test/unit/Chrome.test.ts](test/unit/Chrome.test.ts).
+
+## Popup navigation
+
+- The popup opens in the persisted default mode (`defaultMode` in local extension storage), falling back to Tab Management. The in-popup Settings screen edits this preference.
+- Home lists available destinations: `1` for Tab Management and `2` for Settings. `u` returns from either destination to Home; it is reserved from tab-selection shortcuts. In search mode, `u` remains query text.
+- Keep routing in [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts); keep tab behavior in [src/pages/popup/TabManagementPresenter.ts](src/pages/popup/TabManagementPresenter.ts) and preference behavior in [src/pages/popup/SettingsPresenter.ts](src/pages/popup/SettingsPresenter.ts).
 
 ## Known Pitfalls
 - i18n support exists but is currently disabled by default (`localize = false` in `vite.config.base.ts`).
