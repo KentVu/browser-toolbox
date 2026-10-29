@@ -28,6 +28,7 @@ When working with several related tabs, he wants to bring them closely together,
 - [x] Subsequent `n` key jump to next match item and highlight the matched part.
 - [x] Highlight clears when another key changes selection; last search query is retained so `n` still works.
 - [x] Search should be case-insensitive.
+- [x] A non-empty query with no title or hostname hit shows `no matches` on the search indicator. An empty `/` does not.
 
 ## todo-search
 

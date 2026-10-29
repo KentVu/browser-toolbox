@@ -121,6 +121,11 @@ function getLegendItems(badgesList: TabBadges[]) {
         .map(({ icon, label }) => ({ icon, label }));
 }
 
+/** Empty prompts are not a failed search; only a non-empty query with no title or hostname hit. */
+function searchHasNoMatches(tabList: Tab[], searchQuery: string | undefined): boolean {
+    return Boolean(searchQuery) && findTabMatch(tabList, searchQuery) === undefined;
+}
+
 function renderHighlightedText(text: string, searchQuery: string | undefined): ComponentChildren {
     if (!searchQuery) {
         return text;
@@ -159,7 +164,7 @@ function TabList({ presenter }: TabListProps) {
     const splitViewLabels = getSplitViewLabels(tabList);
     const windowLabels = getWindowLabels(tabList);
     const duplicateLabels = getDuplicateLabels(allTabs);
-    const searchHasNoMatches = Boolean(searchQuery) && findTabMatch(allTabs, searchQuery) === undefined;
+    const queryHasNoMatches = searchHasNoMatches(allTabs, searchQuery);
     const listRef = useRef<HTMLUListElement>(null);
     const tabBadges = tabList.map(tab => getTabBadges(
         tab,
@@ -262,10 +267,10 @@ function TabList({ presenter }: TabListProps) {
                 )}
                 {searchQuery !== undefined && (
                     <>
-                        <div aria-label="Search" className={`mb-1 font-mono ${searchHasNoMatches ? 'text-amber-300' : 'text-cyan-200'}`}>
+                        <div aria-label="Search" className={`mb-1 font-mono ${queryHasNoMatches ? 'text-amber-300' : 'text-cyan-200'}`}>
                             /{searchQuery}
                         </div>
-                        {searchHasNoMatches && (
+                        {queryHasNoMatches && (
                             <div role="status" aria-label="No search matches" className="mb-1 font-mono text-amber-300">
                                 no matches
                             </div>
