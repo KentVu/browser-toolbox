@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Popup from '@pages/popup/Popup';
@@ -393,6 +395,45 @@ describe('Popup', () => {
       expect(previousItem.classList.contains('current')).toBe(false);
       expect(previousItem.classList.contains('selected')).toBe(true);
       expect(within(previousItem).queryByLabelText('Current tab')).toBeNull();
+    });
+
+    it('shows a dimmer indicator for a tab that is active in another window', async () => {
+      const here = { id: 1, title: 'Here', url: 'https://here.example.com/', lastAccessed: 3000, windowId: 10, active: true };
+      const there = { id: 2, title: 'There', url: 'https://there.example.com/', lastAccessed: 2000, windowId: 20, active: true };
+      const background = { id: 3, title: 'Background', url: 'https://bg.example.com/', lastAccessed: 1000, windowId: 20, active: false };
+      setup([here, there, background], here);
+
+      await renderAndWaitForTitle(presenter, 'Here');
+
+      const hereItem = (await screen.findByText('Here')).closest('li')!;
+      const thereItem = (await screen.findByText('There')).closest('li')!;
+      const backgroundItem = (await screen.findByText('Background')).closest('li')!;
+
+      const current = within(hereItem).getByLabelText('Current tab');
+      expect(current.textContent).toBe('●');
+      expect(current.classList.contains('text-cyan-300')).toBe(true);
+      expect(current.classList.contains('text-cyan-300/40')).toBe(false);
+      expect(hereItem.classList.contains('current')).toBe(true);
+      expect(hereItem.classList.contains('active-elsewhere')).toBe(false);
+      expect(within(hereItem).queryByLabelText('Active in other window')).toBeNull();
+
+      const elsewhere = within(thereItem).getByLabelText('Active in other window');
+      expect(elsewhere.textContent).toBe('●');
+      expect(elsewhere.classList.contains('text-cyan-300/40')).toBe(true);
+      expect(thereItem.classList.contains('current')).toBe(false);
+      expect(thereItem.classList.contains('active-elsewhere')).toBe(true);
+      expect(within(thereItem).queryByLabelText('Current tab')).toBeNull();
+      expect(within(thereItem).getByLabelText('Window 2').textContent).toBe('🪟2');
+
+      expect(within(backgroundItem).queryByLabelText('Active in other window')).toBeNull();
+      expect(within(backgroundItem).queryByLabelText('Current tab')).toBeNull();
+      expect(backgroundItem.classList.contains('active-elsewhere')).toBe(false);
+
+      expect(screen.getByLabelText('Indicator legend').textContent).toContain('● active elsewhere');
+
+      const popupCss = readFileSync(resolve('src/pages/popup/index.css'), 'utf8');
+      expect(popupCss).toMatch(/\.current\s*\{[^}]*box-shadow:\s*inset 3px 0 0 0 rgb\(34 211 238\);/);
+      expect(popupCss).toMatch(/\.active-elsewhere\s*\{[^}]*box-shadow:\s*inset 3px 0 0 0 rgb\(34 211 238 \/ 0\.4\);/);
     });
 
     it('keeps current emphasis when that tab is also selected', async () => {

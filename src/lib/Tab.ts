@@ -6,4 +6,6 @@ export interface Tab {
     lastAccessed?: number;
     icon?: string;
     splitViewId?: number;
+    /** Active in its own window. Each window has one active tab. */
+    active?: boolean;
 }
