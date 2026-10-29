@@ -38,6 +38,7 @@ export class PopupPresenter {
   private navigationState: PopupNavigationState = { page: DEFAULT_MODE };
   private readonly listeners = new Set<() => void>();
   private initialLoad?: Promise<void>;
+  private hasNavigated = false;
 
   constructor(chrome: ChromeApi, browser: BrowserApi) {
     this.tabManagementPresenter = new TabManagementPresenter(chrome, browser);
@@ -55,6 +56,11 @@ export class PopupPresenter {
     useSyncExternalStore(this.subscribe, this.navigation);
 
   openPage(page: PopupPage): void {
+    this.hasNavigated = true;
+    this.setPage(page);
+  }
+
+  private setPage(page: PopupPage): void {
     if (this.navigationState.page === page) {
       return;
     }
@@ -97,7 +103,9 @@ export class PopupPresenter {
         this.tabManagementPresenter.ensureTabListLoaded(),
         this.settingsPresenter.load(),
       ]).then(() => {
-        this.openPage(this.settingsPresenter.s().defaultMode);
+        if (!this.hasNavigated) {
+          this.setPage(this.settingsPresenter.s().defaultMode);
+        }
       });
     }
     return this.initialLoad;
