@@ -967,6 +967,32 @@ describe('Popup', () => {
         expect(indicator.textContent).toBe('/');
       });
 
+      it('shows a no-matches indicator when the search query matches nothing', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(presenter, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        expect(screen.queryByLabelText('No search matches')).toBeNull();
+
+        fireEvent.keyDown(document, { key: 'z' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/z');
+        expect(screen.getByLabelText('No search matches').textContent).toContain('no matches');
+
+        fireEvent.keyDown(document, { key: 'Backspace' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/');
+        expect(screen.queryByLabelText('No search matches')).toBeNull();
+
+        for (const key of ['g', 'a', 'm', 'e']) {
+          fireEvent.keyDown(document, { key });
+        }
+        expect(screen.queryByLabelText('No search matches')).toBeNull();
+
+        fireEvent.keyDown(document, { key: 'z' });
+        expect(screen.getByLabelText('Search').textContent).toBe('/gamez');
+        expect(screen.getByLabelText('No search matches').textContent).toContain('no matches');
+      });
+
       it('updates the indicator while typing, selects the first match, and highlights it', async () => {
         setup(searchTabs, searchTabs[0]);
 
