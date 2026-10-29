@@ -278,6 +278,7 @@ function TabList({ presenter }: TabListProps) {
                         <div aria-label="Search shortcuts" className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-gray-400">
                             <span><kbd className={keyLabelClass}>Esc</kbd> exit</span>
                             <span><kbd className={keyLabelClass}>Enter</kbd> {searchQuery === '' && lastSearchQuery ? 'last' : 'keep'}</span>
+                            <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>C</kbd> copy</span>
                             <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>Enter</kbd> activate</span>
                             <span><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>V</kbd> paste</span>
                             <span><kbd className={keyLabelClass}>Backspace</kbd> delete</span>

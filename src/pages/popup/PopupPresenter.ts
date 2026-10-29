@@ -128,6 +128,7 @@ class SearchKeyMode implements PopupKeyMode {
       'ctrl+enter': key => this.commitSearch(key),
       escape: () => this.exitSearch(),
       'ctrl+w': () => this.clearSearchQuery(),
+      'ctrl+c': () => this.copySearchQuery(),
       'ctrl+backspace': () => this.clearSearchQuery(),
       'ctrl+v': () => this.pasteSearchQuery(),
       backspace: () => this.deleteSearchChar(),
@@ -239,6 +240,20 @@ class SearchKeyMode implements PopupKeyMode {
 
     if (pastedText.length > 0) {
       await this.appendSearchText(pastedText);
+    }
+  }
+
+  private async copySearchQuery(): Promise<void> {
+    const query = this.host.s().searchQuery;
+    if (query === undefined) {
+      return;
+    }
+
+    try {
+      await this.host.browser.clipboard.writeText(query);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.host.setState({ errorMessage: `Unable to copy search query: ${detail}` });
     }
   }
 
