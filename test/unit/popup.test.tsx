@@ -1156,6 +1156,43 @@ describe('Popup', () => {
         expect(chrome.tabs.updateUrl).not.toHaveBeenCalled();
       });
 
+      it('copies the current search query with Ctrl-C', async () => {
+        setup(searchTabs, searchTabs[0]);
+
+        await renderAndWaitForTitle(presenter, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        for (const key of ['g', 'a', 'm', 'e']) {
+          fireEvent.keyDown(document, { key });
+        }
+        const copyEvent = createEvent.keyDown(document, { key: 'c', ctrlKey: true });
+        fireEvent(document, copyEvent);
+
+        await waitFor(() => {
+          expect(browser.clipboard.writeText).toHaveBeenCalledWith('game');
+        });
+        expect(copyEvent.defaultPrevented).toBe(true);
+        expect(presenter.s().searchQuery).toBe('game');
+        expect(chrome.tabs.close).not.toHaveBeenCalled();
+      });
+
+      it('shows an error when the search query cannot be copied', async () => {
+        setup(searchTabs, searchTabs[0]);
+        vi.mocked(browser.clipboard.writeText).mockRejectedValue(new Error('Clipboard unavailable'));
+
+        await renderAndWaitForTitle(presenter, 'React Docs');
+
+        fireEvent.keyDown(document, { key: '/' });
+        fireEvent.keyDown(document, { key: 'g' });
+        fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
+
+        expect(await screen.findByRole('alert')).toHaveProperty(
+          'textContent',
+          'Unable to copy search query: Clipboard unavailable',
+        );
+        expect(presenter.s().searchQuery).toBe('g');
+      });
+
       it('shows an error when clipboard text cannot be read in search mode', async () => {
         setup(searchTabs, searchTabs[0]);
         vi.mocked(browser.clipboard.readText).mockRejectedValue(new Error('Clipboard unavailable'));
