@@ -73,7 +73,7 @@ export function resolveShortcutAction(key: string): ShortcutAction | undefined {
   return shortcutActionByKey[key];
 }
 
-export class PopupState {
+export class TabManagementState {
   tabList: Tab[] = [];
   tabKeyMap: Map<number, string> = new Map();
   selectedTabId: number | undefined;
@@ -104,9 +104,10 @@ interface PopupKeyMode {
 
 /** Presenter operations shared by keyboard modes. ChromeApi stays private. */
 interface PopupKeyHost {
-  s(): PopupState;
-  setState(state: Partial<PopupState>): void;
-  selectSearchMatch(match: Tab | undefined, extra?: Partial<PopupState>): void;
+  s(): TabManagementState;
+  setState(state: Partial<TabManagementState>): void;
+  enterSearch(): void;
+  selectSearchMatch(match: Tab | undefined, extra?: Partial<TabManagementState>): void;
   fetchTabList(options?: { preservePage?: boolean }): Promise<void>;
   changePage(delta: number): void;
   moveSelection(delta: number): void;
@@ -315,7 +316,7 @@ class BrowseKeyMode implements PopupKeyMode {
   }
 
   private async enterSearch(): Promise<KeyResult> {
-    this.host.setState({ searchQuery: '', showHelp: false });
+    this.host.enterSearch();
     return 'handled';
   }
 
@@ -460,13 +461,13 @@ class BrowseKeyMode implements PopupKeyMode {
 /**
  * Business logic layer for the Tab Management mode.
  *
- * Mediates between Preact views and ChromeApi/BrowserApi: owns popup state
- * (tab list, selection, pagination, shortcut map), loads tabs, and delegates
- * keys to SearchKeyMode or BrowseKeyMode. Views subscribe via usePopupState
+ * Mediates between Preact views and ChromeApi/BrowserApi: owns tab-management
+ * state (tab list, selection, pagination, shortcut map), loads tabs, and delegates
+ * keys to SearchKeyMode or BrowseKeyMode. Views subscribe via useTabManagementState
  * and stay presentational.
  */
 export class TabManagementPresenter {
-  private state: PopupState = new PopupState();
+  private state: TabManagementState = new TabManagementState();
   private readonly listeners = new Set<() => void>();
   private initialLoad?: Promise<void>;
   private liveTabListLoaded = false;
@@ -480,6 +481,7 @@ export class TabManagementPresenter {
     const host: PopupKeyHost = {
       s: () => this.s(),
       setState: state => this.setState(state),
+      enterSearch: () => this.enterSearch(),
       selectSearchMatch: (match, extra) => this.selectSearchMatch(match, extra),
       fetchTabList: options => this.fetchTabList(options),
       changePage: delta => this.changePage(delta),
@@ -492,7 +494,7 @@ export class TabManagementPresenter {
     this.browseMode = new BrowseKeyMode(host);
   }
 
-  s = (): PopupState => this.state;
+  s = (): TabManagementState => this.state;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -501,11 +503,15 @@ export class TabManagementPresenter {
     };
   };
 
-  setState = (state: Partial<PopupState>) => {
+  enterSearch(): void {
+    this.setState({ searchQuery: '', showHelp: false });
+  }
+
+  setState = (state: Partial<TabManagementState>) => {
     const selectedChanged =
       'selectedTabId' in state
       && state.selectedTabId !== this.state.selectedTabId;
-    const next = Object.assign(new PopupState(), this.state, state);
+    const next = Object.assign(new TabManagementState(), this.state, state);
     // Close floating help whenever the selected tab actually changes.
     if (selectedChanged && state.showHelp === undefined) {
       next.showHelp = false;
@@ -516,7 +522,7 @@ export class TabManagementPresenter {
     }
   };
 
-  usePopupState = (): PopupState =>
+  useTabManagementState = (): TabManagementState =>
     useSyncExternalStore(this.subscribe, this.s);
 
   ensureTabListLoaded = (): Promise<void> => {
@@ -626,7 +632,7 @@ export class TabManagementPresenter {
    * Select a search match and switch to its page when needed.
    * Extra state (query/highlight) is merged in either case.
    */
-  selectSearchMatch(match: Tab | undefined, extra: Partial<PopupState> = {}): void {
+  selectSearchMatch(match: Tab | undefined, extra: Partial<TabManagementState> = {}): void {
     if (!match) {
       this.setState(extra);
       return;

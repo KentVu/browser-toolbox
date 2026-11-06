@@ -30,7 +30,7 @@ describe('Popup shortcut actions', () => {
       createMockChromeApi([tab]),
       createMockBrowserApi(),
     );
-    presenter.setState({ tabList: [tab], tabKeyMap: new Map([[tab.id, 'n']]) });
+    presenter.tabManagementPresenter.setState({ tabList: [tab], tabKeyMap: new Map([[tab.id, 'n']]) });
 
     await presenter.onKeyPress('n');
 

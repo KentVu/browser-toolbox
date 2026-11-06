@@ -4,7 +4,7 @@ import type { Tab } from '@src/lib/Tab';
 import { useEffect, useState } from 'preact/hooks';
 import {
   TabManagementPresenter,
-  type PopupState,
+  type TabManagementState,
 } from './TabManagementPresenter';
 import {
   DEFAULT_MODE,
@@ -14,7 +14,7 @@ import {
 
 export {
   LAST_TAB_LIST_KEY,
-  PopupState,
+  TabManagementState,
   findNextTabMatch,
   findTabMatch,
   genTabKeyMap,
@@ -71,7 +71,7 @@ export class PopupPresenter {
     if (this.s().searchQuery !== undefined) {
       return;
     }
-    this.setState({ searchQuery: '', showHelp: false });
+    this.tabManagementPresenter.enterSearch();
   }
 
   private setPage(page: PopupPage): void {
@@ -126,13 +126,9 @@ export class PopupPresenter {
     return this.initialLoad;
   };
 
-  s = (): PopupState => this.tabManagementPresenter.s();
+  s = (): TabManagementState => this.tabManagementPresenter.s();
 
-  setState = (state: Partial<PopupState>): void => {
-    this.tabManagementPresenter.setState(state);
-  };
-
-  usePopupState = (): PopupState => this.tabManagementPresenter.usePopupState();
+  useTabManagementState = (): TabManagementState => this.tabManagementPresenter.useTabManagementState();
 
   refreshVimModeState(): Promise<void> {
     return this.tabManagementPresenter.refreshVimModeState();
@@ -142,7 +138,7 @@ export class PopupPresenter {
     return this.tabManagementPresenter.fetchTabList(options);
   }
 
-  selectSearchMatch(match: Tab | undefined, extra?: Partial<PopupState>): void {
+  selectSearchMatch(match: Tab | undefined, extra?: Partial<TabManagementState>): void {
     this.tabManagementPresenter.selectSearchMatch(match, extra);
   }
 

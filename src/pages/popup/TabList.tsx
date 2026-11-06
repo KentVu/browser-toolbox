@@ -158,7 +158,7 @@ function TabList({ presenter }: TabListProps) {
         vimModeEnabled,
         pageIndex,
         tabListLoaded,
-    } = presenter.usePopupState();
+    } = presenter.useTabManagementState();
     const tabList = visibleTabs(allTabs, pageIndex);
     const pageCount = countPages(allTabs);
     const splitViewLabels = getSplitViewLabels(tabList);
