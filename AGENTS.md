@@ -80,6 +80,7 @@ The tab list lives in [src/pages/popup/TabList.tsx](src/pages/popup/TabList.tsx)
 ## Popup navigation
 
 - The popup opens in the persisted default mode (`defaultMode` in local extension storage), falling back to Tab Management. The in-popup Settings screen edits this preference.
+- Settings also stores `startInSearchMode`. When it is enabled, opening Tab Management starts in search mode with an empty query. If that preference loads late, search starts only while Tab Management is still the current page. Escape leaves search mode until Tab Management is opened again.
 - Home lists available destinations: `1` for Tab Management and `2` for Settings. `u` returns from either destination to Home; it is reserved from tab-selection shortcuts. In search mode, `u` remains query text.
 - Keep routing in [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts); keep tab behavior in [src/pages/popup/TabManagementPresenter.ts](src/pages/popup/TabManagementPresenter.ts) and preference behavior in [src/pages/popup/SettingsPresenter.ts](src/pages/popup/SettingsPresenter.ts).
 
