@@ -1,7 +1,7 @@
 import { useEffect } from 'preact/hooks';
 import Home from './Home';
 import Settings from './Settings';
-import { TabList } from './TabList';
+import { TabManagement } from './TabManagement';
 import { PopupPresenter } from './PopupPresenter';
 
 interface PopupProps {
@@ -43,7 +43,7 @@ export default function Popup({ presenter }: PopupProps) {
           <div className="mb-2 px-1 text-center">
             <p className="text-sm font-medium tracking-wide text-gray-200">Tab management</p>
           </div>
-          <TabList presenter={presenter.tabManagementPresenter} />
+          <TabManagement presenter={presenter.tabManagementPresenter} />
         </>
       )}
       {page === 'home' && <Home presenter={presenter} />}

@@ -9,7 +9,7 @@ import {
     visibleTabs,
 } from './TabManagementPresenter';
 
-interface TabListProps {
+interface TabManagementProps {
     presenter: TabManagementPresenter;
 }
 
@@ -143,7 +143,7 @@ function renderHighlightedText(text: string, searchQuery: string | undefined): C
     );
 }
 
-function TabList({ presenter }: TabListProps) {
+function TabManagement({ presenter }: TabManagementProps) {
     const {
         tabList: allTabs,
         tabKeyMap: keyMap,
@@ -356,4 +356,4 @@ function TabList({ presenter }: TabListProps) {
     );
 };
 
-export { TabList, TabListProps };
+export { TabManagement, TabManagementProps };

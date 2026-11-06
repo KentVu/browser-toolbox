@@ -1,11 +1,11 @@
 ---
 query: "Create this app's architecture diagram for changed files\r
 
-  @file:PopupPresenter.ts , @file:TabList.tsx @sym:Popup , @file:Chrome.ts "
+  @file:PopupPresenter.ts , @file:TabManagement.tsx @sym:Popup , @file:Chrome.ts "
 references:
   - "File: /src/pages/popup/Popup.tsx"
   - "File: /src/pages/popup/PopupPresenter.ts"
-  - "File: /src/pages/popup/TabList.tsx"
+  - "File: /src/pages/popup/TabManagement.tsx"
   - "File: /src/pages/popup/index.tsx"
 generationTime: 2026-09-08T05:10:09.952Z
 ---
@@ -17,14 +17,14 @@ architecture-beta
 
     service index(server)[Index Entry] in bootstrap
     service popup(server)[Popup View] in views
-    service tablist(server)[Tab List View] in views
+    service tabManagement(server)[Tab Management View] in views
     service presenter(server)[Popup Presenter] in logic
     service store(database)[Zustand Store] in logic
     service chromeapi(internet)[Chrome API] in external
 
-    popup:R -- L:tablist
+    popup:R -- L:tabManagement
     presenter:R -- L:store
 
     index{group}:R --> L:popup{group}
-    tablist{group}:R --> L:presenter{group}
+    tabManagement{group}:R --> L:presenter{group}
     presenter{group}:R --> L:chromeapi{group}
