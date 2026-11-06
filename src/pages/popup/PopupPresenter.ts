@@ -1,15 +1,10 @@
 import type { BrowserApi } from '@src/lib/Browser';
 import type { ChromeApi } from '@src/lib/Chrome';
-import type { Tab } from '@src/lib/Tab';
 import { useEffect, useState } from 'preact/hooks';
-import {
-  TabManagementPresenter,
-  type TabManagementState,
-} from './TabManagementPresenter';
+import { TabManagementPresenter } from './TabManagementPresenter';
 import {
   DEFAULT_MODE,
   SettingsPresenter,
-  type PopupMode,
 } from './SettingsPresenter';
 
 export {
@@ -68,7 +63,7 @@ export class PopupPresenter {
     if (this.navigationState.page !== 'tabManagement' || !this.settingsPresenter.s().startInSearchMode) {
       return;
     }
-    if (this.s().searchQuery !== undefined) {
+    if (this.tabManagementPresenter.s().searchQuery !== undefined) {
       return;
     }
     this.tabManagementPresenter.enterSearch();
@@ -93,7 +88,7 @@ export class PopupPresenter {
   async onKeyPress(key: string): Promise<void> {
     if (
       key === 'u'
-      && (this.navigationState.page !== 'tabManagement' || this.s().searchQuery === undefined)
+      && (this.navigationState.page !== 'tabManagement' || this.tabManagementPresenter.s().searchQuery === undefined)
     ) {
       this.goUpOneLevel();
       return;
@@ -125,38 +120,6 @@ export class PopupPresenter {
     }
     return this.initialLoad;
   };
-
-  s = (): TabManagementState => this.tabManagementPresenter.s();
-
-  useTabManagementState = (): TabManagementState => this.tabManagementPresenter.useTabManagementState();
-
-  refreshVimModeState(): Promise<void> {
-    return this.tabManagementPresenter.refreshVimModeState();
-  }
-
-  fetchTabList(options?: { preservePage?: boolean }): Promise<void> {
-    return this.tabManagementPresenter.fetchTabList(options);
-  }
-
-  selectSearchMatch(match: Tab | undefined, extra?: Partial<TabManagementState>): void {
-    this.tabManagementPresenter.selectSearchMatch(match, extra);
-  }
-
-  moveSelection(delta: number): void {
-    this.tabManagementPresenter.moveSelection(delta);
-  }
-
-  jumpToPageEdgeOrChangePage(edge: 'first' | 'last'): void {
-    this.tabManagementPresenter.jumpToPageEdgeOrChangePage(edge);
-  }
-
-  changePage(delta: number): void {
-    this.tabManagementPresenter.changePage(delta);
-  }
-
-  tabIdForKey(key: string): number | undefined {
-    return this.tabManagementPresenter.tabIdForKey(key);
-  }
 }
 
 function useSyncExternalStore<T>(

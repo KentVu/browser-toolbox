@@ -21,7 +21,7 @@ export default function Popup({ presenter }: PopupProps) {
       const pressed = event.key.toLowerCase();
       const key = event.ctrlKey ? `ctrl+${pressed}` : event.shiftKey ? event.key : pressed;
       if (page === 'tabManagement') {
-        const { showHelp, searchQuery } = presenter.s();
+        const { showHelp, searchQuery } = presenter.tabManagementPresenter.s();
         if (pressed === 'escape' && (showHelp || searchQuery !== undefined)) {
           event.preventDefault();
         }

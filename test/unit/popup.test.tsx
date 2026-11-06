@@ -34,7 +34,7 @@ describe('Popup shortcut actions', () => {
 
     await presenter.onKeyPress('n');
 
-    expect(presenter.s().selectedTabId).toBe(tab.id);
+    expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tab.id);
   });
 
   it('enables Vim mode on the active page and closes the popup', async () => {
@@ -45,7 +45,7 @@ describe('Popup shortcut actions', () => {
 
     expect(chrome.tabs.toggleVimMode).toHaveBeenCalledOnce();
     expect(chrome.closePopup).toHaveBeenCalledOnce();
-    expect(presenter.s().errorMessage).toBeUndefined();
+    expect(presenter.tabManagementPresenter.s().errorMessage).toBeUndefined();
   });
 
   it('shows an error and keeps the popup open when Vim mode cannot be enabled', async () => {
@@ -55,7 +55,7 @@ describe('Popup shortcut actions', () => {
 
     await presenter.onKeyPress('v');
 
-    expect(presenter.s().errorMessage).toContain('Restricted page');
+    expect(presenter.tabManagementPresenter.s().errorMessage).toContain('Restricted page');
     expect(chrome.closePopup).not.toHaveBeenCalled();
   });
 
@@ -65,11 +65,11 @@ describe('Popup shortcut actions', () => {
     render(<Popup presenter={presenter} />);
 
     expect(screen.getByLabelText('Vim mode state unavailable')).toBeTruthy();
-    await presenter.refreshVimModeState();
+    await presenter.tabManagementPresenter.refreshVimModeState();
     expect(screen.getByLabelText('Turn Vim mode on').textContent).toContain('turn Vim mode on');
 
     vi.mocked(chrome.tabs.getVimModeEnabled).mockResolvedValue(true);
-    await presenter.refreshVimModeState();
+    await presenter.tabManagementPresenter.refreshVimModeState();
     expect(screen.getByLabelText('Turn Vim mode off').textContent).toContain('turn Vim mode off');
   });
 
@@ -81,7 +81,7 @@ describe('Popup shortcut actions', () => {
     await Promise.all([presenter.ensureTabListLoaded(), presenter.ensureTabListLoaded()]);
 
     expect(chrome.tabs.getByLastAccessed).toHaveBeenCalledTimes(1);
-    expect(presenter.s().tabList).toEqual([tab]);
+    expect(presenter.tabManagementPresenter.s().tabList).toEqual([tab]);
   });
 
   it('paints the popup shell before the tab list resolves', async () => {
@@ -170,12 +170,12 @@ describe('Popup shortcut actions', () => {
     const presenter = new PopupPresenter(chrome, createMockBrowserApi());
 
     await presenter.ensureTabListLoaded();
-    expect(presenter.s().tabList).toEqual([liveTab]);
+    expect(presenter.tabManagementPresenter.s().tabList).toEqual([liveTab]);
 
     resolveCache({ tabList: [staleTab], currentTabId: staleTab.id });
     await cachePromise;
     await Promise.resolve();
-    expect(presenter.s().tabList).toEqual([liveTab]);
+    expect(presenter.tabManagementPresenter.s().tabList).toEqual([liveTab]);
   });
 });
 
@@ -203,7 +203,7 @@ describe('Popup', () => {
 
       // Most recent tab (higher lastAccessed) should be listed first
       const items = await screen.findAllByRole('listitem') as HTMLLIElement[];
-      const state = presenter.s();
+      const state = presenter.tabManagementPresenter.s();
       await expectTabItem(items[0], 'game', 'game.example.com', state.tabKeyMap.get(tabList[1].id)!, tabList[1].icon);
       await expectTabItem(items[1], 'Docs', 'docs.example.com', state.tabKeyMap.get(tabList[0].id)!, tabList[0].icon);
     });
@@ -336,7 +336,7 @@ describe('Popup', () => {
       setup();
 
       await renderAndWait(presenter);
-      const secondTabKey = presenter.s().tabKeyMap.get(tabList[1].id);
+      const secondTabKey = presenter.tabManagementPresenter.s().tabKeyMap.get(tabList[1].id);
       fireEvent.keyDown(document, { key: secondTabKey });
       const item = (await screen.findByText(tabList[1].title)).closest('li')!;
       expect(item.classList.contains('selected')).toBe(true);
@@ -348,10 +348,10 @@ describe('Popup', () => {
       await renderAndWaitForTitle(presenter, 'game');
 
       fireEvent.keyDown(document, { key: 'ArrowDown' });
-      expect(presenter.s().selectedTabId).toBe(tabList[0].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabList[0].id);
 
       fireEvent.keyDown(document, { key: 'ArrowUp' });
-      expect(presenter.s().selectedTabId).toBe(tabList[1].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabList[1].id);
     });
 
     it('selects a tab when its row is clicked', async () => {
@@ -362,7 +362,7 @@ describe('Popup', () => {
       const docsItem = (await screen.findByText(tabList[0].title)).closest('li')!;
       fireEvent.click(docsItem);
 
-      expect(presenter.s().selectedTabId).toBe(tabList[0].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabList[0].id);
       expect(chrome.tabs.activate).not.toHaveBeenCalled();
     });
 
@@ -373,7 +373,7 @@ describe('Popup', () => {
 
       await renderAndWait(presenter);
 
-      expect(presenter.s().selectedTabId).toBe(previousTab.id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(previousTab.id);
     });
 
     it('emphasizes the current tab without selecting it by default', async () => {
@@ -440,7 +440,7 @@ describe('Popup', () => {
       setup(tabList, tabList[1]);
 
       await renderAndWait(presenter);
-      fireEvent.keyDown(document, { key: presenter.s().tabKeyMap.get(tabList[1].id) });
+      fireEvent.keyDown(document, { key: presenter.tabManagementPresenter.s().tabKeyMap.get(tabList[1].id) });
 
       const currentItem = (await screen.findByText(tabList[1].title)).closest('li')!;
       expect(currentItem.classList.contains('current')).toBe(true);
@@ -517,42 +517,42 @@ describe('Popup', () => {
 
       await renderAndWaitForTitle(presenter, 'Tab 1');
       // Current is Tab 1 → previous (pre-selected) is Tab 2
-      expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
-      const tabKey = presenter.s().tabKeyMap.get(manyTabs[0].id)!;
+      const tabKey = presenter.tabManagementPresenter.s().tabKeyMap.get(manyTabs[0].id)!;
       fireEvent.keyDown(document, { key: tabKey });
-      expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[0].id);
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
       fireEvent.keyDown(document, { key: 'j' });
-      expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
       fireEvent.keyDown(document, { key: '.' });
-      expect(presenter.s().pageIndex).toBe(1);
+      expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
       fireEvent.keyDown(document, { key: ',' });
-      expect(presenter.s().pageIndex).toBe(0);
+      expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       expect(await screen.findByRole('dialog', { name: 'Shortcut help' })).toBeTruthy();
 
       fireEvent.keyDown(document, { key: '/' });
-      expect(presenter.s().searchQuery).toBe('');
+      expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
       expect(screen.queryByRole('dialog', { name: 'Shortcut help' })).toBeNull();
     });
 
@@ -560,7 +560,7 @@ describe('Popup', () => {
       setup();
 
       await renderAndWait(presenter);
-      const state = presenter.s();
+      const state = presenter.tabManagementPresenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[1].id)! });
       fireEvent.keyDown(document, { key: 'Enter' });
 
@@ -574,7 +574,7 @@ describe('Popup', () => {
       const closedTab = tabs[1]; // pre-selected: previously visited
 
       await renderAndWaitForTitle(presenter, 'Tab 1');
-      expect(presenter.s().selectedTabId).toBe(closedTab.id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(closedTab.id);
 
       fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
 
@@ -582,7 +582,7 @@ describe('Popup', () => {
       expect(chrome.closePopup).not.toHaveBeenCalled();
       await screen.findByText('Tab 3');
       expect(screen.queryByText(closedTab.title)).toBeNull();
-      expect(presenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
+      expect(presenter.tabManagementPresenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
     });
 
     it('closes the selected tab when x is pressed, same as Ctrl-W', async () => {
@@ -591,7 +591,7 @@ describe('Popup', () => {
       const closedTab = tabs[1];
 
       await renderAndWaitForTitle(presenter, 'Tab 1');
-      expect(presenter.s().selectedTabId).toBe(closedTab.id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(closedTab.id);
 
       fireEvent.keyDown(document, { key: 'x' });
 
@@ -599,7 +599,7 @@ describe('Popup', () => {
       expect(chrome.closePopup).not.toHaveBeenCalled();
       await screen.findByText('Tab 3');
       expect(screen.queryByText(closedTab.title)).toBeNull();
-      expect(presenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
+      expect(presenter.tabManagementPresenter.s().tabList.map(tab => tab.id)).toEqual([1, 3]);
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       const help = await screen.findByRole('dialog', { name: 'Shortcut help' });
@@ -614,20 +614,20 @@ describe('Popup', () => {
       await renderAndWaitForTitle(presenter, 'Tab 1');
 
       fireEvent.keyDown(document, { key: '.' });
-      expect(presenter.s().pageIndex).toBe(1);
+      expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
 
       // Selection is still on page 1; j selects the first item on the current page.
       fireEvent.keyDown(document, { key: 'j' });
       const closedTab = manyTabs[10];
-      expect(presenter.s().selectedTabId).toBe(closedTab.id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(closedTab.id);
 
       fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
 
       await waitFor(() => {
         expect(chrome.tabs.close).toHaveBeenCalledWith(closedTab.id);
-        expect(presenter.s().tabList).toHaveLength(14);
+        expect(presenter.tabManagementPresenter.s().tabList).toHaveLength(14);
       });
-      expect(presenter.s().pageIndex).toBe(1);
+      expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
       expect(screen.queryByText(closedTab.title)).toBeNull();
       expect(await screen.findByText('Tab 12')).toBeTruthy();
     });
@@ -637,7 +637,7 @@ describe('Popup', () => {
       setup(tabs, tabs[0]);
 
       await renderAndWaitForTitle(presenter, 'Tab 1');
-      expect(presenter.s().selectedTabId).toBe(tabs[1].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[1].id);
 
       fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
 
@@ -651,7 +651,7 @@ describe('Popup', () => {
       vi.mocked(browser.clipboard.readText).mockResolvedValue('https://pasted.example.com/page');
 
       await renderAndWaitForTitle(presenter, 'Tab 1');
-      expect(presenter.s().selectedTabId).toBe(tabs[1].id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[1].id);
 
       fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
 
@@ -707,7 +707,7 @@ describe('Popup', () => {
       setup(_tabList);
 
       await renderAndWait(presenter);
-      const state = presenter.s();
+      const state = presenter.tabManagementPresenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
 
       fireEvent.keyDown(document, { key: '}', shiftKey: true });
@@ -732,8 +732,8 @@ describe('Popup', () => {
       setup(tabList, currentTab);
 
       await renderAndWaitForTitle(presenter, 'game');
-      fireEvent.keyDown(document, { key: presenter.s().tabKeyMap.get(currentTab.id)! });
-      expect(presenter.s().selectedTabId).toBe(currentTab.id);
+      fireEvent.keyDown(document, { key: presenter.tabManagementPresenter.s().tabKeyMap.get(currentTab.id)! });
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(currentTab.id);
 
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
       const moveHelp = within(await screen.findByRole('dialog', { name: 'Shortcut help' }))
@@ -759,7 +759,7 @@ describe('Popup', () => {
       setup(tabList, currentTab);
 
       await renderAndWaitForTitle(presenter, 'game');
-      expect(presenter.s().selectedTabId).toBe(selectedTab.id);
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(selectedTab.id);
 
       fireEvent.keyDown(document, { key: '>' });
       await waitFor(() => {
@@ -784,7 +784,7 @@ describe('Popup', () => {
       setup(_tabList);
 
       await renderAndWait(presenter);
-      const state = presenter.s();
+      const state = presenter.tabManagementPresenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
       fireEvent.keyDown(document, { key: '!', shiftKey: true });
 
@@ -802,16 +802,16 @@ describe('Popup', () => {
         await renderAndWaitForTitle(presenter, 'Tab 1');
 
         // Current is Tab 1 → previous (pre-selected) is Tab 2
-        expect(presenter.s().selectedTabId).toBe(tabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[1].id);
 
         fireEvent.keyDown(document, { key: 'j' });
-        expect(presenter.s().selectedTabId).toBe(tabs[2].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[2].id);
 
         fireEvent.keyDown(document, { key: 'k' });
-        expect(presenter.s().selectedTabId).toBe(tabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[1].id);
 
         fireEvent.keyDown(document, { key: 'k' });
-        expect(presenter.s().selectedTabId).toBe(tabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[0].id);
       });
 
       it('clamps selection at the ends when there is no adjacent page', async () => {
@@ -822,14 +822,14 @@ describe('Popup', () => {
 
         fireEvent.keyDown(document, { key: 'k' }); // Tab 2 → Tab 1
         fireEvent.keyDown(document, { key: 'k' }); // already first page/item
-        expect(presenter.s().selectedTabId).toBe(tabs[0].id);
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[0].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
 
         fireEvent.keyDown(document, { key: 'j' });
         fireEvent.keyDown(document, { key: 'j' });
         fireEvent.keyDown(document, { key: 'j' }); // already last page/item
-        expect(presenter.s().selectedTabId).toBe(tabs[2].id);
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(tabs[2].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
       });
 
       it('jumps to page edges with J/K and changes page at the edge', async () => {
@@ -838,25 +838,25 @@ describe('Popup', () => {
 
         await renderAndWaitForTitle(presenter, 'Tab 1');
         // Current is Tab 1 → previous (pre-selected) is Tab 2
-        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: 'J', shiftKey: true });
-        expect(presenter.s().pageIndex).toBe(0);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[9].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[9].id);
 
         fireEvent.keyDown(document, { key: 'PageDown' });
-        expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
 
         fireEvent.keyDown(document, { key: 'J', shiftKey: true });
-        expect(presenter.s().pageIndex).toBe(1);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[14].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[14].id);
 
         fireEvent.keyDown(document, { key: 'K', shiftKey: true });
-        expect(presenter.s().pageIndex).toBe(1);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[10].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[10].id);
 
         fireEvent.keyDown(document, { key: 'PageUp' });
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
       });
 
       it('selects the nearest visible item with J/K when selection is off-page', async () => {
@@ -866,15 +866,15 @@ describe('Popup', () => {
         await renderAndWaitForTitle(presenter, 'Tab 1');
 
         fireEvent.keyDown(document, { key: '.' }); // move to next page
-        expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
 
         // Selection may still point at a previous-page tab; J selects the last visible item
         fireEvent.keyDown(document, { key: 'J', shiftKey: true });
-        expect(presenter.s().selectedTabId).toBe(manyTabs[10].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[10].id);
 
         fireEvent.keyDown(document, { key: 'J', shiftKey: true });
-        expect(presenter.s().selectedTabId).toBe(manyTabs[10].id); // last page — no further page
-        expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[10].id); // last page — no further page
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
       });
     });
 
@@ -895,7 +895,7 @@ describe('Popup', () => {
         expect(screen.getByText('Tab 1')).toBeTruthy();
         expect(screen.getByText('Tab 10')).toBeTruthy();
         expect(screen.queryByText('Tab 11')).toBeNull();
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
       });
 
       it('uses ., `,`, ArrowRight, and ArrowLeft for next and previous page', async () => {
@@ -904,23 +904,23 @@ describe('Popup', () => {
 
         await renderAndWaitForTitle(presenter, 'Tab 1');
         // Current is Tab 1 → previous (pre-selected) is Tab 2
-        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: '.' });
-        expect(presenter.s().pageIndex).toBe(1);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: ',' });
-        expect(presenter.s().pageIndex).toBe(0);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: 'ArrowRight' });
-        expect(presenter.s().pageIndex).toBe(1);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
 
         fireEvent.keyDown(document, { key: 'ArrowLeft' });
-        expect(presenter.s().pageIndex).toBe(0);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[1].id);
       });
 
       it('navigates pages with . and , while keeping slot shortcut keys stable', async () => {
@@ -929,23 +929,23 @@ describe('Popup', () => {
 
         await renderAndWaitForTitle(presenter, 'Tab 1');
 
-        const firstPageFirstKey = presenter.s().tabKeyMap.get(manyTabs[0].id);
+        const firstPageFirstKey = presenter.tabManagementPresenter.s().tabKeyMap.get(manyTabs[0].id);
         expect(firstPageFirstKey).toBeTruthy();
 
         // . advances directly to the next page.
         fireEvent.keyDown(document, { key: '.' });
-        expect(presenter.s().pageIndex).toBe(1);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[0].id);
         expect(screen.queryByText('Tab 1')).toBeNull();
         expect(await screen.findByText('Tab 11')).toBeTruthy();
-        expect(presenter.s().tabKeyMap.get(manyTabs[10].id)).toBe(firstPageFirstKey);
+        expect(presenter.tabManagementPresenter.s().tabKeyMap.get(manyTabs[10].id)).toBe(firstPageFirstKey);
 
         // , returns directly to the previous page without changing selection.
         fireEvent.keyDown(document, { key: ',' });
-        expect(presenter.s().pageIndex).toBe(0);
-        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[0].id);
         expect(await screen.findByText('Tab 1')).toBeTruthy();
-        expect(presenter.s().tabKeyMap.get(manyTabs[0].id)).toBe(firstPageFirstKey);
+        expect(presenter.tabManagementPresenter.s().tabKeyMap.get(manyTabs[0].id)).toBe(firstPageFirstKey);
       });
     });
 
@@ -1005,7 +1005,7 @@ describe('Popup', () => {
         fireEvent.keyDown(document, { key: 'e' });
 
         expect(screen.getByLabelText('Search').textContent).toBe('/game');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
 
         const item = await findHighlightedItem('game');
         expect(item.classList.contains('selected')).toBe(true);
@@ -1059,7 +1059,7 @@ describe('Popup', () => {
         }
 
         expect(screen.getByLabelText('Search').textContent).toBe('/react');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[0].id);
 
         expectSelectedHighlight('react');
       });
@@ -1073,12 +1073,12 @@ describe('Popup', () => {
         for (const key of ['r', 'e', 'a', 'c', 't']) {
           fireEvent.keyDown(document, { key });
         }
-        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[0].id);
 
         fireEvent.keyDown(document, { key: 'Enter' });
 
         expect(screen.queryByLabelText('Search')).toBeNull();
-        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[0].id);
         expect(chrome.tabs.activate).not.toHaveBeenCalled();
         expect(chrome.closePopup).not.toHaveBeenCalled();
       });
@@ -1131,24 +1131,24 @@ describe('Popup', () => {
           fireEvent.keyDown(document, { key: typed });
         }
         expect(screen.getByLabelText('Search').textContent).toBe('/game');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
 
         const event = createEvent.keyDown(document, { key, ctrlKey: true });
         fireEvent(document, event);
 
         expect(event.defaultPrevented).toBe(true);
         expect(screen.getByLabelText('Search').textContent).toBe('/');
-        expect(presenter.s().searchQuery).toBe('');
-        expect(presenter.s().lastSearchQuery).toBeUndefined();
-        expect(presenter.s().highlightQuery).toBeUndefined();
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
+        expect(presenter.tabManagementPresenter.s().lastSearchQuery).toBeUndefined();
+        expect(presenter.tabManagementPresenter.s().highlightQuery).toBeUndefined();
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
         expect(chrome.tabs.close).not.toHaveBeenCalled();
         expect(chrome.closePopup).not.toHaveBeenCalled();
 
         const reopenedPresenter = new PopupPresenter(chrome, browser);
-        await reopenedPresenter.fetchTabList();
+        await reopenedPresenter.tabManagementPresenter.fetchTabList();
         await reopenedPresenter.onKeyPress('/');
-        expect(reopenedPresenter.s().searchQuery).toBe('');
+        expect(reopenedPresenter.tabManagementPresenter.s().searchQuery).toBe('');
       });
 
       it('types x into the search query instead of closing a tab', async () => {
@@ -1160,7 +1160,7 @@ describe('Popup', () => {
         fireEvent.keyDown(document, { key: 'x' });
 
         expect(screen.getByLabelText('Search').textContent).toBe('/x');
-        expect(presenter.s().searchQuery).toBe('x');
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('x');
         expect(chrome.tabs.close).not.toHaveBeenCalled();
       });
 
@@ -1176,7 +1176,7 @@ describe('Popup', () => {
 
         await waitFor(() => {
           expect(screen.getByLabelText('Search').textContent).toBe('/game');
-          expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+          expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
         });
         expect(pasteEvent.defaultPrevented).toBe(true);
         expect(browser.clipboard.readText).toHaveBeenCalledOnce();
@@ -1199,7 +1199,7 @@ describe('Popup', () => {
           expect(browser.clipboard.writeText).toHaveBeenCalledWith('game');
         });
         expect(copyEvent.defaultPrevented).toBe(true);
-        expect(presenter.s().searchQuery).toBe('game');
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('game');
         expect(chrome.tabs.close).not.toHaveBeenCalled();
       });
 
@@ -1217,7 +1217,7 @@ describe('Popup', () => {
           'textContent',
           'Unable to copy search query: Clipboard unavailable',
         );
-        expect(presenter.s().searchQuery).toBe('g');
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('g');
       });
 
       it('shows an error when clipboard text cannot be read in search mode', async () => {
@@ -1233,7 +1233,7 @@ describe('Popup', () => {
           'textContent',
           'Unable to paste search query: Clipboard unavailable',
         );
-        expect(presenter.s().searchQuery).toBe('');
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
       });
 
       it('does not close a tab when Ctrl-W is pressed on an empty search query', async () => {
@@ -1242,12 +1242,12 @@ describe('Popup', () => {
         await renderAndWaitForTitle(presenter, 'React Docs');
 
         fireEvent.keyDown(document, { key: '/' });
-        expect(presenter.s().searchQuery).toBe('');
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
 
         fireEvent.keyDown(document, { key: 'w', ctrlKey: true });
 
         expect(screen.getByLabelText('Search').textContent).toBe('/');
-        expect(presenter.s().searchQuery).toBe('');
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
         expect(chrome.tabs.close).not.toHaveBeenCalled();
       });
 
@@ -1261,11 +1261,11 @@ describe('Popup', () => {
           fireEvent.keyDown(document, { key });
         }
         expect(screen.getByLabelText('Search').textContent).toBe('/game');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
 
         fireEvent.keyDown(document, { key: 'Backspace' });
         expect(screen.getByLabelText('Search').textContent).toBe('/gam');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
         expectSelectedHighlight('gam');
 
         fireEvent.keyDown(document, { key: 'Backspace' });
@@ -1275,8 +1275,8 @@ describe('Popup', () => {
 
         fireEvent.keyDown(document, { key: 'Backspace' });
         expect(screen.queryByLabelText('Search')).toBeNull();
-        expect(presenter.s().lastSearchQuery).toBeUndefined();
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().lastSearchQuery).toBeUndefined();
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
       });
 
       it('does not prefill the last search when entering search with /', async () => {
@@ -1289,11 +1289,11 @@ describe('Popup', () => {
           fireEvent.keyDown(document, { key });
         }
         fireEvent.keyDown(document, { key: 'Enter' });
-        expect(presenter.s().lastSearchQuery).toBe('react');
+        expect(presenter.tabManagementPresenter.s().lastSearchQuery).toBe('react');
 
         fireEvent.keyDown(document, { key: '/' });
         expect(screen.getByLabelText('Search').textContent).toBe('/');
-        expect(presenter.s().searchQuery).toBe('');
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
       });
 
       it('fills the last search query when Enter is pressed on an empty search prompt', async () => {
@@ -1306,15 +1306,15 @@ describe('Popup', () => {
           fireEvent.keyDown(document, { key });
         }
         fireEvent.keyDown(document, { key: 'Enter' });
-        expect(presenter.s().lastSearchQuery).toBe('react');
+        expect(presenter.tabManagementPresenter.s().lastSearchQuery).toBe('react');
 
         fireEvent.keyDown(document, { key: '/' });
         expect(screen.getByLabelText('Search').textContent).toBe('/');
 
         fireEvent.keyDown(document, { key: 'Enter' });
         expect(screen.getByLabelText('Search').textContent).toBe('/react');
-        expect(presenter.s().searchQuery).toBe('react');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().searchQuery).toBe('react');
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[0].id);
         expectSelectedHighlight('react');
         expect(chrome.tabs.activate).not.toHaveBeenCalled();
         expect(chrome.closePopup).not.toHaveBeenCalled();
@@ -1329,44 +1329,44 @@ describe('Popup', () => {
         for (const key of ['r', 'e', 'a', 'c', 't']) {
           fireEvent.keyDown(document, { key });
         }
-        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[0].id);
 
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(screen.queryByLabelText('Search')).toBeNull();
         expect(chrome.tabs.activate).not.toHaveBeenCalled();
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[2].id);
         expectSelectedHighlight('react');
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[0].id);
         expectSelectedHighlight('react');
       });
 
       it('restores the last search phrase when the popup is reopened', async () => {
         setup(searchTabs, searchTabs[0]);
-        await presenter.fetchTabList();
+        await presenter.tabManagementPresenter.fetchTabList();
         await presenter.onKeyPress('/');
         for (const key of 'react') {
           await presenter.onKeyPress(key);
         }
 
         const reopenedPresenter = new PopupPresenter(chrome, browser);
-        await reopenedPresenter.fetchTabList();
+        await reopenedPresenter.tabManagementPresenter.fetchTabList();
         await reopenedPresenter.onKeyPress('/');
 
-        expect(reopenedPresenter.s().searchQuery).toBe('');
-        expect(reopenedPresenter.s().lastSearchQuery).toBe('react');
+        expect(reopenedPresenter.tabManagementPresenter.s().searchQuery).toBe('');
+        expect(reopenedPresenter.tabManagementPresenter.s().lastSearchQuery).toBe('react');
 
         await reopenedPresenter.onKeyPress('enter');
-        expect(reopenedPresenter.s().searchQuery).toBe('react');
+        expect(reopenedPresenter.tabManagementPresenter.s().searchQuery).toBe('react');
 
         await reopenedPresenter.onKeyPress('enter');
         await reopenedPresenter.onKeyPress('n');
 
-        expect(reopenedPresenter.s().lastSearchQuery).toBe('react');
-        expect(reopenedPresenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(reopenedPresenter.tabManagementPresenter.s().lastSearchQuery).toBe('react');
+        expect(reopenedPresenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[2].id);
       });
 
       it('clears the highlight when another key changes selection but keeps the last search query', async () => {
@@ -1381,15 +1381,15 @@ describe('Popup', () => {
         fireEvent.keyDown(document, { key: 'Enter' });
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[2].id);
         expectSelectedHighlight('react');
 
         fireEvent.keyDown(document, { key: 'k' });
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
         expect(screen.queryByText((_, el) => el?.tagName === 'MARK')).toBeNull();
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[2].id);
         expectSelectedHighlight('react');
       });
 
@@ -1399,7 +1399,7 @@ describe('Popup', () => {
         setup(manyTabs, manyTabs[0]);
 
         await renderAndWaitForTitle(presenter, 'Tab 1');
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
         expect(screen.queryByText('Unique Match Tab')).toBeNull();
 
         fireEvent.keyDown(document, { key: '/' });
@@ -1407,8 +1407,8 @@ describe('Popup', () => {
           fireEvent.keyDown(document, { key });
         }
 
-        expect(presenter.s().selectedTabId).toBe(manyTabs[PAGE_SIZE].id);
-        expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[PAGE_SIZE].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
         const item = await findHighlightedItem('unique');
         expect(item.classList.contains('selected')).toBe(true);
         expect(item.textContent).toContain('Unique Match Tab');
@@ -1421,25 +1421,25 @@ describe('Popup', () => {
         setup(manyTabs, manyTabs[0]);
 
         await renderAndWaitForTitle(presenter, 'React Docs');
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
 
         fireEvent.keyDown(document, { key: '/' });
         for (const key of 'react') {
           fireEvent.keyDown(document, { key });
         }
-        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
 
         fireEvent.keyDown(document, { key: 'Enter' });
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(manyTabs[PAGE_SIZE].id);
-        expect(presenter.s().pageIndex).toBe(1);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[PAGE_SIZE].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(1);
         expectSelectedHighlight('react');
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(manyTabs[0].id);
-        expect(presenter.s().pageIndex).toBe(0);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(manyTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().pageIndex).toBe(0);
         expectSelectedHighlight('react');
       });
 
@@ -1454,7 +1454,7 @@ describe('Popup', () => {
         }
 
         expect(screen.getByLabelText('Search').textContent).toBe('/patterns.example');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[2].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[2].id);
 
         const item = await findHighlightedItem('patterns.example');
         expect(item.classList.contains('selected')).toBe(true);
@@ -1477,7 +1477,7 @@ describe('Popup', () => {
         }
 
         expect(screen.getByLabelText('Search').textContent).toBe('/GAME.EXAMPLE');
-        expect(presenter.s().selectedTabId).toBe(searchTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[1].id);
         expectSelectedHighlight('GAME.EXAMPLE');
       });
 
@@ -1495,20 +1495,20 @@ describe('Popup', () => {
         for (const key of 'example.com') {
           fireEvent.keyDown(document, { key });
         }
-        expect(presenter.s().selectedTabId).toBe(hostnameTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(hostnameTabs[0].id);
 
         fireEvent.keyDown(document, { key: 'Enter' });
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(hostnameTabs[1].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(hostnameTabs[1].id);
         expectSelectedHighlight('example.com');
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(hostnameTabs[2].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(hostnameTabs[2].id);
         expectSelectedHighlight('example.com');
 
         fireEvent.keyDown(document, { key: 'n' });
-        expect(presenter.s().selectedTabId).toBe(hostnameTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(hostnameTabs[0].id);
         expectSelectedHighlight('example.com');
       });
 
@@ -1522,7 +1522,7 @@ describe('Popup', () => {
           fireEvent.keyDown(document, { key });
         }
 
-        expect(presenter.s().selectedTabId).toBe(searchTabs[0].id);
+        expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(searchTabs[0].id);
         const marks = screen.getAllByText(isHighlightMark('react'));
         expect(marks.length).toBeGreaterThanOrEqual(2);
         expect(marks.every(mark => mark.closest('li')?.classList.contains('selected'))).toBe(true);
@@ -1539,7 +1539,7 @@ describe('Popup', () => {
       setup(_tabList);
 
       await renderAndWait(presenter);
-      const state = presenter.s();
+      const state = presenter.tabManagementPresenter.s();
       fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
       fireEvent.keyDown(document, { key: actionKey });
 

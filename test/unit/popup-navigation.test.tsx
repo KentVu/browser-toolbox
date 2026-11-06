@@ -31,7 +31,7 @@ describe('Popup navigation', () => {
     expect(presenter.navigation().page).toBe('tabManagement');
     expect(getLocal).toHaveBeenCalledWith('defaultMode');
     expect(shortcutKeys).not.toContain('u');
-    expect([...presenter.s().tabKeyMap.values()]).not.toContain('u');
+    expect([...presenter.tabManagementPresenter.s().tabKeyMap.values()]).not.toContain('u');
   });
 
   it('navigates from the default mode up to Home, then routes 1 and 2', async () => {
@@ -196,7 +196,7 @@ describe('Start Tab Management in search mode', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByLabelText('Search')).toBeNull();
-    expect(presenter.s().searchQuery).toBeUndefined();
+    expect(presenter.tabManagementPresenter.s().searchQuery).toBeUndefined();
 
     fireEvent.keyDown(document, { key: 'u' });
     await screen.findByRole('button', { name: /Tab Management/ });
@@ -229,7 +229,7 @@ describe('Start Tab Management in search mode', () => {
     resolveStartInSearch(true);
     await initialLoad;
 
-    expect(presenter.s().searchQuery).toBe('');
+    expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
     expect((await screen.findByLabelText('Search')).textContent).toBe('/');
   });
 
@@ -257,7 +257,7 @@ describe('Start Tab Management in search mode', () => {
     await initialLoad;
 
     expect(presenter.navigation().page).toBe('home');
-    expect(presenter.s().searchQuery).toBeUndefined();
+    expect(presenter.tabManagementPresenter.s().searchQuery).toBeUndefined();
     expect(screen.queryByLabelText('Search')).toBeNull();
   });
 
