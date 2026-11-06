@@ -1,7 +1,5 @@
 # Plan
 
-Popup latency / Preact conversion: [PREACT-PLAN.md](PREACT-PLAN.md)
-
 Ken is a productive person, he always wants to boost his productivity.
 He's a heavy keyboard user, he rarely touches his mouse, so he wants
 to work with his browser (Chrome) entirely on keyboard.
@@ -18,7 +16,7 @@ When working with several related tabs, he wants to bring them closely together,
 
 # Search flow:
 
-- [x] On tablist page, press `/` key. An indicator showing we're in search mode (Something start with `/` like vim).
+- [x] On Tab Management page, press `/` key. An indicator showing we're in search mode (Something start with `/` like vim).
 - [x] `/` starts with an empty query; do not prefill `lastSearchQuery`.
 - [x] Follow input keys are treated as search string until the `Enter` key, the search string is displayed in the indicator, if there's a match: highlight that matched part of the tab item, and jump (select) that item.
 - [x] `Backspace` deletes the last query character; on an empty query it exits search mode.

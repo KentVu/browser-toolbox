@@ -1,20 +1,15 @@
 import type { BrowserApi } from '@src/lib/Browser';
 import type { ChromeApi } from '@src/lib/Chrome';
-import type { Tab } from '@src/lib/Tab';
 import { useEffect, useState } from 'preact/hooks';
-import {
-  TabManagementPresenter,
-  type PopupState,
-} from './TabManagementPresenter';
+import { TabManagementPresenter } from './TabManagementPresenter';
 import {
   DEFAULT_MODE,
   SettingsPresenter,
-  type PopupMode,
 } from './SettingsPresenter';
 
 export {
   LAST_TAB_LIST_KEY,
-  PopupState,
+  TabManagementState,
   findNextTabMatch,
   findTabMatch,
   genTabKeyMap,
@@ -23,7 +18,7 @@ export {
   visibleTabs,
 } from './TabManagementPresenter';
 export type { CachedTabList, ShortcutAction } from './TabManagementPresenter';
-export { DEFAULT_MODE, DEFAULT_MODE_KEY, SettingsPresenter } from './SettingsPresenter';
+export { DEFAULT_MODE, DEFAULT_MODE_KEY, START_IN_SEARCH_MODE_KEY, SettingsPresenter } from './SettingsPresenter';
 export type { PopupMode, SettingsState } from './SettingsPresenter';
 
 export type PopupPage = 'home' | 'tabManagement' | 'settings';
@@ -58,6 +53,20 @@ export class PopupPresenter {
   openPage(page: PopupPage): void {
     this.hasNavigated = true;
     this.setPage(page);
+    if (page === 'tabManagement') {
+      this.enterSearchIfPreferred();
+    }
+  }
+
+  /** Empty search prompt when the preference is on and Tab Management is still showing. */
+  private enterSearchIfPreferred(): void {
+    if (this.navigationState.page !== 'tabManagement' || !this.settingsPresenter.s().startInSearchMode) {
+      return;
+    }
+    if (this.tabManagementPresenter.s().searchQuery !== undefined) {
+      return;
+    }
+    this.tabManagementPresenter.enterSearch();
   }
 
   private setPage(page: PopupPage): void {
@@ -79,7 +88,7 @@ export class PopupPresenter {
   async onKeyPress(key: string): Promise<void> {
     if (
       key === 'u'
-      && (this.navigationState.page !== 'tabManagement' || this.s().searchQuery === undefined)
+      && (this.navigationState.page !== 'tabManagement' || this.tabManagementPresenter.s().searchQuery === undefined)
     ) {
       this.goUpOneLevel();
       return;
@@ -106,46 +115,11 @@ export class PopupPresenter {
         if (!this.hasNavigated) {
           this.setPage(this.settingsPresenter.s().defaultMode);
         }
+        this.enterSearchIfPreferred();
       });
     }
     return this.initialLoad;
   };
-
-  s = (): PopupState => this.tabManagementPresenter.s();
-
-  setState = (state: Partial<PopupState>): void => {
-    this.tabManagementPresenter.setState(state);
-  };
-
-  usePopupState = (): PopupState => this.tabManagementPresenter.usePopupState();
-
-  refreshVimModeState(): Promise<void> {
-    return this.tabManagementPresenter.refreshVimModeState();
-  }
-
-  fetchTabList(options?: { preservePage?: boolean }): Promise<void> {
-    return this.tabManagementPresenter.fetchTabList(options);
-  }
-
-  selectSearchMatch(match: Tab | undefined, extra?: Partial<PopupState>): void {
-    this.tabManagementPresenter.selectSearchMatch(match, extra);
-  }
-
-  moveSelection(delta: number): void {
-    this.tabManagementPresenter.moveSelection(delta);
-  }
-
-  jumpToPageEdgeOrChangePage(edge: 'first' | 'last'): void {
-    this.tabManagementPresenter.jumpToPageEdgeOrChangePage(edge);
-  }
-
-  changePage(delta: number): void {
-    this.tabManagementPresenter.changePage(delta);
-  }
-
-  tabIdForKey(key: string): number | undefined {
-    return this.tabManagementPresenter.tabIdForKey(key);
-  }
 }
 
 function useSyncExternalStore<T>(

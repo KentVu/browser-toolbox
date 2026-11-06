@@ -1,7 +1,7 @@
 import { useEffect } from 'preact/hooks';
 import Home from './Home';
 import Settings from './Settings';
-import { TabList } from './TabList';
+import { TabManagement } from './TabManagement';
 import { PopupPresenter } from './PopupPresenter';
 
 interface PopupProps {
@@ -21,7 +21,7 @@ export default function Popup({ presenter }: PopupProps) {
       const pressed = event.key.toLowerCase();
       const key = event.ctrlKey ? `ctrl+${pressed}` : event.shiftKey ? event.key : pressed;
       if (page === 'tabManagement') {
-        const { showHelp, searchQuery } = presenter.s();
+        const { showHelp, searchQuery } = presenter.tabManagementPresenter.s();
         if (pressed === 'escape' && (showHelp || searchQuery !== undefined)) {
           event.preventDefault();
         }
@@ -43,7 +43,7 @@ export default function Popup({ presenter }: PopupProps) {
           <div className="mb-2 px-1 text-center">
             <p className="text-sm font-medium tracking-wide text-gray-200">Tab management</p>
           </div>
-          <TabList presenter={presenter.tabManagementPresenter} />
+          <TabManagement presenter={presenter.tabManagementPresenter} />
         </>
       )}
       {page === 'home' && <Home presenter={presenter} />}

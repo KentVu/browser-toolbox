@@ -33,6 +33,15 @@ export default function Settings({ presenter, onUpOneLevel }: SettingsProps) {
           <option value="tabManagement">Tab Management</option>
         </select>
       </label>
+      <div className="mt-4 flex items-center gap-2 text-xs text-gray-300">
+        <input
+          id="start-in-search-mode"
+          type="checkbox"
+          checked={state.startInSearchMode}
+          onChange={event => void presenter.setStartInSearchMode(event.currentTarget.checked)}
+        />
+        <label htmlFor="start-in-search-mode">Start Tab Management in search mode</label>
+      </div>
       {state.errorMessage && (
         <div role="alert" className="mt-3 rounded border border-red-500/80 bg-red-950/40 p-2 text-xs text-red-200">
           {state.errorMessage}

@@ -7,7 +7,6 @@ Use this file as the fast-start operating guide for coding agents.
 ## Start Here
 - Project overview and setup flow: [README.template.md](README.template.md)
 - Pending TODO: [TODO.md](TODO.md)
-- Preact conversion plan: [PREACT-PLAN.md](PREACT-PLAN.md)
 
 ## Preferred Stack and Active Tooling
 - Language: TypeScript for new application code.
@@ -71,7 +70,7 @@ Do not squash, rebase, or force-push this history away. Leave the pull request a
 
 ## Popup tab indicators
 
-The tab list lives in [src/pages/popup/TabList.tsx](src/pages/popup/TabList.tsx). Badges come from `getTabBadges` and the footer legend from `INDICATOR_LEGEND` (only entries visible on the current page).
+The tab list lives in [src/pages/popup/TabManagement.tsx](src/pages/popup/TabManagement.tsx). Badges come from `getTabBadges` and the footer legend from `INDICATOR_LEGEND` (only entries visible on the current page).
 
 - **Current tab** (focused window): `ChromeTabApi.getCurrent()` in [src/lib/Chrome.ts](src/lib/Chrome.ts) queries `{ active: true, lastFocusedWindow: true }`. [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts) stores that tab’s `id` as `currentTabId` and its `windowId` as `currentWindowId`. The matching row gets a bright cyan `●` (`text-cyan-300`, aria-label `Current tab`), `aria-current="true"`, and the `.current` inset bar in [src/pages/popup/index.css](src/pages/popup/index.css). Legend: `● current`. It is emphasized, not selected, by default.
 - **Other windows:** every tab whose `windowId` differs from `currentWindowId` gets `🪟N` (`Window N`), numbered from sorted window ids on the visible page. That marks the whole window, not its active tab. Legend: `🪟 other window`.
@@ -80,6 +79,7 @@ The tab list lives in [src/pages/popup/TabList.tsx](src/pages/popup/TabList.tsx)
 ## Popup navigation
 
 - The popup opens in the persisted default mode (`defaultMode` in local extension storage), falling back to Tab Management. The in-popup Settings screen edits this preference.
+- Settings also stores `startInSearchMode`. When it is enabled, opening Tab Management starts in search mode with an empty query. If that preference loads late, search starts only while Tab Management is still the current page. Escape leaves search mode until Tab Management is opened again.
 - Home lists available destinations: `1` for Tab Management and `2` for Settings. `u` returns from either destination to Home; it is reserved from tab-selection shortcuts. In search mode, `u` remains query text.
 - Keep routing in [src/pages/popup/PopupPresenter.ts](src/pages/popup/PopupPresenter.ts); keep tab behavior in [src/pages/popup/TabManagementPresenter.ts](src/pages/popup/TabManagementPresenter.ts) and preference behavior in [src/pages/popup/SettingsPresenter.ts](src/pages/popup/SettingsPresenter.ts).
 

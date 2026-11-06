@@ -33,6 +33,7 @@ Keyboard-heavy users, vim users. Aiding web browsing by maximizing keyboard usag
 ## Search (vim-style)
 
 - Press `/` to enter search mode; a `/query` indicator appears in the footer
+- Settings can open Tab Management already in search mode. Escape leaves that prompt until Tab Management is opened again
 - Typed characters build a **case-insensitive** title query; the first match is selected and the matched substring is highlighted with `<mark>`
 - `Backspace` deletes the last query character; on an empty query it **exits** search mode
 - `Enter` exits search mode without activating the tab
