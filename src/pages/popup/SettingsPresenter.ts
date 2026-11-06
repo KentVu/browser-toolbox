@@ -3,10 +3,12 @@ import type { ChromeApi } from '@src/lib/Chrome';
 export type PopupMode = 'tabManagement';
 
 export const DEFAULT_MODE_KEY = 'defaultMode';
+export const START_IN_SEARCH_MODE_KEY = 'startInSearchMode';
 export const DEFAULT_MODE: PopupMode = 'tabManagement';
 
 export type SettingsState = {
   defaultMode: PopupMode;
+  startInSearchMode: boolean;
   errorMessage?: string;
 };
 
@@ -15,7 +17,7 @@ function isPopupMode(value: unknown): value is PopupMode {
 }
 
 export class SettingsPresenter {
-  private state: SettingsState = { defaultMode: DEFAULT_MODE };
+  private state: SettingsState = { defaultMode: DEFAULT_MODE, startInSearchMode: false };
   private readonly listeners = new Set<() => void>();
   private loadPromise?: Promise<void>;
 
@@ -37,9 +39,15 @@ export class SettingsPresenter {
 
   load = (): Promise<void> => {
     if (!this.loadPromise) {
-      this.loadPromise = this.chrome.storage.getLocal<unknown>(DEFAULT_MODE_KEY)
-        .then(value => {
-          this.setState({ defaultMode: isPopupMode(value) ? value : DEFAULT_MODE });
+      this.loadPromise = Promise.all([
+        this.chrome.storage.getLocal<unknown>(DEFAULT_MODE_KEY),
+        this.chrome.storage.getLocal<unknown>(START_IN_SEARCH_MODE_KEY),
+      ])
+        .then(([defaultMode, startInSearchMode]) => {
+          this.setState({
+            defaultMode: isPopupMode(defaultMode) ? defaultMode : DEFAULT_MODE,
+            startInSearchMode: startInSearchMode === true,
+          });
         })
         .catch(error => {
           const detail = error instanceof Error ? error.message : String(error);
@@ -61,6 +69,20 @@ export class SettingsPresenter {
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       this.setState({ errorMessage: `Unable to save settings: ${detail}` });
+    }
+  }
+
+  async setStartInSearchMode(value: boolean): Promise<void> {
+    const previous = this.state.startInSearchMode;
+    this.setState({ startInSearchMode: value, errorMessage: undefined });
+    try {
+      await this.chrome.storage.setLocal(START_IN_SEARCH_MODE_KEY, value);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.setState({
+        startInSearchMode: previous,
+        errorMessage: `Unable to save settings: ${detail}`,
+      });
     }
   }
 }

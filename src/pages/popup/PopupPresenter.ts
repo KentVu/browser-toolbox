@@ -23,7 +23,7 @@ export {
   visibleTabs,
 } from './TabManagementPresenter';
 export type { CachedTabList, ShortcutAction } from './TabManagementPresenter';
-export { DEFAULT_MODE, DEFAULT_MODE_KEY, SettingsPresenter } from './SettingsPresenter';
+export { DEFAULT_MODE, DEFAULT_MODE_KEY, START_IN_SEARCH_MODE_KEY, SettingsPresenter } from './SettingsPresenter';
 export type { PopupMode, SettingsState } from './SettingsPresenter';
 
 export type PopupPage = 'home' | 'tabManagement' | 'settings';
@@ -58,6 +58,20 @@ export class PopupPresenter {
   openPage(page: PopupPage): void {
     this.hasNavigated = true;
     this.setPage(page);
+    if (page === 'tabManagement') {
+      this.enterSearchIfPreferred();
+    }
+  }
+
+  /** Empty search prompt when the preference is on and Tab Management is still showing. */
+  private enterSearchIfPreferred(): void {
+    if (this.navigationState.page !== 'tabManagement' || !this.settingsPresenter.s().startInSearchMode) {
+      return;
+    }
+    if (this.s().searchQuery !== undefined) {
+      return;
+    }
+    this.setState({ searchQuery: '', showHelp: false });
   }
 
   private setPage(page: PopupPage): void {
@@ -106,6 +120,7 @@ export class PopupPresenter {
         if (!this.hasNavigated) {
           this.setPage(this.settingsPresenter.s().defaultMode);
         }
+        this.enterSearchIfPreferred();
       });
     }
     return this.initialLoad;
