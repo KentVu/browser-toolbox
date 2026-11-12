@@ -19,13 +19,25 @@ export default function Popup({ presenter }: PopupProps) {
       }
 
       const pressed = event.key.toLowerCase();
-      const key = event.ctrlKey ? `ctrl+${pressed}` : event.shiftKey ? event.key : pressed;
+      let key: string;
+      if (event.ctrlKey) {
+        key = `ctrl+${pressed}`;
+      } else if (event.altKey) {
+        key = `alt+${pressed}`;
+      } else if (event.shiftKey) {
+        key = event.key;
+      } else {
+        key = pressed;
+      }
       if (page === 'tabManagement') {
         const { showHelp, searchQuery } = presenter.tabManagementPresenter.s();
         if (pressed === 'escape' && (showHelp || searchQuery !== undefined)) {
           event.preventDefault();
         }
         if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v' || key === 'ctrl+backspace') {
+          event.preventDefault();
+        }
+        if (key === 'alt+]' || key === 'alt+[') {
           event.preventDefault();
         }
       }

@@ -341,6 +341,10 @@ function TabManagement({ presenter }: TabManagementProps) {
                                 <kbd className={keyLabelClass}>{`{`}</kbd>
                                 : Move the selected tab right/left without closing the popup
                             </li>
+                            <li>
+                                <kbd className={keyLabelClass}>Alt</kbd>+<kbd className={keyLabelClass}>]</kbd>/<kbd className={keyLabelClass}>Alt</kbd>+<kbd className={keyLabelClass}>[</kbd>
+                                : Move selected tab next to the active tab without activating it
+                            </li>
                             <li><kbd className={keyLabelClass}>&lt;</kbd>/<kbd className={keyLabelClass}>&gt;</kbd>: Move the active tab left/right</li>
                             <li><kbd className={keyLabelClass}>!</kbd>: Break selected tab into a new window</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>

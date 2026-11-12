@@ -27,6 +27,8 @@ export type ShortcutAction =
   | 'moveSelectedTabLeftAndActivate'
   | 'moveSelectedTabRight'
   | 'moveSelectedTabLeft'
+  | 'moveSelectedBesideActiveRight'
+  | 'moveSelectedBesideActiveLeft'
   | 'breakSelectedTabIntoWindow'
   | 'activateSelectedTab'
   | 'closeSelectedTab'
@@ -52,6 +54,8 @@ const shortcutActionByKey: Record<string, ShortcutAction> = {
   '[': 'moveSelectedTabLeftAndActivate',
   '}': 'moveSelectedTabRight',
   '{': 'moveSelectedTabLeft',
+  'alt+]': 'moveSelectedBesideActiveRight',
+  'alt+[': 'moveSelectedBesideActiveLeft',
   '!': 'breakSelectedTabIntoWindow',
   enter: 'activateSelectedTab',
   x: 'closeSelectedTab',
@@ -290,6 +294,8 @@ class BrowseKeyMode implements PopupKeyMode {
       moveSelectedTabLeftAndActivate: () => this.moveSelectedAndActivate('toTheLeft'),
       moveSelectedTabRight: () => this.moveSelectedTab('toTheRight'),
       moveSelectedTabLeft: () => this.moveSelectedTab('toTheLeft'),
+      moveSelectedBesideActiveRight: () => this.moveSelectedBesideActive('toTheRight'),
+      moveSelectedBesideActiveLeft: () => this.moveSelectedBesideActive('toTheLeft'),
       breakSelectedTabIntoWindow: () => this.breakSelectedTabIntoWindow(),
       activateSelectedTab: () => this.activateSelectedTab(),
       closeSelectedTab: () => this.closeSelectedTab(),
@@ -373,6 +379,16 @@ class BrowseKeyMode implements PopupKeyMode {
       // Do not activate after the shift: activate() focuses the browser window
       // and Chrome auto-closes the popup when focus leaves it.
       await this.host.chrome.tabs.shift(direction, selectedTabId);
+    }
+    return 'handled';
+  }
+
+  private async moveSelectedBesideActive(direction: MoveTabDirection): Promise<KeyResult> {
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      // Move relative to the active tab, without activating the moved tab
+      // or closing the popup.
+      await this.host.chrome.tabs.move(direction, selectedTabId);
     }
     return 'handled';
   }

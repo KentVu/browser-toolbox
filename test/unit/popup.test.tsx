@@ -488,7 +488,8 @@ describe('Popup', () => {
       expect(within(help).getByText(/Move selection down\/up \(pages at edges\)/)).toBeTruthy();
       expect(within(help).getByText(/Enter search mode/)).toBeTruthy();
       expect(within(help).getByText(/Jump to next search match/)).toBeTruthy();
-      const keyLabel = within(help).getByText((content, element) =>
+      const moveHelp = within(help).getByText(/Move selected tab to the right\/left of current tab/).closest('li')!;
+      const keyLabel = within(moveHelp).getByText((content, element) =>
         element?.tagName === 'KBD' && element.textContent === ']'
       );
       expect(keyLabel.classList.contains('text-cyan-200')).toBe(true);
@@ -716,7 +717,8 @@ describe('Popup', () => {
       const help = within(await screen.findByRole('dialog', { name: 'Shortcut help' }))
         .getByText(/next to the active tab without activating it/)
         .closest('li')!;
-      expect(within(help).getByText('Alt')).toBeTruthy();
+      const altLabels = within(help).getAllByText('Alt');
+      expect(altLabels.length).toBe(2);
       expect(within(help).getByText(']')).toBeTruthy();
       expect(within(help).getByText('[')).toBeTruthy();
 
