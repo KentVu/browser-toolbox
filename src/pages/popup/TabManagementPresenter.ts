@@ -363,6 +363,16 @@ class BrowseKeyMode implements PopupKeyMode {
     return 'handled';
   }
 
+  private async withSelectedTabId(
+    action: (tabId: number) => Promise<void>,
+  ): Promise<KeyResult> {
+    const selectedTabId = this.host.s().selectedTabId;
+    if (selectedTabId !== undefined) {
+      await action(selectedTabId);
+    }
+    return 'handled';
+  }
+
   private async moveSelectedAndActivate(direction: MoveTabDirection): Promise<KeyResult> {
     const selectedTabId = this.host.s().selectedTabId;
     if (selectedTabId !== undefined) {
@@ -373,51 +383,41 @@ class BrowseKeyMode implements PopupKeyMode {
     return 'handled';
   }
 
-  private async moveSelectedTab(direction: MoveTabDirection): Promise<KeyResult> {
-    const selectedTabId = this.host.s().selectedTabId;
-    if (selectedTabId !== undefined) {
+  private moveSelectedTab(direction: MoveTabDirection): Promise<KeyResult> {
+    return this.withSelectedTabId(async (selectedTabId) => {
       // Do not activate after the shift: activate() focuses the browser window
       // and Chrome auto-closes the popup when focus leaves it.
       await this.host.chrome.tabs.shift(direction, selectedTabId);
-    }
-    return 'handled';
+    });
   }
 
-  private async moveSelectedBesideActive(direction: MoveTabDirection): Promise<KeyResult> {
-    const selectedTabId = this.host.s().selectedTabId;
-    if (selectedTabId !== undefined) {
+  private moveSelectedBesideActive(direction: MoveTabDirection): Promise<KeyResult> {
+    return this.withSelectedTabId(async (selectedTabId) => {
       // Move relative to the active tab, without activating the moved tab
       // or closing the popup.
       await this.host.chrome.tabs.move(direction, selectedTabId);
-    }
-    return 'handled';
+    });
   }
 
-  private async breakSelectedTabIntoWindow(): Promise<KeyResult> {
-    const selectedTabId = this.host.s().selectedTabId;
-    if (selectedTabId !== undefined) {
+  private breakSelectedTabIntoWindow(): Promise<KeyResult> {
+    return this.withSelectedTabId(async (selectedTabId) => {
       await this.host.chrome.tabs.breakIntoNewWindow(selectedTabId);
       this.host.chrome.closePopup();
-    }
-    return 'handled';
+    });
   }
 
-  private async activateSelectedTab(): Promise<KeyResult> {
-    const selectedTabId = this.host.s().selectedTabId;
-    if (selectedTabId !== undefined) {
+  private activateSelectedTab(): Promise<KeyResult> {
+    return this.withSelectedTabId(async (selectedTabId) => {
       await this.host.chrome.tabs.activate(selectedTabId);
       this.host.chrome.closePopup();
-    }
-    return 'handled';
+    });
   }
 
-  private async closeSelectedTab(): Promise<KeyResult> {
-    const selectedTabId = this.host.s().selectedTabId;
-    if (selectedTabId !== undefined) {
+  private closeSelectedTab(): Promise<KeyResult> {
+    return this.withSelectedTabId(async (selectedTabId) => {
       await this.host.chrome.tabs.close(selectedTabId);
       await this.host.fetchTabList({ preservePage: true });
-    }
-    return 'handled';
+    });
   }
 
   private async copySelectedTabUrl(): Promise<KeyResult> {

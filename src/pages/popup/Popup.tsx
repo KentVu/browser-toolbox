@@ -34,10 +34,15 @@ export default function Popup({ presenter }: PopupProps) {
         if (pressed === 'escape' && (showHelp || searchQuery !== undefined)) {
           event.preventDefault();
         }
-        if (key === 'ctrl+w' || key === 'ctrl+c' || key === 'ctrl+v' || key === 'ctrl+backspace') {
-          event.preventDefault();
-        }
-        if (key === 'alt+]' || key === 'alt+[') {
+        const keysNeedingPreventDefault = new Set([
+          'ctrl+w',
+          'ctrl+c',
+          'ctrl+v',
+          'ctrl+backspace',
+          'alt+]',
+          'alt+[',
+        ]);
+        if (keysNeedingPreventDefault.has(key)) {
           event.preventDefault();
         }
       }
