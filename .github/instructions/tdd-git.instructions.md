@@ -24,8 +24,20 @@ Commit subjects start with `[red]`, `[green]`, or `[refactor]`.
 
 - Check out the default branch.
 - Merge with `git merge --no-ff <branch>`.
-- The merge message names the change and lists the red, green, and refactor steps.
+- The merge message names the change. The body lists every feature-branch commit, one per line, in order. Do not stop at a subject-only message.
 - Leave the feature branch in place.
+
+Example:
+
+```
+Merge search no-matches indicator
+
+[red] Show when a search query has no matches
+
+[green] Show when a search query has no matches
+
+[refactor] Name the no-matches search check
+```
 
 ## Push
 

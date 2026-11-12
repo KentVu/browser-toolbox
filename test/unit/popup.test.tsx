@@ -22,6 +22,8 @@ describe('Popup shortcut actions', () => {
     expect(resolveShortcutAction('x')).toBe('closeSelectedTab');
     expect(resolveShortcutAction('ctrl+w')).toBe('closeSelectedTab');
     expect(resolveShortcutAction('v')).toBe('toggleVimMode');
+    expect(resolveShortcutAction('alt+]')).toBe('moveSelectedBesideActiveRight');
+    expect(resolveShortcutAction('alt+[')).toBe('moveSelectedBesideActiveLeft');
   });
 
   it('allows n to select its assigned tab when there is no saved search', async () => {
@@ -486,7 +488,8 @@ describe('Popup', () => {
       expect(within(help).getByText(/Move selection down\/up \(pages at edges\)/)).toBeTruthy();
       expect(within(help).getByText(/Enter search mode/)).toBeTruthy();
       expect(within(help).getByText(/Jump to next search match/)).toBeTruthy();
-      const keyLabel = within(help).getByText((content, element) =>
+      const moveHelp = within(help).getByText(/Move selected tab to the right\/left of current tab/).closest('li')!;
+      const keyLabel = within(moveHelp).getByText((content, element) =>
         element?.tagName === 'KBD' && element.textContent === ']'
       );
       expect(keyLabel.classList.contains('text-cyan-200')).toBe(true);
@@ -698,6 +701,71 @@ describe('Popup', () => {
 
     it('move selected tab to the left of current tab', async () => {
       await expectMoveSelectedTab('[', 'toTheLeft');
+    });
+
+    it('brings the selected tab next to the active tab with Alt-] and Alt-[ without activating it', async () => {
+      const _tabList: Tab[] = [...tabList,
+        { id: 4, title: 'Music', url: 'https://music.example.com', lastAccessed: 1500 }
+      ];
+      setup(_tabList);
+
+      await renderAndWait(presenter);
+      const state = presenter.tabManagementPresenter.s();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(_tabList[2].id)! });
+
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+      const help = within(await screen.findByRole('dialog', { name: 'Shortcut help' }))
+        .getByText(/next to the active tab without activating it/)
+        .closest('li')!;
+      const altLabels = within(help).getAllByText('Alt');
+      expect(altLabels.length).toBe(2);
+      expect(within(help).getByText(']')).toBeTruthy();
+      expect(within(help).getByText('[')).toBeTruthy();
+
+      fireEvent.keyDown(document, { key: ']', altKey: true });
+      await waitFor(() => {
+        expect(chrome.tabs.move).toHaveBeenCalledWith('toTheRight', _tabList[2].id);
+      });
+      expect(chrome.tabs.shift).not.toHaveBeenCalled();
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(document, { key: '[', altKey: true });
+      await waitFor(() => {
+        expect(chrome.tabs.move).toHaveBeenLastCalledWith('toTheLeft', _tabList[2].id);
+      });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+      expect(chrome.tabs.move).toHaveBeenCalledTimes(2);
+    });
+
+    it('moves the already active tab with Alt-] without activating or closing the popup', async () => {
+      const currentTab = tabList[1];
+      setup(tabList, currentTab);
+
+      await renderAndWaitForTitle(presenter, 'game');
+      fireEvent.keyDown(document, { key: presenter.tabManagementPresenter.s().tabKeyMap.get(currentTab.id)! });
+      expect(presenter.tabManagementPresenter.s().selectedTabId).toBe(currentTab.id);
+
+      fireEvent.keyDown(document, { key: ']', altKey: true });
+      await waitFor(() => {
+        expect(chrome.tabs.move).toHaveBeenCalledWith('toTheRight', currentTab.id);
+      });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+    });
+
+    it('does not move or append text when Alt-] is pressed in search mode', async () => {
+      setup();
+
+      await renderAndWait(presenter);
+      fireEvent.keyDown(document, { key: '/' });
+      fireEvent.keyDown(document, { key: ']', altKey: true });
+
+      expect(presenter.tabManagementPresenter.s().searchQuery).toBe('');
+      expect(chrome.tabs.move).not.toHaveBeenCalled();
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
     });
 
     it('moves the selected tab left and right with } and { without closing the popup', async () => {
