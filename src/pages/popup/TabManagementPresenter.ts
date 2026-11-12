@@ -279,35 +279,7 @@ class SearchKeyMode implements PopupKeyMode {
  * `n` falls through when there is no saved search so it can still select a tab.
  */
 class BrowseKeyMode implements PopupKeyMode {
-  private readonly actions: Record<ShortcutAction, () => KeyResult | Promise<KeyResult>>;
-
-  constructor(private readonly host: PopupKeyHost) {
-    this.actions = {
-      enterSearch: () => this.enterSearch(),
-      toggleShortcutHelp: () => this.toggleShortcutHelp(),
-      nextSearchMatch: () => this.nextSearchMatch(),
-      previousPage: () => this.previousPage(),
-      nextPage: () => this.nextPage(),
-      moveCurrentTabRight: () => this.moveCurrentTab('toTheRight'),
-      moveCurrentTabLeft: () => this.moveCurrentTab('toTheLeft'),
-      moveSelectedTabRightAndActivate: () => this.moveSelectedAndActivate('toTheRight'),
-      moveSelectedTabLeftAndActivate: () => this.moveSelectedAndActivate('toTheLeft'),
-      moveSelectedTabRight: () => this.moveSelectedTab('toTheRight'),
-      moveSelectedTabLeft: () => this.moveSelectedTab('toTheLeft'),
-      moveSelectedBesideActiveRight: () => this.moveSelectedBesideActive('toTheRight'),
-      moveSelectedBesideActiveLeft: () => this.moveSelectedBesideActive('toTheLeft'),
-      breakSelectedTabIntoWindow: () => this.breakSelectedTabIntoWindow(),
-      activateSelectedTab: () => this.activateSelectedTab(),
-      closeSelectedTab: () => this.closeSelectedTab(),
-      copySelectedTabUrl: () => this.copySelectedTabUrl(),
-      pasteUrlIntoSelectedTab: () => this.pasteUrlIntoSelectedTab(),
-      jumpToLastTab: () => this.jumpToEdge('last'),
-      jumpToFirstTab: () => this.jumpToEdge('first'),
-      toggleVimMode: () => this.toggleVimMode(),
-      moveSelectionDown: () => this.moveSelection(1),
-      moveSelectionUp: () => this.moveSelection(-1),
-    };
-  }
+  constructor(private readonly host: PopupKeyHost) {}
 
   handle(key: string): KeyResult | Promise<KeyResult> {
     if (key === 'escape' && this.host.s().showHelp) {
@@ -318,7 +290,58 @@ class BrowseKeyMode implements PopupKeyMode {
     if (!action) {
       return 'fallthrough';
     }
-    return this.actions[action]();
+    return this.dispatch(action);
+  }
+
+  private dispatch(action: ShortcutAction): KeyResult | Promise<KeyResult> {
+    switch (action) {
+      case 'enterSearch':
+        return this.enterSearch();
+      case 'toggleShortcutHelp':
+        return this.toggleShortcutHelp();
+      case 'nextSearchMatch':
+        return this.nextSearchMatch();
+      case 'previousPage':
+        return this.previousPage();
+      case 'nextPage':
+        return this.nextPage();
+      case 'moveCurrentTabRight':
+        return this.moveCurrentTab('toTheRight');
+      case 'moveCurrentTabLeft':
+        return this.moveCurrentTab('toTheLeft');
+      case 'moveSelectedTabRightAndActivate':
+        return this.moveSelectedAndActivate('toTheRight');
+      case 'moveSelectedTabLeftAndActivate':
+        return this.moveSelectedAndActivate('toTheLeft');
+      case 'moveSelectedTabRight':
+        return this.moveSelectedTab('toTheRight');
+      case 'moveSelectedTabLeft':
+        return this.moveSelectedTab('toTheLeft');
+      case 'moveSelectedBesideActiveRight':
+        return this.moveSelectedBesideActive('toTheRight');
+      case 'moveSelectedBesideActiveLeft':
+        return this.moveSelectedBesideActive('toTheLeft');
+      case 'breakSelectedTabIntoWindow':
+        return this.breakSelectedTabIntoWindow();
+      case 'activateSelectedTab':
+        return this.activateSelectedTab();
+      case 'closeSelectedTab':
+        return this.closeSelectedTab();
+      case 'copySelectedTabUrl':
+        return this.copySelectedTabUrl();
+      case 'pasteUrlIntoSelectedTab':
+        return this.pasteUrlIntoSelectedTab();
+      case 'jumpToLastTab':
+        return this.jumpToEdge('last');
+      case 'jumpToFirstTab':
+        return this.jumpToEdge('first');
+      case 'toggleVimMode':
+        return this.toggleVimMode();
+      case 'moveSelectionDown':
+        return this.moveSelection(1);
+      case 'moveSelectionUp':
+        return this.moveSelection(-1);
+    }
   }
 
   private async enterSearch(): Promise<KeyResult> {
