@@ -1,11 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Chrome, ChromeTabApi } from '@src/lib/Chrome';
+import { Chrome } from '@src/lib/Chrome';
 import { createMockChromeApi } from './MockChrome';
 
 function activateWithoutFocus(tabId: number): Promise<void> {
-  return (Chrome.tabs as ChromeTabApi & {
-    activateWithoutFocus(tabId: number): Promise<void>;
-  }).activateWithoutFocus(tabId);
+  return Chrome.tabs.activateWithoutFocus(tabId);
 }
 
 describe('ChromeAPI', () => {

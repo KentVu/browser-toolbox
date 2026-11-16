@@ -31,6 +31,7 @@ export type ShortcutAction =
   | 'moveSelectedBesideActiveLeft'
   | 'breakSelectedTabIntoWindow'
   | 'activateSelectedTab'
+  | 'activateSelectedTabWithoutFocus'
   | 'closeSelectedTab'
   | 'copySelectedTabUrl'
   | 'pasteUrlIntoSelectedTab'
@@ -58,6 +59,7 @@ const shortcutActionByKey: Record<string, ShortcutAction> = {
   'alt+[': 'moveSelectedBesideActiveLeft',
   '!': 'breakSelectedTabIntoWindow',
   enter: 'activateSelectedTab',
+  Enter: 'activateSelectedTabWithoutFocus',
   x: 'closeSelectedTab',
   'ctrl+w': 'closeSelectedTab',
   'ctrl+c': 'copySelectedTabUrl',
@@ -325,6 +327,8 @@ class BrowseKeyMode implements PopupKeyMode {
         return this.breakSelectedTabIntoWindow();
       case 'activateSelectedTab':
         return this.activateSelectedTab();
+      case 'activateSelectedTabWithoutFocus':
+        return this.activateSelectedTabWithoutFocus();
       case 'closeSelectedTab':
         return this.closeSelectedTab();
       case 'copySelectedTabUrl':
@@ -433,6 +437,12 @@ class BrowseKeyMode implements PopupKeyMode {
     return this.withSelectedTabId(async (selectedTabId) => {
       await this.host.chrome.tabs.activate(selectedTabId);
       this.host.chrome.closePopup();
+    });
+  }
+
+  private activateSelectedTabWithoutFocus(): Promise<KeyResult> {
+    return this.withSelectedTabId(async (selectedTabId) => {
+      await this.host.chrome.tabs.activateWithoutFocus(selectedTabId);
     });
   }
 

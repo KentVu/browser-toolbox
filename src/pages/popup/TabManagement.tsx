@@ -348,6 +348,7 @@ function TabManagement({ presenter }: TabManagementProps) {
                             <li><kbd className={keyLabelClass}>&lt;</kbd>/<kbd className={keyLabelClass}>&gt;</kbd>: Move the active tab left/right</li>
                             <li><kbd className={keyLabelClass}>!</kbd>: Break selected tab into a new window</li>
                             <li><kbd className={keyLabelClass}>Enter</kbd>: Activate tab</li>
+                            <li><kbd className={keyLabelClass}>Shift</kbd>+<kbd className={keyLabelClass}>Enter</kbd>: Show the selected tab in its window without focusing it</li>
                             <li><kbd className={keyLabelClass}>v</kbd>: Enable Vim mode on the current page</li>
                             <li><kbd className={keyLabelClass}>x</kbd> / <kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>w</kbd>: Close selected tab</li>
                             <li><kbd className={keyLabelClass}>Ctrl</kbd>+<kbd className={keyLabelClass}>c</kbd>: Copy selected tab URL</li>
