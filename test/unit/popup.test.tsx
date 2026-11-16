@@ -24,8 +24,8 @@ describe('Popup shortcut actions', () => {
     expect(resolveShortcutAction('v')).toBe('toggleVimMode');
     expect(resolveShortcutAction('alt+]')).toBe('moveSelectedBesideActiveRight');
     expect(resolveShortcutAction('alt+[')).toBe('moveSelectedBesideActiveLeft');
-    // Shift+Enter reaches the presenter as event.key ("Enter"), not "enter".
-    expect(resolveShortcutAction('Enter')).toBe('activateSelectedTabWithoutFocus');
+    expect(resolveShortcutAction('shift+enter')).toBe('activateSelectedTabWithoutFocus');
+    expect(resolveShortcutAction('Enter')).toBeUndefined();
   });
 
   it('allows n to select its assigned tab when there is no saved search', async () => {
@@ -582,7 +582,7 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: 'Enter', shiftKey: true });
 
       await waitFor(() => {
-        expect(activateWithoutFocusOf(chrome)).toHaveBeenCalledWith(tabList[1].id);
+        expect(chrome.tabs.activateWithoutFocus).toHaveBeenCalledWith(tabList[1].id);
       });
       expect(chrome.tabs.activate).not.toHaveBeenCalled();
       expect(chrome.closePopup).not.toHaveBeenCalled();
@@ -595,7 +595,7 @@ describe('Popup', () => {
       fireEvent.keyDown(document, { key: '/' });
       fireEvent.keyDown(document, { key: 'Enter', shiftKey: true });
 
-      expect(activateWithoutFocusOf(chrome)).not.toHaveBeenCalled();
+      expect(chrome.tabs.activateWithoutFocus).not.toHaveBeenCalled();
       expect(chrome.tabs.activate).not.toHaveBeenCalled();
       expect(chrome.closePopup).not.toHaveBeenCalled();
     });
@@ -1663,10 +1663,6 @@ describe('Popup', () => {
     }
   });
 });
-
-function activateWithoutFocusOf(chrome: { tabs: object }) {
-  return (chrome.tabs as { activateWithoutFocus: ReturnType<typeof vi.fn> }).activateWithoutFocus;
-}
 
 async function renderAndWait(
   presenter: PopupPresenter,

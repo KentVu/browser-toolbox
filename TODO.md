@@ -43,6 +43,7 @@ _(items moved to Features (Behaviour) / Search enhancements below)_
 - [ ] Eliminate duplicates in UI Text by introducing i18n.
 - [ ] Support navigating between search match while typing in search (in search mode). (While in search mode, up/down navigating between current matches)
 - [ ] `(`, `)` move **current tab** next to left/right of selected tab.
+- [ ] Temporary disable key function in Help box. (like: press any key to close)
 
 ### Search enhancements
 - [ ] Search backward with `N` (Shift-n)

@@ -59,7 +59,7 @@ const shortcutActionByKey: Record<string, ShortcutAction> = {
   'alt+[': 'moveSelectedBesideActiveLeft',
   '!': 'breakSelectedTabIntoWindow',
   enter: 'activateSelectedTab',
-  Enter: 'activateSelectedTabWithoutFocus',
+  'shift+enter': 'activateSelectedTabWithoutFocus',
   x: 'closeSelectedTab',
   'ctrl+w': 'closeSelectedTab',
   'ctrl+c': 'copySelectedTabUrl',
