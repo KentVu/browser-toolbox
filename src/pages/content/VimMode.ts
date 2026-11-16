@@ -280,7 +280,7 @@ export class VimMode {
     if (index < HINT_KEYS.length) {
       return HINT_KEYS[index];
     }
-    let remainder = index - HINT_KEYS.length;
+    let remainder = index;
     let label = '';
     do {
       label = HINT_KEYS[remainder % HINT_KEYS.length] + label;
