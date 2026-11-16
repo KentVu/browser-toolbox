@@ -102,6 +102,57 @@ describe('VimMode', () => {
     expect(browser.clipboard.writeText).toHaveBeenCalledWith('Save draft');
   });
 
+  it('assigns unique labels when there are more than 26 clickable elements', () => {
+    for (let index = 0; index < 27; index += 1) {
+      document.body.appendChild(visibleElement('button'));
+    }
+    const mode = new VimMode(document);
+
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', bubbles: true }));
+
+    const host = document.querySelector('html > div') as HTMLDivElement;
+    const labels = [...host.shadowRoot!.querySelectorAll('.hint')].map(hint => hint.textContent);
+    expect(labels).toHaveLength(27);
+    expect(new Set(labels).size).toBe(27);
+    expect(labels[26]).toBe('aa');
+  });
+
+  it('activates a clickable element whose label follows the first 26', () => {
+    const buttons = Array.from({ length: 27 }, () => visibleElement('button'));
+    buttons.forEach(button => document.body.appendChild(button));
+    const clicked = buttons.map(button => vi.spyOn(button, 'click'));
+    const mode = new VimMode(document);
+
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(clicked[0]).not.toHaveBeenCalled();
+    expect(clicked[26]).toHaveBeenCalledOnce();
+  });
+
+  it('copies a clickable element whose label follows the first 26', () => {
+    const links = Array.from({ length: 27 }, (_, index) => {
+      const link = visibleElement('a');
+      link.href = `https://example.com/${index}`;
+      document.body.appendChild(link);
+      return link;
+    });
+    const browser = createMockBrowserApi();
+    const mode = new VimMode(document, browser);
+
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true }));
+
+    expect(browser.clipboard.writeText).toHaveBeenCalledWith('https://example.com/26');
+  });
+
   it('does not copy when no clickable element is selected', () => {
     const link = visibleElement('a');
     link.href = 'https://example.com/destination';
