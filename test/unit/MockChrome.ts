@@ -23,6 +23,9 @@ export function createMockChromeApi(tabs: Tab[] = [], currentTab?: Tab): ChromeA
     toggleVimMode: vi.fn().mockResolvedValue(true),
     getVimModeEnabled: vi.fn().mockResolvedValue(false),
   };
+  Object.assign(mockTabs, {
+    activateWithoutFocus: vi.fn().mockResolvedValue(undefined),
+  });
 
   return {
     tabs: mockTabs,
