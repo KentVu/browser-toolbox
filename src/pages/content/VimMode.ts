@@ -113,8 +113,7 @@ export class VimMode {
     this.hintsVisible = true;
     this.typedLabel = '';
     this.hintContainer.replaceChildren();
-    this.hints = [...this.page.querySelectorAll<HTMLElement>(CLICKABLE_SELECTOR)]
-      .filter(element => this.isVisible(element) && !this.host?.contains(element))
+    this.hints = this.visibleClickableElements()
       .map((element, index) => {
         const badge = this.page.createElement('span');
         badge.className = 'hint';
@@ -127,6 +126,11 @@ export class VimMode {
     this.page.addEventListener('scroll', this.updateHintPositions, true);
     this.page.defaultView?.addEventListener('resize', this.updateHintPositions);
     this.updateStatus();
+  }
+
+  private visibleClickableElements(): HTMLElement[] {
+    return [...this.page.querySelectorAll<HTMLElement>(CLICKABLE_SELECTOR)]
+      .filter(element => this.isVisible(element) && !this.host?.contains(element));
   }
 
   private hideHints(): void {
@@ -176,19 +180,27 @@ export class VimMode {
     if (this.isEditable(event.target)) {
       return;
     }
-    if (!this.hintsVisible) {
-      if (this.isPlainKey(event, 'f')) {
-        event.preventDefault();
-        this.showHints();
-        return;
-      }
-      if (this.isPlainKey(event, 'u') || this.isPlainKey(event, 'd')) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.scrollHalfPage(event.key.toLowerCase() === 'd');
-      }
+    if (this.hintsVisible) {
+      this.onHintKeyDown(event);
       return;
     }
+    this.onModeKeyDown(event);
+  };
+
+  private onModeKeyDown(event: KeyboardEvent): void {
+    if (this.isPlainKey(event, 'f')) {
+      event.preventDefault();
+      this.showHints();
+      return;
+    }
+    if (this.isPlainKey(event, 'u') || this.isPlainKey(event, 'd')) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.scrollHalfPage(event.key.toLowerCase() === 'd');
+    }
+  }
+
+  private onHintKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
       event.stopPropagation();
@@ -215,15 +227,20 @@ export class VimMode {
     event.preventDefault();
     event.stopPropagation();
     this.typedLabel += event.key.toLowerCase();
-    const possibleHints = this.hints.filter(hint => hint.label.startsWith(this.typedLabel));
-    if (possibleHints.length === 0) {
+    const hasPossibleHint = this.hints.some(hint => hint.label.startsWith(this.typedLabel));
+    if (!hasPossibleHint) {
       this.typedLabel = '';
+      this.updateHintOpacities();
       return;
     }
+    this.updateHintOpacities();
+  }
+
+  private updateHintOpacities(): void {
     for (const hint of this.hints) {
       hint.badge.style.opacity = hint.label.startsWith(this.typedLabel) ? '1' : '0.35';
     }
-  };
+  }
 
   private selectedHint(): Hint | undefined {
     if (!this.typedLabel) {
@@ -280,7 +297,8 @@ export class VimMode {
     if (index < HINT_KEYS.length) {
       return HINT_KEYS[index];
     }
-    let remainder = index - HINT_KEYS.length;
+    // Continue with bijective base-N labels so the next hint is "aa".
+    let remainder = index;
     let label = '';
     do {
       label = HINT_KEYS[remainder % HINT_KEYS.length] + label;
