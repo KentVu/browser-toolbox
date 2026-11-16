@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VimMode } from '@pages/content/VimMode';
 import { createMockBrowserApi } from './MockBrowser';
 
+const initialInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+
 afterEach(() => {
   vi.restoreAllMocks();
   document.body.replaceChildren();
@@ -11,6 +13,11 @@ afterEach(() => {
       element.remove();
     }
   });
+  if (initialInnerHeight) {
+    Object.defineProperty(window, 'innerHeight', initialInnerHeight);
+  } else {
+    Reflect.deleteProperty(window, 'innerHeight');
+  }
 });
 
 function visibleElement<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElementTagNameMap[K] {
@@ -150,6 +157,7 @@ describe('VimMode', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true }));
 
+    expect(browser.clipboard.writeText).toHaveBeenCalledTimes(1);
     expect(browser.clipboard.writeText).toHaveBeenCalledWith('https://example.com/26');
   });
 
