@@ -12,6 +12,7 @@ export abstract class ChromeTabApi {
     abstract get(): Promise<Tab[]>;
     abstract getCurrent(): Promise<Tab | undefined>;
     abstract activate(tabId: number): Promise<void>;
+    abstract activateWithoutFocus(tabId: number): Promise<void>;
     abstract move(direction: MoveTabDirection, tabId: number): Promise<void>;
     /** Move `tabId` one index left or right inside its own window. */
     abstract shift(direction: MoveTabDirection, tabId: number): Promise<void>;
@@ -78,15 +79,24 @@ class DefaultTabs extends ChromeTabApi {
             active: tab.active,
         };
     }
-    async activate(tabId: number): Promise<void> {
+    private async activateTab(tabId: number, focusWindow: boolean): Promise<void> {
         const tab = await chrome.tabs.get(tabId);
         await chrome.tabs.update(tabId, { active: true });
-        await chrome.windows.update(tab.windowId, { focused: true });
-        // Memory Saver / discarded tabs can stay blank after API activation;
-        // native Chrome tab switching reloads them — mirror that here.
+        if (focusWindow) {
+            await chrome.windows.update(tab.windowId, { focused: true });
+        }
+        // Discarded tabs may stay blank after activation; mirror native tab switching.
         if (tab.discarded) {
             await chrome.tabs.reload(tabId);
         }
+    }
+
+    async activate(tabId: number): Promise<void> {
+        await this.activateTab(tabId, true);
+    }
+
+    async activateWithoutFocus(tabId: number): Promise<void> {
+        await this.activateTab(tabId, false);
     }
 
     async move(direction: MoveTabDirection, tabId: number): Promise<void> {

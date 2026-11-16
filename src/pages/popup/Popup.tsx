@@ -24,7 +24,10 @@ export default function Popup({ presenter }: PopupProps) {
         key = `ctrl+${pressed}`;
       } else if (event.altKey) {
         key = `alt+${pressed}`;
+      } else if (event.shiftKey && pressed === 'enter') {
+        key = 'shift+enter';
       } else if (event.shiftKey) {
+        // Preserve existing uppercase letter shortcuts such as J and K.
         key = event.key;
       } else {
         key = pressed;

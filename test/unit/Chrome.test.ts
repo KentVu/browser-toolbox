@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chrome } from '@src/lib/Chrome';
 import { createMockChromeApi } from './MockChrome';
 
+function activateWithoutFocus(tabId: number): Promise<void> {
+  return Chrome.tabs.activateWithoutFocus(tabId);
+}
+
 describe('ChromeAPI', () => {
   describe('tabs', () => {
     it('getByLastAccessed', async () => {
@@ -82,6 +86,51 @@ describe('ChromeAPI', () => {
         expect(get).toHaveBeenCalledWith(42);
         expect(update).toHaveBeenCalledWith(42, { active: true });
         expect(windowsUpdate).toHaveBeenCalledWith(7, { focused: true });
+        expect(reload).toHaveBeenCalledWith(42);
+      });
+    });
+
+    describe('activateWithoutFocus', () => {
+      const originalChrome = (globalThis as any).chrome;
+
+      afterEach(() => {
+        (globalThis as any).chrome = originalChrome;
+      });
+
+      it('activates the tab in its window without focusing that window', async () => {
+        const get = vi.fn().mockResolvedValue({ id: 42, windowId: 7, discarded: false });
+        const update = vi.fn().mockResolvedValue({});
+        const reload = vi.fn().mockResolvedValue({});
+        const windowsUpdate = vi.fn().mockResolvedValue({});
+
+        (globalThis as any).chrome = {
+          tabs: { get, update, reload },
+          windows: { update: windowsUpdate },
+        };
+
+        await activateWithoutFocus(42);
+
+        expect(get).toHaveBeenCalledWith(42);
+        expect(update).toHaveBeenCalledWith(42, { active: true });
+        expect(windowsUpdate).not.toHaveBeenCalled();
+        expect(reload).not.toHaveBeenCalled();
+      });
+
+      it('reloads a discarded tab after making it visible so Chrome restores its content', async () => {
+        const get = vi.fn().mockResolvedValue({ id: 42, windowId: 7, discarded: true });
+        const update = vi.fn().mockResolvedValue({});
+        const reload = vi.fn().mockResolvedValue({});
+        const windowsUpdate = vi.fn().mockResolvedValue({});
+
+        (globalThis as any).chrome = {
+          tabs: { get, update, reload },
+          windows: { update: windowsUpdate },
+        };
+
+        await activateWithoutFocus(42);
+
+        expect(update).toHaveBeenCalledWith(42, { active: true });
+        expect(windowsUpdate).not.toHaveBeenCalled();
         expect(reload).toHaveBeenCalledWith(42);
       });
     });

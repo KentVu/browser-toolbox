@@ -24,6 +24,8 @@ describe('Popup shortcut actions', () => {
     expect(resolveShortcutAction('v')).toBe('toggleVimMode');
     expect(resolveShortcutAction('alt+]')).toBe('moveSelectedBesideActiveRight');
     expect(resolveShortcutAction('alt+[')).toBe('moveSelectedBesideActiveLeft');
+    expect(resolveShortcutAction('shift+enter')).toBe('activateSelectedTabWithoutFocus');
+    expect(resolveShortcutAction('Enter')).toBeUndefined();
   });
 
   it('allows n to select its assigned tab when there is no saved search', async () => {
@@ -569,6 +571,46 @@ describe('Popup', () => {
 
       expect(chrome.tabs.activate).toHaveBeenCalledWith(tabList[1].id);
       await waitFor(() => expect(chrome.closePopup).toHaveBeenCalled());
+    });
+
+    it('shows the selected tab in its window on Shift+Enter without focusing or closing the popup', async () => {
+      setup();
+
+      await renderAndWait(presenter);
+      const state = presenter.tabManagementPresenter.s();
+      fireEvent.keyDown(document, { key: state.tabKeyMap.get(tabList[1].id)! });
+      fireEvent.keyDown(document, { key: 'Enter', shiftKey: true });
+
+      await waitFor(() => {
+        expect(chrome.tabs.activateWithoutFocus).toHaveBeenCalledWith(tabList[1].id);
+      });
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+    });
+
+    it('does not show the selected tab when Shift+Enter is pressed in search mode', async () => {
+      setup();
+
+      await renderAndWait(presenter);
+      fireEvent.keyDown(document, { key: '/' });
+      fireEvent.keyDown(document, { key: 'Enter', shiftKey: true });
+
+      expect(chrome.tabs.activateWithoutFocus).not.toHaveBeenCalled();
+      expect(chrome.tabs.activate).not.toHaveBeenCalled();
+      expect(chrome.closePopup).not.toHaveBeenCalled();
+    });
+
+    it('documents Shift+Enter as showing the selected tab without focusing its window', async () => {
+      setup();
+
+      await renderAndWait(presenter);
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
+
+      const help = within(await screen.findByRole('dialog', { name: 'Shortcut help' }))
+        .getByText(/Show the selected tab in its window without focusing it/)
+        .closest('li')!;
+      expect(within(help).getByText('Shift')).toBeTruthy();
+      expect(within(help).getByText('Enter')).toBeTruthy();
     });
 
     it('closes the selected tab when Ctrl-W is pressed and refreshes the list', async () => {
