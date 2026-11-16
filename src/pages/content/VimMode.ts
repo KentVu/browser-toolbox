@@ -218,6 +218,9 @@ export class VimMode {
     const possibleHints = this.hints.filter(hint => hint.label.startsWith(this.typedLabel));
     if (possibleHints.length === 0) {
       this.typedLabel = '';
+      for (const hint of this.hints) {
+        hint.badge.style.opacity = '1';
+      }
       return;
     }
     for (const hint of this.hints) {
