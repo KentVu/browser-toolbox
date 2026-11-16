@@ -153,6 +153,24 @@ describe('VimMode', () => {
     expect(browser.clipboard.writeText).toHaveBeenCalledWith('https://example.com/26');
   });
 
+  it('restores all hint badges after an invalid label key', () => {
+    document.body.appendChild(visibleElement('button'));
+    document.body.appendChild(visibleElement('button'));
+    const mode = new VimMode(document);
+
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+
+    const host = document.querySelector('html > div') as HTMLDivElement;
+    const badges = [...host.shadowRoot!.querySelectorAll<HTMLElement>('.hint')];
+    expect(badges.map(badge => badge.style.opacity)).toEqual(['1', '0.35']);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }));
+
+    expect(badges.map(badge => badge.style.opacity)).toEqual(['1', '1']);
+  });
+
   it('does not copy when no clickable element is selected', () => {
     const link = visibleElement('a');
     link.href = 'https://example.com/destination';
