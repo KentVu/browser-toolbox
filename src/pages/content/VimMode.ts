@@ -149,7 +149,7 @@ export class VimMode {
     }
     this.statusButton.textContent = this.hintsVisible
       ? 'Vim mode · type a hint + Enter or Ctrl-C · Esc to hide'
-      : 'Vim mode ON · u/d half a page · f for links · click to turn off';
+      : 'Vim mode ON · h/l half a page horizontally, u/d half a page · f for links · click to turn off';
   }
 
   private updateHintPositions = (): void => {
@@ -197,6 +197,12 @@ export class VimMode {
       event.preventDefault();
       event.stopPropagation();
       this.scrollHalfPage(event.key.toLowerCase() === 'd');
+      return;
+    }
+    if (this.isPlainKey(event, 'h') || this.isPlainKey(event, 'l')) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.scrollHalfPageHorizontally(event.key.toLowerCase() === 'l');
     }
   }
 
@@ -256,6 +262,15 @@ export class VimMode {
     }
     const distance = view.innerHeight / 2;
     view.scrollBy(0, down ? distance : -distance);
+  }
+
+  private scrollHalfPageHorizontally(right: boolean): void {
+    const view = this.page.defaultView;
+    if (!view) {
+      return;
+    }
+    const distance = view.innerWidth / 2;
+    view.scrollBy(right ? distance : -distance, 0);
   }
 
   private isPlainKey(event: KeyboardEvent, key: string): boolean {
