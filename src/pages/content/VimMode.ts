@@ -2,6 +2,8 @@ import type { BrowserApi } from '@src/lib/Browser';
 import { Browser } from '@src/lib/Browser';
 
 const HINT_KEYS = 'asdfghjklqwertyuiopzxcvbnm';
+const SCROLL_STEP = 40;
+const SCROLLABLE_OVERFLOW = /^(auto|scroll|overlay)$/;
 const CLICKABLE_SELECTOR = [
   'a[href]',
   'button',
@@ -28,6 +30,8 @@ export class VimMode {
   private hintContainer: HTMLDivElement | undefined;
   private statusButton: HTMLButtonElement | undefined;
   private hints: Hint[] = [];
+  private hintMode: 'click' | 'scroll' = 'click';
+  private scrollTarget: HTMLElement | null = null;
 
   constructor(
     private readonly page: Document,
@@ -97,6 +101,7 @@ export class VimMode {
     this.hintsVisible = false;
     this.typedLabel = '';
     this.hints = [];
+    this.scrollTarget = null;
     this.page.removeEventListener('keydown', this.onKeyDown, true);
     this.page.removeEventListener('scroll', this.updateHintPositions, true);
     this.page.defaultView?.removeEventListener('resize', this.updateHintPositions);
@@ -112,6 +117,7 @@ export class VimMode {
     }
     this.hintsVisible = true;
     this.typedLabel = '';
+    this.hintMode = 'click';
     this.hintContainer.replaceChildren();
     this.hints = this.visibleClickableElements()
       .map((element, index) => {
@@ -128,9 +134,44 @@ export class VimMode {
     this.updateStatus();
   }
 
+  private showScrollTargets(): void {
+    if (!this.active || !this.hintContainer) {
+      return;
+    }
+    this.hintsVisible = true;
+    this.typedLabel = '';
+    this.hintMode = 'scroll';
+    this.hintContainer.replaceChildren();
+    const targets = [
+      this.page.documentElement,
+      ...this.visibleScrollableElements(),
+    ];
+    this.hints = targets.map((element, index) => {
+      const badge = this.page.createElement('span');
+      badge.className = 'hint';
+      const label = this.labelForScrollTarget(index, targets.length);
+      badge.textContent = label;
+      this.hintContainer?.appendChild(badge);
+      return { element, label, badge };
+    });
+    this.updateHintPositions();
+    this.page.addEventListener('scroll', this.updateHintPositions, true);
+    this.page.defaultView?.addEventListener('resize', this.updateHintPositions);
+    this.updateStatus();
+  }
+
   private visibleClickableElements(): HTMLElement[] {
     return [...this.page.querySelectorAll<HTMLElement>(CLICKABLE_SELECTOR)]
       .filter(element => this.isVisible(element) && !this.host?.contains(element));
+  }
+
+  private visibleScrollableElements(): HTMLElement[] {
+    return [...this.page.querySelectorAll<HTMLElement>('*')]
+      .filter(element => element !== this.page.body
+        && element !== this.page.documentElement
+        && !this.host?.contains(element)
+        && this.isVisible(element, false)
+        && this.isScrollable(element));
   }
 
   private hideHints(): void {
@@ -147,13 +188,25 @@ export class VimMode {
     if (!this.statusButton) {
       return;
     }
-    this.statusButton.textContent = this.hintsVisible
-      ? 'Vim mode · type a hint + Enter or Ctrl-C · Esc to hide'
-      : 'Vim mode ON · h/l half a page horizontally, u/d half a page · f for links · click to turn off';
+    if (this.hintsVisible) {
+      this.statusButton.textContent = this.hintMode === 'scroll'
+        ? 'Vim mode · choose a scroll target · Esc to cancel'
+        : 'Vim mode · type a hint + Enter or Ctrl-C · Esc to hide';
+      return;
+    }
+    const targetName = this.scrollTarget
+      ? this.scrollTarget.id || this.scrollTarget.tagName.toLowerCase()
+      : 'page';
+    this.statusButton.textContent = `Vim mode ON · target: ${targetName} · j/k one step, u/d half a page, h/l half a page horizontally · w choose target, f links · click to turn off`;
   }
 
   private updateHintPositions = (): void => {
     for (const hint of this.hints) {
+      if (this.hintMode === 'scroll' && hint.element === this.page.documentElement) {
+        hint.badge.style.left = '12px';
+        hint.badge.style.top = '12px';
+        continue;
+      }
       const rect = hint.element.getBoundingClientRect();
       hint.badge.style.left = `${Math.max(0, rect.left)}px`;
       hint.badge.style.top = `${Math.max(0, rect.top)}px`;
@@ -193,10 +246,22 @@ export class VimMode {
       this.showHints();
       return;
     }
+    if (this.isPlainKey(event, 'w')) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.showScrollTargets();
+      return;
+    }
     if (this.isPlainKey(event, 'u') || this.isPlainKey(event, 'd')) {
       event.preventDefault();
       event.stopPropagation();
       this.scrollHalfPage(event.key.toLowerCase() === 'd');
+      return;
+    }
+    if (this.isPlainKey(event, 'j') || this.isPlainKey(event, 'k')) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.scrollVertically(this.isPlainKey(event, 'j') ? SCROLL_STEP : -SCROLL_STEP);
       return;
     }
     if (this.isPlainKey(event, 'h') || this.isPlainKey(event, 'l')) {
@@ -210,13 +275,15 @@ export class VimMode {
     if (event.key === 'Enter') {
       event.preventDefault();
       event.stopPropagation();
-      this.selectedHint()?.element.click();
+      if (this.hintMode === 'click') {
+        this.selectedHint()?.element.click();
+      }
       this.hideHints();
       return;
     }
     if (this.isCopyShortcut(event)) {
       const selected = this.selectedHint();
-      if (!selected) {
+      if (!selected || this.hintMode !== 'click') {
         return;
       }
       event.preventDefault();
@@ -240,6 +307,15 @@ export class VimMode {
       return;
     }
     this.updateHintOpacities();
+    if (this.hintMode === 'scroll') {
+      const selected = this.selectedHint();
+      if (selected) {
+        this.scrollTarget = selected.element === this.page.documentElement
+          ? null
+          : selected.element;
+        this.hideHints();
+      }
+    }
   }
 
   private updateHintOpacities(): void {
@@ -260,8 +336,9 @@ export class VimMode {
     if (!view) {
       return;
     }
-    const distance = view.innerHeight / 2;
-    view.scrollBy(0, down ? distance : -distance);
+    const target = this.scrollTarget?.isConnected ? this.scrollTarget : null;
+    const distance = (target?.clientHeight ?? view.innerHeight) / 2;
+    this.scrollVertically(down ? distance : -distance);
   }
 
   private scrollHalfPageHorizontally(right: boolean): void {
@@ -269,8 +346,25 @@ export class VimMode {
     if (!view) {
       return;
     }
-    const distance = view.innerWidth / 2;
-    view.scrollBy(right ? distance : -distance, 0);
+    const target = this.scrollTarget?.isConnected ? this.scrollTarget : null;
+    const distance = (target?.clientWidth ?? view.innerWidth) / 2;
+    this.scrollHorizontally(right ? distance : -distance);
+  }
+
+  private scrollVertically(distance: number): void {
+    if (this.scrollTarget?.isConnected) {
+      this.scrollTarget.scrollBy(0, distance);
+      return;
+    }
+    this.page.defaultView?.scrollBy(0, distance);
+  }
+
+  private scrollHorizontally(distance: number): void {
+    if (this.scrollTarget?.isConnected) {
+      this.scrollTarget.scrollBy(distance, 0);
+      return;
+    }
+    this.page.defaultView?.scrollBy(distance, 0);
   }
 
   private isPlainKey(event: KeyboardEvent, key: string): boolean {
@@ -297,15 +391,24 @@ export class VimMode {
       || target.closest('input, textarea, select, [contenteditable="true"]') !== null;
   }
 
-  private isVisible(element: HTMLElement): boolean {
+  private isVisible(element: HTMLElement, requireEnabled = true): boolean {
     const rect = element.getBoundingClientRect();
     const style = this.page.defaultView?.getComputedStyle(element);
     return rect.width > 0
       && rect.height > 0
       && style?.visibility !== 'hidden'
       && style?.display !== 'none'
-      && !element.hasAttribute('disabled')
-      && element.getAttribute('aria-disabled') !== 'true';
+      && (!requireEnabled
+        || (!element.hasAttribute('disabled') && element.getAttribute('aria-disabled') !== 'true'));
+  }
+
+  private isScrollable(element: HTMLElement): boolean {
+    const style = this.page.defaultView?.getComputedStyle(element);
+    const scrollableVertically = SCROLLABLE_OVERFLOW.test(style?.overflowY || style?.overflow || '')
+      && element.scrollHeight > element.clientHeight;
+    const scrollableHorizontally = SCROLLABLE_OVERFLOW.test(style?.overflowX || style?.overflow || '')
+      && element.scrollWidth > element.clientWidth;
+    return scrollableVertically || scrollableHorizontally;
   }
 
   private labelFor(index: number): string {
@@ -319,6 +422,17 @@ export class VimMode {
       label = HINT_KEYS[remainder % HINT_KEYS.length] + label;
       remainder = Math.floor(remainder / HINT_KEYS.length) - 1;
     } while (remainder >= 0);
+    return label;
+  }
+
+  private labelForScrollTarget(index: number, count: number): string {
+    const length = Math.max(1, Math.ceil(Math.log(count) / Math.log(HINT_KEYS.length)));
+    let remainder = index;
+    let label = '';
+    for (let position = 0; position < length; position += 1) {
+      label = HINT_KEYS[remainder % HINT_KEYS.length] + label;
+      remainder = Math.floor(remainder / HINT_KEYS.length);
+    }
     return label;
   }
 }
