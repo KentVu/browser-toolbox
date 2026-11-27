@@ -3,6 +3,7 @@ import { VimMode } from '@pages/content/VimMode';
 import { createMockBrowserApi } from './MockBrowser';
 
 const initialInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+const initialInnerWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth');
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -17,6 +18,11 @@ afterEach(() => {
     Object.defineProperty(window, 'innerHeight', initialInnerHeight);
   } else {
     Reflect.deleteProperty(window, 'innerHeight');
+  }
+  if (initialInnerWidth) {
+    Object.defineProperty(window, 'innerWidth', initialInnerWidth);
+  } else {
+    Reflect.deleteProperty(window, 'innerWidth');
   }
 });
 
@@ -227,6 +233,28 @@ describe('VimMode', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'u', bubbles: true }));
 
     expect(scrollBy).toHaveBeenCalledWith(0, -400);
+  });
+
+  it('scrolls left half a page when h is pressed with hints hidden', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(-400, 0);
+  });
+
+  it('scrolls right half a page when l is pressed with hints hidden', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'l', bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(400, 0);
   });
 
   it('does not scroll when d types a hint', () => {
