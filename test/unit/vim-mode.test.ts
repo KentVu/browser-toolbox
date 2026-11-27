@@ -266,6 +266,26 @@ describe('VimMode', () => {
     expect(scrollBy).toHaveBeenCalledWith(400, 0);
   });
 
+  it('scrolls down one step when j is pressed with hints hidden', () => {
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(0, 40);
+  });
+
+  it('scrolls up one step when k is pressed with hints hidden', () => {
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(0, -40);
+  });
+
   it('shows a label for the viewport and each visible scrollable element when w is pressed', () => {
     const scrollable = scrollableElement();
     const notScrollable = visibleElement('div');
