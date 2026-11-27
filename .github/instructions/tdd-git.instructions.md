@@ -1,5 +1,6 @@
 ---
 description: "Use when changing behavior, committing, branching, merging, or pushing in this repo. Requires a feature branch, separate TDD red/green/refactor commits, a pull request at the red step so GitHub Actions records the failing tests, a no-ff merge commit, and a history-preserving push."
+applyTo: "**"
 ---
 # TDD git scheme
 
