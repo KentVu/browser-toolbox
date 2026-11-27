@@ -42,6 +42,15 @@ function visibleElement<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElem
   return element;
 }
 
+function scrollableElement(): HTMLDivElement {
+  const element = visibleElement('div');
+  element.style.overflowY = 'auto';
+  Object.defineProperty(element, 'scrollHeight', { configurable: true, value: 600 });
+  Object.defineProperty(element, 'clientHeight', { configurable: true, value: 200 });
+  element.scrollBy = vi.fn();
+  return element;
+}
+
 describe('VimMode', () => {
   it('toggles Vim mode off when called while already active', () => {
     const mode = new VimMode(document);
@@ -255,6 +264,54 @@ describe('VimMode', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'l', bubbles: true }));
 
     expect(scrollBy).toHaveBeenCalledWith(400, 0);
+  });
+
+  it('shows a label for the viewport and each visible scrollable element when w is pressed', () => {
+    const scrollable = scrollableElement();
+    const notScrollable = visibleElement('div');
+    const hiddenScrollable = scrollableElement();
+    hiddenScrollable.style.display = 'none';
+    document.body.append(scrollable, notScrollable, hiddenScrollable);
+    const mode = new VimMode(document);
+    mode.enable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true }));
+
+    const host = document.querySelector('html > div') as HTMLDivElement;
+    const labels = [...host.shadowRoot!.querySelectorAll('.hint')].map(hint => hint.textContent);
+    expect(labels).toEqual(['a', 's']);
+  });
+
+  it('selects a scrollable element as the target as soon as its label is typed', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const scrollable = scrollableElement();
+    document.body.appendChild(scrollable);
+    const windowScrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true }));
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true }));
+
+    expect(scrollable.scrollBy).toHaveBeenCalledWith(0, 100);
+    expect(windowScrollBy).not.toHaveBeenCalled();
+  });
+
+  it('allows selecting the viewport as a scroll target without pressing Enter', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const mode = new VimMode(document);
+    mode.enable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true }));
+
+    const host = document.querySelector('html > div') as HTMLDivElement;
+    expect(host.shadowRoot!.querySelectorAll('.hint')).toHaveLength(1);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    expect(host.shadowRoot!.querySelector('.hint')).toBeNull();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(0, 400);
   });
 
   it('does not scroll when d types a hint', () => {
